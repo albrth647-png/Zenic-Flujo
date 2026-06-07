@@ -1,70 +1,482 @@
-// Workflow Determinista — Editor JS
-let stepCounter = 0;
+// Zenic-Flijo — Editor JS (Enhanced)
 
+// ── Tool/Action mapping ────────────────────────────────────
+const TOOL_ACTIONS = {
+    crm: {
+        label: 'CRM',
+        actions: {
+            create_lead: { label: 'Crear lead', params: ['name','email','phone','company','source','notes'] },
+            update_lead: { label: 'Actualizar lead', params: ['lead_id','name','email','phone','stage'] },
+            list_leads:  { label: 'Listar leads', params: ['stage'] },
+            move_stage:  { label: 'Mover etapa', params: ['lead_id','stage'] },
+        }
+    },
+    invoice: {
+        label: 'Facturas',
+        actions: {
+            create_invoice: { label: 'Crear factura', params: ['client_name','client_email','items','tax_rate','discount','due_days','notes'] },
+            list_invoices:  { label: 'Listar facturas', params: ['status'] },
+            mark_paid:      { label: 'Marcar pagada', params: ['invoice_id'] },
+        }
+    },
+    inventory: {
+        label: 'Inventario',
+        actions: {
+            create_product:  { label: 'Crear producto', params: ['sku','name','description','category','stock','min_stock','price'] },
+            update_stock:    { label: 'Actualizar stock', params: ['product_id','quantity','type','reason'] },
+            list_products:   { label: 'Listar productos', params: [] },
+            low_stock:       { label: 'Stock bajo', params: [] },
+        }
+    },
+    notification: {
+        label: 'Notificaciones',
+        actions: {
+            send_email:        { label: 'Enviar email', params: ['to','subject','body'] },
+            send_notification:  { label: 'Enviar notificación', params: ['user_id','title','message'] },
+        }
+    },
+    system: {
+        label: 'Sistema',
+        actions: {
+            backup: { label: 'Backup', params: [] },
+            log:    { label: 'Log', params: [] },
+        }
+    }
+};
+
+const PARAM_LABELS = {
+    name:'Nombre', email:'Email', phone:'Teléfono', company:'Empresa', source:'Origen',
+    notes:'Notas', lead_id:'ID Lead', stage:'Etapa', client_name:'Cliente', client_email:'Email cliente',
+    items:'Items (JSON)', tax_rate:'Impuesto %', discount:'Descuento', due_days:'Días vencimiento',
+    invoice_id:'ID Factura', status:'Estado', sku:'SKU', description:'Descripción', category:'Categoría',
+    stock:'Stock', min_stock:'Stock mínimo', price:'Precio', product_id:'ID Producto', quantity:'Cantidad',
+    type:'Tipo movimiento', reason:'Razón', to:'Para', subject:'Asunto', body:'Cuerpo',
+    user_id:'ID Usuario', title:'Título', message:'Mensaje',
+};
+
+const EVENT_OPTIONS = [
+    'crm.lead.created', 'crm.lead.updated', 'crm.lead.stage_changed',
+    'invoice.created', 'invoice.paid', 'invoice.overdue',
+    'inventory.stock_low', 'inventory.stock_updated', 'inventory.product_created',
+];
+
+let stepCounter = 0;
+let currentWfId = null;
+let workflowSaved = false;
+
+// ── Trigger config UI ──────────────────────────────────────
+function onTriggerTypeChange() {
+    const type = document.getElementById('triggerType').value;
+    const container = document.getElementById('triggerConfigContainer');
+
+    switch (type) {
+        case 'event':
+            container.innerHTML = `
+                <select id="triggerEvent">
+                    ${EVENT_OPTIONS.map(e => `<option value="${e}">${e}</option>`).join('')}
+                </select>`;
+            break;
+        case 'schedule':
+            container.innerHTML = `
+                <div class="schedule-config">
+                    <select id="scheduleFreq" onchange="updateSchedulePreview()">
+                        <option value="daily">Diario</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="monthly">Mensual</option>
+                    </select>
+                    <input type="time" id="scheduleTime" value="23:00" onchange="updateSchedulePreview()">
+                    <div id="schedulePreview" class="schedule-preview">Todos los días a las 11:00pm</div>
+                </div>`;
+            break;
+        case 'webhook':
+            container.innerHTML = `
+                <div class="webhook-config">
+                    <input type="text" id="webhookPath" placeholder="Path personalizado (opcional)" value="webhook">
+                    <div class="webhook-preview">HTTP POST a <span id="webhookUrl">localhost:8081</span></div>
+                </div>`;
+            break;
+        case 'manual':
+            container.innerHTML = `<div class="manual-info">Ejecución manual — sin configuración adicional</div>`;
+            break;
+    }
+}
+
+function updateSchedulePreview() {
+    const freq = document.getElementById('scheduleFreq').value;
+    const time = document.getElementById('scheduleTime').value;
+    const preview = document.getElementById('schedulePreview');
+    if (!preview) return;
+    const [h, m] = (time || '23:00').split(':');
+    const hour12 = ((+h % 12) || 12);
+    const ampm = +h >= 12 ? 'pm' : 'am';
+    const timeStr = `${hour12}:${m}${ampm}`;
+    const freqMap = { daily: 'Todos los días', weekly: 'Todas las semanas', monthly: 'Todos los meses' };
+    preview.textContent = `${freqMap[freq]} a las ${timeStr}`;
+}
+
+function getTriggerConfig() {
+    const type = document.getElementById('triggerType').value;
+    switch (type) {
+        case 'event':
+            return { event: document.getElementById('triggerEvent')?.value || EVENT_OPTIONS[0] };
+        case 'schedule': {
+            const freq = document.getElementById('scheduleFreq')?.value || 'daily';
+            const time = document.getElementById('scheduleTime')?.value || '23:00';
+            return { frequency: freq, time: time };
+        }
+        case 'webhook':
+            return { path: document.getElementById('webhookPath')?.value || 'webhook' };
+        case 'manual':
+            return {};
+    }
+    return {};
+}
+
+function setTriggerConfig(type, config) {
+    document.getElementById('triggerType').value = type;
+    onTriggerTypeChange();
+    if (!config) return;
+    setTimeout(() => {
+        switch (type) {
+            case 'event':
+                if (config.event) {
+                    const sel = document.getElementById('triggerEvent');
+                    if (sel) sel.value = config.event;
+                }
+                break;
+            case 'schedule':
+                if (config.frequency) { const el = document.getElementById('scheduleFreq'); if (el) el.value = config.frequency; }
+                if (config.time) { const el = document.getElementById('scheduleTime'); if (el) el.value = config.time; }
+                updateSchedulePreview();
+                break;
+            case 'webhook':
+                if (config.path) { const el = document.getElementById('webhookPath'); if (el) el.value = config.path; }
+                break;
+        }
+    }, 50);
+}
+
+// ── Step management ─────────────────────────────────────────
 function addStep(stepData) {
     stepCounter++;
-    const template = document.getElementById('stepTemplate');
-    const clone = template.content.cloneNode(true);
-    const card = clone.querySelector('.step-card');
-    card.dataset.stepId = stepCounter;
-    card.querySelector('.step-num').textContent = stepCounter;
-    if (stepData) {
-        card.querySelector('.step-tool').value = stepData.tool || 'crm';
-        card.querySelector('.step-action').value = stepData.action || '';
-        card.querySelector('.step-params').value = JSON.stringify(stepData.params || {}, null, 2);
-        card.querySelector('.step-condition').value = stepData.condition || '';
+    const num = stepCounter;
+    const container = document.getElementById('stepsContainer');
+
+    // Connector arrow (not for first step)
+    if (container.children.length > 0) {
+        const arrow = document.createElement('div');
+        arrow.className = 'step-connector';
+        arrow.innerHTML = '<div class="connector-line"></div><div class="connector-arrow">▼</div>';
+        container.appendChild(arrow);
     }
-    document.getElementById('stepsContainer').appendChild(card);
+
+    const card = document.createElement('div');
+    card.className = 'step-card';
+    card.dataset.stepId = num;
+
+    card.innerHTML = `
+        <div class="step-header">
+            <div class="step-number">${num}</div>
+            <span class="step-title">Paso ${num}</span>
+            <div class="step-controls">
+                <button class="btn btn-sm btn-icon" onclick="moveStepUp(this)" title="Subir">▲</button>
+                <button class="btn btn-sm btn-icon" onclick="moveStepDown(this)" title="Bajar">▼</button>
+                <button class="btn btn-sm btn-danger btn-icon" onclick="removeStep(this)" title="Eliminar">✕</button>
+            </div>
+        </div>
+        <div class="step-body">
+            <div class="step-row">
+                <div class="form-group" style="flex:1">
+                    <label>Herramienta</label>
+                    <select class="step-tool" onchange="onToolChange(this)">
+                        ${Object.entries(TOOL_ACTIONS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Acción</label>
+                    <select class="step-action" onchange="onActionChange(this)"></select>
+                </div>
+            </div>
+            <div class="step-params-container"></div>
+            <div class="form-group" style="margin-top:8px">
+                <label>Condición (opcional)</label>
+                <input type="text" class="step-condition" placeholder="Ej: stock < 10">
+            </div>
+        </div>
+    `;
+
+    container.appendChild(card);
+
+    // Set tool and action
+    const toolSel = card.querySelector('.step-tool');
+    const actionSel = card.querySelector('.step-action');
+
+    if (stepData) {
+        if (stepData.tool) toolSel.value = stepData.tool;
+        populateActions(toolSel, actionSel);
+        if (stepData.action) actionSel.value = stepData.action;
+        onActionChange(actionSel);
+        // Fill params
+        if (stepData.params && typeof stepData.params === 'object') {
+            setTimeout(() => {
+                Object.entries(stepData.params).forEach(([k, v]) => {
+                    const inp = card.querySelector(`.step-param-${k}`);
+                    if (inp) inp.value = v;
+                });
+            }, 20);
+        }
+        if (stepData.condition) {
+            card.querySelector('.step-condition').value = stepData.condition;
+        }
+    } else {
+        populateActions(toolSel, actionSel);
+        onActionChange(actionSel);
+    }
+
+    renumberSteps();
 }
 
-async function saveWorkflow() {
-    const wfId = new URLSearchParams(window.location.search).get('wf');
+function populateActions(toolSel, actionSel) {
+    const tool = toolSel.value;
+    const actions = TOOL_ACTIONS[tool]?.actions || {};
+    actionSel.innerHTML = Object.entries(actions).map(([k, v]) =>
+        `<option value="${k}">${v.label}</option>`
+    ).join('');
+}
+
+function onToolChange(toolSel) {
+    const card = toolSel.closest('.step-card');
+    const actionSel = card.querySelector('.step-action');
+    populateActions(toolSel, actionSel);
+    onActionChange(actionSel);
+}
+
+function onActionChange(actionSel) {
+    const card = actionSel.closest('.step-card');
+    const tool = card.querySelector('.step-tool').value;
+    const action = actionSel.value;
+    const paramsDef = TOOL_ACTIONS[tool]?.actions[action]?.params || [];
+    const paramsContainer = card.querySelector('.step-params-container');
+
+    if (paramsDef.length === 0) {
+        paramsContainer.innerHTML = '<div class="no-params">Sin parámetros requeridos</div>';
+        return;
+    }
+
+    paramsContainer.innerHTML = `<div class="params-grid">${
+        paramsDef.map(p => `
+            <div class="form-group param-field">
+                <label>${PARAM_LABELS[p] || p}</label>
+                <input type="text" class="step-param-${p}" placeholder="${PARAM_LABELS[p] || p}">
+            </div>
+        `).join('')
+    }</div>`;
+}
+
+function removeStep(btn) {
+    const card = btn.closest('.step-card');
+    const container = document.getElementById('stepsContainer');
+    // Remove connector before or after
+    const prev = card.previousElementSibling;
+    const next = card.nextElementSibling;
+    if (prev && prev.classList.contains('step-connector')) prev.remove();
+    else if (next && next.classList.contains('step-connector')) next.remove();
+    card.remove();
+    renumberSteps();
+}
+
+function moveStepUp(btn) {
+    const card = btn.closest('.step-card');
+    const container = document.getElementById('stepsContainer');
+    // Find previous connector + card
+    const prevConn = card.previousElementSibling;
+    if (!prevConn || !prevConn.classList.contains('step-connector')) return; // already first
+    const prevCard = prevConn.previousElementSibling;
+    if (!prevCard || !prevCard.classList.contains('step-card')) return;
+
+    // Swap: move prevCard + prevConn after current card
+    container.insertBefore(card, prevCard);
+    container.insertBefore(prevConn, card);
+    renumberSteps();
+}
+
+function moveStepDown(btn) {
+    const card = btn.closest('.step-card');
+    const container = document.getElementById('stepsContainer');
+    const nextConn = card.nextElementSibling;
+    if (!nextConn || !nextConn.classList.contains('step-connector')) return;
+    const nextCard = nextConn.nextElementSibling;
+    if (!nextCard || !nextCard.classList.contains('step-card')) return;
+
+    container.insertBefore(nextCard, card);
+    container.insertBefore(nextConn, nextCard);
+    // Actually we need: card, nextConn, nextCard -> nextCard, nextConn, card
+    // Let's just swap card and nextCard
+    // Better approach: move nextCard before card
+    container.insertBefore(nextCard, card);
+    // Now card needs to go after nextConn
+    container.insertBefore(card, nextConn.nextElementSibling);
+
+    renumberSteps();
+}
+
+function renumberSteps() {
+    const cards = document.querySelectorAll('#stepsContainer .step-card');
+    cards.forEach((card, i) => {
+        card.querySelector('.step-number').textContent = i + 1;
+        card.querySelector('.step-title').textContent = `Paso ${i + 1}`;
+    });
+}
+
+// ── Collect data ────────────────────────────────────────────
+function collectSteps() {
     const steps = [];
-    document.querySelectorAll('.step-card').forEach(card => {
-        const paramsText = card.querySelector('.step-params').value.trim();
-        let params = {};
-        try { params = paramsText ? JSON.parse(paramsText) : {}; } catch(e) { params = {_error: 'JSON inválido'}; }
+    document.querySelectorAll('#stepsContainer .step-card').forEach(card => {
+        const tool = card.querySelector('.step-tool').value;
+        const action = card.querySelector('.step-action').value;
+        const paramsDef = TOOL_ACTIONS[tool]?.actions[action]?.params || [];
+        const params = {};
+        paramsDef.forEach(p => {
+            const inp = card.querySelector(`.step-param-${p}`);
+            if (inp && inp.value.trim()) params[p] = inp.value.trim();
+        });
+        const condition = card.querySelector('.step-condition').value.trim();
         steps.push({
             id: parseInt(card.dataset.stepId),
-            tool: card.querySelector('.step-tool').value,
-            action: card.querySelector('.step-action').value,
-            params: params,
-            condition: card.querySelector('.step-condition').value || undefined,
+            tool, action, params,
+            condition: condition || undefined,
         });
     });
-    const data = {
+    return steps;
+}
+
+function collectWorkflowData() {
+    return {
+        name: document.getElementById('wfNameInput').value.trim() || 'Workflow sin nombre',
         trigger_type: document.getElementById('triggerType').value,
-        trigger_config: JSON.parse(document.getElementById('triggerConfig').value || '{}'),
-        steps: steps,
-        name: document.getElementById('wfNameInput')?.value || 'Workflow sin nombre',
+        trigger_config: getTriggerConfig(),
+        steps: collectSteps(),
     };
-    if (wfId) {
-        await api(`/api/workflows/${wfId}`, {method: 'PUT', body: JSON.stringify(data)});
-        alert('Workflow actualizado');
-    } else {
-        const result = await api('/api/workflows', {method: 'POST', body: JSON.stringify(data)});
-        if (result?.id) window.location.href = `/editor?wf=${result.id}`;
-        else alert('Error: ' + (result?.error || 'desconocido'));
+}
+
+// ── Save workflow ───────────────────────────────────────────
+async function saveWorkflow() {
+    const data = collectWorkflowData();
+    try {
+        if (currentWfId) {
+            await api(`/api/workflows/${currentWfId}`, { method: 'PUT', body: JSON.stringify(data) });
+            showToast('Workflow actualizado ✅');
+        } else {
+            const result = await api('/api/workflows', { method: 'POST', body: JSON.stringify(data) });
+            if (result?.id) {
+                currentWfId = result.id;
+                window.history.replaceState({}, '', `/editor?wf=${result.id}`);
+                document.getElementById('editorTitle').textContent = `✏️ Editando: ${data.name}`;
+                document.getElementById('btnActivate').disabled = false;
+                showToast('Workflow creado ✅');
+            } else {
+                showToast('Error: ' + (result?.error || 'desconocido'), true);
+                return null;
+            }
+        }
+        workflowSaved = true;
+        return currentWfId;
+    } catch (e) {
+        showToast('Error al guardar: ' + e.message, true);
+        return null;
     }
 }
 
+// ── Test workflow ───────────────────────────────────────────
 async function testWorkflow() {
-    const wfId = new URLSearchParams(window.location.search).get('wf');
-    if (!wfId) { alert('Guarda el workflow primero'); return; }
-    const result = await api(`/api/workflows/${wfId}/retry`, {method: 'POST'});
-    alert(`Resultado: ${result?.status || 'error'}`);
+    const wfId = await saveWorkflow();
+    if (!wfId) return;
+
+    const resultDiv = document.getElementById('testResult');
+    resultDiv.classList.remove('hidden');
+    resultDiv.className = 'test-result test-loading';
+    resultDiv.textContent = 'Ejecutando prueba...';
+
+    try {
+        const result = await api(`/api/workflows/${wfId}/retry`, { method: 'POST' });
+        resultDiv.className = 'test-result ' + (result?.status === 'completed' ? 'test-success' : result?.error ? 'test-error' : 'test-info');
+        if (result?.status) {
+            resultDiv.innerHTML = `<strong>Estado:</strong> ${result.status} ${result.status === 'completed' ? '✅' : '⚠️'}`;
+            if (result.duration_ms) resultDiv.innerHTML += ` <strong>Duración:</strong> ${result.duration_ms}ms`;
+        } else if (result?.error) {
+            resultDiv.innerHTML = `<strong>Error:</strong> ${result.error}`;
+        } else {
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+        }
+    } catch (e) {
+        resultDiv.className = 'test-result test-error';
+        resultDiv.textContent = 'Error: ' + e.message;
+    }
 }
 
-// Cargar workflow existente
+// ── Activate workflow ───────────────────────────────────────
+async function activateWorkflow() {
+    const wfId = await saveWorkflow();
+    if (!wfId) return;
+
+    try {
+        const result = await api(`/api/workflows/${wfId}/activate`, { method: 'POST' });
+        if (result?.status === 'active') {
+            showToast('Workflow activado ✅');
+        } else {
+            showToast('Error al activar: ' + (result?.error || 'estado inesperado'), true);
+        }
+    } catch (e) {
+        showToast('Error al activar: ' + e.message, true);
+    }
+}
+
+// ── Cancel ──────────────────────────────────────────────────
+function cancelEdit() {
+    if (confirm('¿Salir sin guardar? Los cambios se perderán.')) {
+        window.location.href = '/workflows';
+    }
+}
+
+// ── Toast notification ──────────────────────────────────────
+function showToast(msg, isError = false) {
+    let toast = document.getElementById('editorToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'editorToast';
+        toast.className = 'editor-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.className = 'editor-toast' + (isError ? ' toast-error' : ' toast-success');
+    toast.classList.add('toast-visible');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('toast-visible'), 3000);
+}
+
+// ── Load existing workflow ──────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    const wfId = new URLSearchParams(window.location.search).get('wf');
-    if (!wfId) { addStep(); return; }
-    const wf = await api(`/api/workflows/${wfId}`);
-    if (!wf) { addStep(); return; }
-    document.getElementById('triggerType').value = wf.trigger_type || 'event';
-    document.getElementById('triggerConfig').value = JSON.stringify(wf.trigger_config || {});
-    const header = document.querySelector('.page-header h1');
-    if (header) header.textContent = `✏️ Editando: ${wf.name || 'Sin nombre'}`;
-    (wf.steps || []).forEach(s => addStep(s));
-    if (!wf.steps?.length) addStep();
+    currentWfId = new URLSearchParams(window.location.search).get('wf');
+    if (!currentWfId) {
+        addStep();
+        onTriggerTypeChange();
+        return;
+    }
+
+    try {
+        const wf = await api(`/api/workflows/${currentWfId}`);
+        if (!wf) { addStep(); onTriggerTypeChange(); return; }
+
+        document.getElementById('wfNameInput').value = wf.name || '';
+        document.getElementById('editorTitle').textContent = `✏️ Editando: ${wf.name || 'Sin nombre'}`;
+        document.getElementById('btnActivate').disabled = false;
+
+        setTriggerConfig(wf.trigger_type || 'event', wf.trigger_config || {});
+
+        (wf.steps || []).forEach(s => addStep(s));
+        if (!wf.steps?.length) addStep();
+    } catch (e) {
+        addStep();
+        onTriggerTypeChange();
+    }
 });

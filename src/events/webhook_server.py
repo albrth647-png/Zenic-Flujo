@@ -3,6 +3,7 @@ Workflow Determinista — WebhookServer
 Servidor HTTP mínimo para recibir webhooks externos.
 API Key OBLIGATORIA para todas las peticiones.
 """
+import hmac
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -47,7 +48,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             api_key = self.headers.get("X-API-Key", "")
             stored_key = (self.db or DatabaseManager()).get_setting("webhook_api_key")
 
-            if not api_key or not stored_key or api_key != stored_key:
+            if not api_key or not stored_key or not hmac.compare_digest(api_key, stored_key):
                 self._send_json(401, {"error": "API Key inválida o no proporcionada"})
                 logger.warning(f"Webhook rechazado: API Key inválida para workflow {workflow_id}")
                 if self.db:
@@ -102,7 +103,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
         """Envía respuesta JSON."""
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", "127.0.0.1")  # Restrict to local
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 

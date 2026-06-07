@@ -3,37 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor — Workflow Determinista</title>
+    <title>Editor — Zenic-Flijo</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     {% include 'navbar.html' %}
     <main class="container">
-        <div class="page-header"><h1>✏️ Editor de Workflow</h1><a href="/workflows" class="btn">← Volver</a></div>
+        <div class="page-header">
+            <h1 id="editorTitle">✏️ Editor de Workflow</h1>
+            <a href="/workflows" class="btn">← Volver</a>
+        </div>
+
+        <!-- Workflow Name -->
         <div class="editor-layout">
-            <input type="text" id="wfNameInput" placeholder="Nombre del workflow" style="margin-bottom:12px;font-size:1.1rem">
-            <div class="editor-toolbar">
-                <select id="triggerType"><option value="event">Evento</option><option value="schedule">Programado</option><option value="webhook">Webhook</option><option value="manual">Manual</option></select>
-                <input type="text" id="triggerConfig" placeholder='{"event": "crm.lead.created"}' class="input-mono">
+            <div class="form-group">
+                <label for="wfNameInput">Nombre del Workflow</label>
+                <input type="text" id="wfNameInput" placeholder="Ej: Notificar lead nuevo">
             </div>
-            <div id="stepsContainer" class="steps-container"></div>
-            <button onclick="addStep()" class="btn btn-secondary">+ Agregar paso</button>
+
+            <!-- Trigger Section -->
+            <div class="trigger-section">
+                <h3 class="section-label">⚡ Disparador</h3>
+                <div class="trigger-row">
+                    <div class="form-group" style="flex:1">
+                        <label for="triggerType">Tipo</label>
+                        <select id="triggerType" onchange="onTriggerTypeChange()">
+                            <option value="event">Evento</option>
+                            <option value="schedule">Programado</option>
+                            <option value="webhook">Webhook</option>
+                            <option value="manual">Manual</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:2" id="triggerConfigGroup">
+                        <label for="triggerConfig">Configuración</label>
+                        <div id="triggerConfigContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Steps Section -->
+            <div class="section-label" style="margin-top:24px">
+                <h3>🔄 Pasos del Workflow</h3>
+            </div>
+            <div id="stepsContainer" class="steps-flow"></div>
+            <button onclick="addStep()" class="btn btn-secondary btn-full" style="margin-top:8px">+ Agregar paso</button>
+
+            <!-- Action Buttons -->
             <div class="editor-actions">
-                <button onclick="saveWorkflow()" class="btn btn-primary">💾 Guardar</button>
+                <button onclick="cancelEdit()" class="btn btn-danger">❌ Cancelar</button>
                 <button onclick="testWorkflow()" class="btn btn-secondary">▶️ Probar</button>
+                <button onclick="activateWorkflow()" class="btn btn-success" id="btnActivate" disabled>✅ Activar</button>
+                <button onclick="saveWorkflow()" class="btn btn-primary">💾 Guardar</button>
             </div>
+
+            <!-- Test Result -->
+            <div id="testResult" class="test-result hidden"></div>
         </div>
     </main>
-    <div class="step-template hidden" id="stepTemplate">
-        <div class="step-card" data-step-id="">
-            <div class="step-header">Paso <span class="step-num"></span></div>
-            <select class="step-tool"><option value="crm">CRM</option><option value="invoice">Facturas</option><option value="inventory">Inventario</option><option value="notification">Notificaciones</option><option value="system">Sistema</option></select>
-            <input type="text" class="step-action" placeholder="create_lead">
-            <textarea class="step-params" placeholder='{"name": "$input.nombre"}' rows="3"></textarea>
-            <input type="text" class="step-condition" placeholder="Condición (opcional)">
-            <button onclick="this.closest('.step-card').remove()" class="btn btn-sm btn-danger">Eliminar</button>
-        </div>
-    </div>
+
+    <script src="/static/app.js"></script>
     <script src="/static/editor.js"></script>
 </body>
 </html>

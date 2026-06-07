@@ -3,16 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflows — Workflow Determinista</title>
+    <title>Workflows — Zenic-Flijo</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     {% include 'navbar.html' %}
     <main class="container">
-        <div class="page-header"><h1>📋 Mis Workflows</h1><a href="/chat" class="btn btn-primary">+ Nuevo</a></div>
+        <div class="page-header">
+            <h1>📋 Mis Workflows</h1>
+            <a href="/editor" class="btn btn-primary">+ Nuevo Workflow</a>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar" id="filterBar">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar workflow..." oninput="filterWorkflows()">
+            <select id="statusFilter" onchange="filterWorkflows()">
+                <option value="">Todos los estados</option>
+                <option value="active">✅ Activo</option>
+                <option value="paused">⏸ Pausado</option>
+                <option value="error">❌ Error</option>
+                <option value="archived">🗑 Archivado</option>
+            </select>
+        </div>
+
         <div id="workflowList"><p class="loading">Cargando...</p></div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="pagination hidden"></div>
     </main>
     <script src="/static/app.js"></script>
-    <script>loadWorkflowList();</script>
+    <script>
+    let allWorkflows = [];
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+
+    function statusBadge(status) {
+        const map = {
+            active:   { icon: '✅', label: 'Activo',     cls: 'active' },
+            paused:   { icon: '⏸',  label: 'Pausado',    cls: 'paused' },
+            error:    { icon: '❌', label: 'Error',       cls: 'error' },
+            failed:   { icon: '❌', label: 'Error',       cls: 'error' },
+            archived: { icon: '🗑', label: 'Archivado',   cls: 'archived' },
+        };
+        const s = map[status] || map.paused;
+        return `<span class="status-badge ${s.cls}">${s.icon} ${s.label}</span>`;
+    }
+
+    function triggerLabel(type, config) {
+        if (!config) config = {};
+        switch (type) {
+            case 'event':    return `⚡ ${config.event || 'evento'}`;
+            case 'schedule': return `🕐 ${config.frequency || 'diario'} ${config.time || ''}`;
+            case 'webhook':  return `🔗 Webhook`;
+            case 'manual':   return `👆 Manual`;
+            default:         return type;
+        }
+    }
+
+    function formatTime(iso) {
+        if (!iso) return '—';
+        try { return new Date(iso).toLocaleString('es', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }); }
+        catch { return iso; }
+    }
+
+    function renderWorkflows(list) {
+        const container = document.getElementById('workflowList');
+
+        if (!list.length) {
+            // Check if there are ANY workflows at all (empty vs filtered empty)
+            if (allWorkflows.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔄</div>
+                        <h2>No hay workflows aún</h2>
+                        <p>Crea tu primer workflow de automatización y empieza a ahorrar tiempo.</p>
+                        <a href="/editor" class="btn btn-primary btn-lg">✨ Crear primer workflow</a>
+                    </div>`;
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state empty-small">
+                        <div class="empty-icon">🔍</div>
+                        <p>No se encontraron workflows con ese filtro.</p>
+                    </div>`;
+            }
+            document.getElementById('pagination').classList.add('hidden');
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="overflow-x:auto">
+            <table class="table">
+                <thead><tr>
+                    <th>Nombre</th>
+                    <th>Estado</th>
+                    <th>Disparador</th>
+                    <th>Última ejecución</th>
+                    <th>Acciones</th>
+                </tr></thead>
+                <tbody>
+                ${list.map(w => `
+                    <tr data-status="${w.status}" data-name="${(w.name||'').toLowerCase()}">
+                        <td><a href="/workflows/${w.id}" class="wf-name">${w.name || 'Sin nombre'}</a></td>
+                        <td>${statusBadge(w.status)}</td>
+                        <td style="font-size:.85rem;color:var(--text-muted)">${triggerLabel(w.trigger_type, w.trigger_config)}</td>
+                        <td style="font-size:.85rem;color:var(--text-muted)">${w.last_execution ? formatTime(w.last_execution.started_at) : '—'}</td>
+                        <td class="actions-cell">
+                            <a href="/editor?wf=${w.id}" class="btn btn-sm" title="Editar">✏️ Editar</a>
+                            <button onclick="toggleWorkflow(${w.id}, '${w.status}')" class="btn btn-sm">
+                                ${w.status === 'active' ? '⏸ Pausar' : '▶️ Activar'}
+                            </button>
+                            <button onclick="deleteWorkflow(${w.id})" class="btn btn-sm btn-danger" title="Eliminar">🗑</button>
+                        </td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table></div>
+        `;
+    }
+
+    function renderPagination(filtered) {
+        const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+        if (totalPages <= 1) { document.getElementById('pagination').classList.add('hidden'); return; }
+        document.getElementById('pagination').classList.remove('hidden');
+        const p = document.getElementById('pagination');
+        let html = '';
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        p.innerHTML = html;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        filterWorkflows();
+    }
+
+    function filterWorkflows() {
+        const search = (document.getElementById('searchInput').value || '').toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        let filtered = allWorkflows;
+        if (search) filtered = filtered.filter(w => (w.name || '').toLowerCase().includes(search));
+        if (status) filtered = filtered.filter(w => w.status === status);
+
+        const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+        if (currentPage > totalPages) currentPage = 1;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        renderWorkflows(filtered.slice(start, start + PAGE_SIZE));
+        renderPagination(filtered);
+    }
+
+    async function loadWorkflowList() {
+        const workflows = await api('/api/workflows');
+        if (!workflows) return;
+        allWorkflows = workflows;
+        // Load last execution for each workflow (batch)
+        await Promise.all(workflows.map(async w => {
+            try {
+                const hist = await api(`/api/workflows/${w.id}/history?limit=1`);
+                if (hist?.length) w.last_execution = hist[0];
+            } catch {}
+        }));
+        filterWorkflows();
+    }
+
+    async function toggleWorkflow(id, currentStatus) {
+        const action = currentStatus === 'active' ? 'pause' : 'activate';
+        await api(`/api/workflows/${id}/${action}`, { method: 'POST' });
+        loadWorkflowList();
+    }
+
+    async function deleteWorkflow(id) {
+        if (!confirm('¿Eliminar este workflow?')) return;
+        await api(`/api/workflows/${id}`, { method: 'DELETE' });
+        loadWorkflowList();
+    }
+
+    loadWorkflowList();
+    </script>
 </body>
 </html>

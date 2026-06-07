@@ -2,6 +2,7 @@
 Workflow Determinista — Funciones Auxiliares
 """
 import re
+import secrets
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -13,8 +14,8 @@ def generate_id() -> str:
 
 
 def generate_secure_token(length: int = 32) -> str:
-    """Genera un token seguro aleatorio."""
-    return uuid.uuid4().hex[:length]
+    """Genera un token criptográficamente seguro usando secrets module."""
+    return secrets.token_hex(length // 2)
 
 
 def now_iso() -> str:

@@ -195,6 +195,7 @@ class EventBus:
             {"event": "file.modified", "description": "Archivo modificado"},
             {"event": "schedule.triggered", "description": "Cron job ejecutado"},
             {"event": "webhook.received", "description": "Webhook HTTP recibido"},
+            {"event": "email.received", "description": "Correo electrónico recibido (IMAP)"},
         ]
 
     # ── Recuperación ────────────────────────────────────────
@@ -212,8 +213,11 @@ class EventBus:
         for event in pending:
             try:
                 event_data = json.loads(event["event_data"])
+                # Mark original as processing to avoid duplicate on re-publish
+                self._update_queue_status(event["id"], "processing")
                 self.publish(event["event_type"], event_data)
                 count += 1
             except Exception as e:
                 logger.error(f"Error reprocesando evento {event['id']}: {e}")
+                self._update_queue_status(event["id"], "failed")
         return count

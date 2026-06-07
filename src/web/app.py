@@ -12,7 +12,11 @@ from flask import (
     redirect, url_for, send_from_directory,
 )
 
-from src.config import WEB_HOST, WEB_PORT, SESSION_SECRET, SESSION_EXPIRY_HOURS, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MINUTES
+from src.config import (
+    WEB_HOST, WEB_PORT, SESSION_SECRET, SESSION_EXPIRY_HOURS,
+    LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MINUTES,
+    FREE_TIER_MAX_WORKFLOWS, FREE_TIER_ALLOWED_TOOLS,
+)
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 from src.license.validator import LicenseValidator
@@ -62,6 +66,46 @@ def check_trial():
     return status["status"] == "expired" and status.get("is_trial", False)
 
 
+def check_free_tier():
+    """Decorador: verifica límites del Free Tier antes de crear workflows.
+
+    Si la licencia es trial o free, impone:
+    - Máximo FREE_TIER_MAX_WORKFLOWS workflows
+    - Solo herramientas en FREE_TIER_ALLOWED_TOOLS en los pasos del workflow
+    Retorna 403 con mensaje descriptivo si se viola algún límite.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            validator = LicenseValidator()
+            license_info = validator.get_license_info()
+            is_restricted = license_info.get("is_trial", False) or license_info.get("type") == "free"
+
+            if is_restricted:
+                # ── Límite de workflows ─────────────────────────
+                current_count = len(repo.list_all())
+                if current_count >= FREE_TIER_MAX_WORKFLOWS:
+                    return jsonify({
+                        "error": "Free tier limitado a 3 workflows. "
+                                 "Activa tu licencia para workflows ilimitados."
+                    }), 403
+
+                # ── Solo herramientas permitidas ─────────────────
+                data = request.get_json() or {}
+                steps = data.get("steps", [])
+                for step in steps:
+                    tool = step.get("tool", "")
+                    if tool and tool not in FREE_TIER_ALLOWED_TOOLS:
+                        return jsonify({
+                            "error": "Free tier solo permite CRM. "
+                                     "Activa tu licencia para usar todas las herramientas."
+                        }), 403
+
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
+
+
 def create_app() -> Flask:
     """Crea y configura la aplicación Flask."""
     app = Flask(
@@ -70,6 +114,8 @@ def create_app() -> Flask:
         static_folder=str(Path(__file__).parent / "static"),
     )
     app.secret_key = SESSION_SECRET
+    # ⚠️ En producción con HTTPS, cambiar SESSION_COOKIE_SECURE a True
+    app.config["SESSION_COOKIE_SECURE"] = False  # False para localhost/dev
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["PERMANENT_SESSION_LIFETIME"] = SESSION_EXPIRY_HOURS * 3600
@@ -193,6 +239,7 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows", methods=["POST"])
     @login_required
+    @check_free_tier()
     def api_create_workflow():
         data = request.get_json() or {}
         try:
@@ -341,12 +388,69 @@ def create_app() -> Flask:
         products = inv.list_products(low_stock_only=low_stock)
         return jsonify(products)
 
+    @app.route("/api/tools/inventory/products", methods=["POST"])
+    @login_required
+    def api_create_product():
+        """Crear un nuevo producto en inventario."""
+        from src.tools.inventory.service import InventoryService
+        inv = InventoryService()
+        data = request.get_json() or {}
+        product = inv.add_product(
+            sku=data.get("sku", ""),
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            category=data.get("category", ""),
+            stock=data.get("stock", 0),
+            min_stock=data.get("min_stock", 10),
+            price=data.get("price", 0.0),
+        )
+        return jsonify(product), 201
+
+    @app.route("/api/tools/inventory/stock-movement", methods=["POST"])
+    @login_required
+    def api_stock_movement():
+        """Registrar un movimiento de stock (entrada/salida/ajuste)."""
+        from src.tools.inventory.service import InventoryService
+        inv = InventoryService()
+        data = request.get_json() or {}
+        product_id = data.get("product_id")
+        quantity = data.get("quantity", 0)
+        movement_type = data.get("type", "adjustment")
+        reason = data.get("reason", "")
+        if not product_id:
+            return jsonify({"error": "product_id es requerido"}), 400
+        result = inv.update_stock(product_id, quantity, movement_type, reason)
+        if not result:
+            return jsonify({"error": "Producto no encontrado"}), 404
+        return jsonify(result)
+
     @app.route("/api/tools/inventory/low-stock", methods=["GET"])
     @login_required
     def api_low_stock():
         from src.tools.inventory.service import InventoryService
         inv = InventoryService()
         return jsonify(inv.get_low_stock_products())
+
+    @app.route("/api/tools/invoice/create", methods=["POST"])
+    @login_required
+    def api_create_invoice():
+        """Crear una nueva factura."""
+        from src.tools.invoice.service import InvoiceService
+        inv = InvoiceService()
+        data = request.get_json() or {}
+        client_name = data.get("client_name", "")
+        if not client_name:
+            return jsonify({"error": "client_name es requerido"}), 400
+        invoice = inv.create_invoice(
+            client_name=client_name,
+            client_email=data.get("client_email"),
+            items=data.get("items", []),
+            tax_rate=data.get("tax_rate", 0.16),
+            discount=data.get("discount", 0.0),
+            due_days=data.get("due_days", 30),
+            notes=data.get("notes"),
+        )
+        return jsonify(invoice), 201
 
     @app.route("/api/tools/invoice/list", methods=["GET"])
     @login_required
@@ -427,8 +531,14 @@ def create_app() -> Flask:
 
     @app.route("/api/license/info")
     def api_license_info():
+        """Retorna información completa de la licencia incluyendo límites del Free Tier."""
         validator = LicenseValidator()
-        return jsonify(validator.get_license_info())
+        info = validator.get_license_info()
+        # Enriquecer con datos del Free Tier para que el frontend los consuma
+        info["is_free"] = info.get("type") == "free"
+        info["max_workflows"] = FREE_TIER_MAX_WORKFLOWS if info.get("is_free") or info.get("is_trial") else -1
+        info["allowed_tools"] = FREE_TIER_ALLOWED_TOOLS if info.get("is_free") or info.get("is_trial") else ["all"]
+        return jsonify(info)
 
     # ── API: System ─────────────────────────────────────────
 
@@ -439,6 +549,17 @@ def create_app() -> Flask:
         be = BackupEngine()
         path = be.backup_now()
         return jsonify({"path": path, "status": "completed"})
+
+    @app.route("/api/system/logs", methods=["GET"])
+    @login_required
+    def api_system_logs():
+        """Retorna los últimos 100 registros del audit log."""
+        limit = min(int(request.args.get("limit", 100)), 100)
+        logs = db.fetchall(
+            "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        return jsonify(logs)
 
     @app.route("/api/system/status")
     def api_system_status():

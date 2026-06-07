@@ -102,8 +102,12 @@ class DatabaseTrigger:
 
     def poll_changes(self) -> list[dict]:
         """
-        Lee eventos pendientes generados por triggers y los publica en el EventBus.
-        Útil como alternativa a los triggers SQL directos.
+        Lee eventos pendientes generados por triggers SQL y los procesa.
+        
+        Nota: Los triggers SQL ya insertan directamente en event_queue.
+        Este método marca los eventos como procesados sin re-publicarlos 
+        a través del EventBus (lo cual crearía duplicados).
+        Para disparar workflows, usar EventBus.publish() directamente.
         """
         pending = self._db.fetchall(
             "SELECT * FROM event_queue WHERE status = 'pending' ORDER BY created_at LIMIT 50"
@@ -112,15 +116,14 @@ class DatabaseTrigger:
         results = []
         for event in pending:
             try:
-                event_data = json.loads(event["event_data"]) if event.get("event_data") else {}
-                self._event_bus.publish(event["event_type"], event_data)
-
+                # Just mark as completed — triggers already inserted the event
+                # If a workflow needs to be triggered, EventBus.subscribe handles it
                 self._db.execute(
                     "UPDATE event_queue SET status = 'completed', processed_at = CURRENT_TIMESTAMP WHERE id = ?",
                     (event["id"],),
                 )
                 self._db.commit()
-                results.append({"event_id": event["id"], "status": "processed"})
+                results.append({"event_id": event["id"], "event_type": event["event_type"], "status": "processed"})
 
             except Exception as e:
                 logger.error(f"Error procesando evento DB {event['id']}: {e}")

@@ -10,91 +10,387 @@
     {% include 'navbar.html' %}
     <main class="container">
         <div class="page-header"><h1>⚙️ Configuración</h1></div>
-        <div class="settings-layout" style="max-width:600px;margin:0 auto">
-            <div class="section"><h2>🔐 Contraseña</h2>
-                <form id="passwordForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+        <div class="settings-layout" style="max-width:650px;margin:0 auto">
+
+            <!-- Password Section -->
+            <div class="section-card">
+                <h2>🔐 Contraseña</h2>
+                <form id="passwordForm" style="display:flex;flex-direction:column;gap:12px">
                     <input type="password" id="currentPassword" placeholder="Contraseña actual">
                     <input type="password" id="newPassword" placeholder="Nueva contraseña (mín. 6 caracteres)">
                     <input type="password" id="confirmPassword" placeholder="Confirmar nueva contraseña">
                     <button type="submit" class="btn btn-primary" style="align-self:flex-start">Cambiar contraseña</button>
                 </form>
             </div>
-            <div class="section"><h2>📧 Correo SMTP</h2>
-                <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+
+            <hr class="section-divider">
+
+            <!-- SMTP Section -->
+            <div class="section-card">
+                <h2>📧 Correo SMTP</h2>
+                <div style="display:flex;flex-direction:column;gap:12px">
                     <input type="text" id="setting_smtp_server" data-setting="smtp_server" placeholder="Servidor SMTP (ej: smtp.gmail.com)">
                     <input type="text" id="setting_smtp_port" data-setting="smtp_port" placeholder="Puerto (ej: 587)">
                     <input type="text" id="setting_email_user" data-setting="email_user" placeholder="Usuario">
                     <input type="password" id="setting_email_password" data-setting="email_password" placeholder="Contraseña">
                     <div style="display:flex;gap:12px">
-                        <button onclick="saveSettings()" class="btn btn-primary">Guardar</button>
-                        <button onclick="testEmail()" class="btn btn-secondary">Probar conexión</button>
+                        <button onclick="saveSettingsPage()" class="btn btn-primary">💾 Guardar</button>
+                        <button onclick="testEmail()" class="btn btn-secondary">📧 Probar conexión</button>
                     </div>
                 </div>
             </div>
-            <div class="section"><h2>🔑 Licencia</h2>
-                <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
-                    <input type="text" id="licenseKey" placeholder="WFD-XXXX-XXXX-XXXX-XXXX">
-                    <button onclick="activateLicense()" class="btn btn-primary" style="align-self:flex-start">Activar licencia</button>
-                    <div id="licenseInfo" class="alert alert-info hidden"></div>
+
+            <hr class="section-divider">
+
+            <!-- License Section -->
+            <div class="section-card" id="licenseSection">
+                <h2>🔑 Licencia</h2>
+                <div id="licenseInfoDisplay" style="margin-bottom:16px"></div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <input type="text" id="licenseKey" placeholder="WFD-XXXX-XXXX-XXXX-XXXX" class="input-mono">
+                    <div style="display:flex;gap:12px">
+                        <button onclick="activateLicense()" class="btn btn-primary">Activar licencia</button>
+                        <a href="https://workflowdeterminista.com/comprar" target="_blank" class="btn btn-success" style="text-decoration:none">🛒 Comprar licencia</a>
+                    </div>
+                    <div id="licenseResult" class="hidden"></div>
                 </div>
             </div>
-            <div class="section"><h2>💾 Sistema</h2>
-                <div style="display:flex;gap:12px;margin-top:12px">
-                    <button onclick="doBackup()" class="btn btn-primary">Hacer backup ahora</button>
+
+            <hr class="section-divider">
+
+            <!-- Webhook API Key Section -->
+            <div class="section-card">
+                <h2>🔗 API Key (Webhooks)</h2>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div class="info-row">
+                        <span class="info-label">Clave actual</span>
+                        <span class="info-value masked" id="apiKeyDisplay">••••••••••••</span>
+                    </div>
+                    <div style="display:flex;gap:12px">
+                        <button onclick="toggleApiKeyVisibility()" class="btn btn-sm btn-secondary">👁 Mostrar</button>
+                        <button onclick="regenerateApiKey()" class="btn btn-sm btn-warning">🔄 Regenerar</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- System Section -->
+            <div class="section-card">
+                <h2>💻 Sistema</h2>
+                <div id="systemInfo" style="display:flex;flex-direction:column;gap:0">
+                    <div class="info-row">
+                        <span class="info-label">Base de datos</span>
+                        <span class="info-value" id="dbSize">Cargando...</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Backups realizados</span>
+                        <span class="info-value" id="backupCount">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Puerto web</span>
+                        <span class="info-value">8080</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Puerto API</span>
+                        <span class="info-value">8081</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Último backup</span>
+                        <span class="info-value" id="lastBackup">-</span>
+                    </div>
+                </div>
+                <div style="margin-top:16px;display:flex;gap:12px">
+                    <button onclick="doBackup()" class="btn btn-primary">💾 Hacer backup ahora</button>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- Logs Section -->
+            <div class="section-card">
+                <h2>📋 Logs</h2>
+                <div class="log-viewer-controls">
+                    <button onclick="downloadLogs()" class="btn btn-sm btn-secondary">📥 Descargar logs</button>
+                    <button onclick="toggleLiveLogs()" class="btn btn-sm btn-secondary" id="liveLogsBtn">📺 Ver logs en vivo</button>
+                    <span id="liveIndicator" class="log-live-indicator" style="display:none">
+                        <span class="live-dot"></span> EN VIVO
+                    </span>
+                </div>
+                <div class="log-viewer" id="logViewer">
+                    Haz click en "Ver logs en vivo" para comenzar...
                 </div>
             </div>
         </div>
     </main>
+    <script src="/static/app.js"></script>
     <script>
-    async function loadSettings() {
-        const settings = await (await fetch('/api/settings')).json();
-        ['smtp_server','smtp_port','email_user'].forEach(k => {
+    let liveLogsActive = false;
+    let liveLogsInterval = null;
+    let apiKeyVisible = false;
+    let currentApiKey = '';
+
+    // ============================================
+    // Load all settings on page load
+    // ============================================
+    async function loadSettingsPage() {
+        const settings = await api('/api/settings');
+        if (!settings) return;
+        ['smtp_server', 'smtp_port', 'email_user'].forEach(k => {
             const el = document.getElementById('setting_' + k);
             if (el && settings[k]) el.value = settings[k];
         });
+
+        // Load API key
+        if (settings.webhook_api_key || settings.api_key) {
+            currentApiKey = settings.webhook_api_key || settings.api_key;
+            document.getElementById('apiKeyDisplay').textContent = '••••••••••••';
+        }
+
+        // Load system status
+        loadSystemStatus();
+
+        // Load license info
+        loadLicenseDisplay();
     }
-    async function saveSettings() {
-        const data = {};
-        document.querySelectorAll('[data-setting]').forEach(el => { data[el.dataset.setting] = el.value; });
-        await fetch('/api/settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        alert('Configuración guardada');
-    }
-    async function testEmail() {
-        const res = await (await fetch('/api/settings/test-email', {method:'POST'})).json();
-        alert(res.message || (res.status === 'ok' ? 'Connexión exitosa' : 'Error'));
-    }
-    async function activateLicense() {
-        const key = document.getElementById('licenseKey').value.trim();
-        if (!key) { alert('Ingresa una License Key'); return; }
-        const res = await (await fetch('/api/license/validate', {method:'POST',
-            headers:{'Content-Type':'application/json'}, body:JSON.stringify({key})})).json();
-        const info = document.getElementById('licenseInfo');
-        info.classList.remove('hidden');
-        if (res.valid) {
-            info.className = 'alert alert-info';
-            info.textContent = `✅ Licencia ${res.type} activada. Expira: ${res.expires_at || 'sin expiración'}`;
-        } else {
-            info.className = 'alert alert-error';
-            info.textContent = `❌ ${res.reason || 'Licencia inválida'}`;
+
+    async function loadSystemStatus() {
+        try {
+            const data = await (await fetch('/api/system/status')).json();
+            document.getElementById('dbSize').textContent = data.db_size || 'N/D';
+            document.getElementById('backupCount').textContent = data.backup_count ?? '-';
+            document.getElementById('lastBackup').textContent = data.last_backup ? formatDate(data.last_backup) : 'Nunca';
+        } catch (e) {
+            document.getElementById('dbSize').textContent = 'N/D';
         }
     }
-    async function doBackup() {
-        const res = await (await fetch('/api/system/backup', {method:'POST'})).json();
-        alert(res.status === 'completed' ? 'Backup creado' : 'Error');
+
+    async function loadLicenseDisplay() {
+        try {
+            const data = await (await fetch('/api/license/info')).json();
+            const display = document.getElementById('licenseInfoDisplay');
+            if (data.is_trial) {
+                const daysLeft = data.days_left || 0;
+                const isExpired = daysLeft <= 0;
+                display.innerHTML = `
+                    <div class="info-row"><span class="info-label">Tipo</span><span class="info-value"><span class="trial-badge">⏳ Prueba gratuita</span></span></div>
+                    <div class="info-row"><span class="info-label">Estado</span><span class="info-value" style="color:${isExpired ? 'var(--error)' : 'var(--warning)'}">${isExpired ? 'Expirada' : 'Activa'}</span></div>
+                    <div class="info-row"><span class="info-label">Días restantes</span><span class="info-value">${daysLeft} días</span></div>
+                    ${renderTrialProgress(daysLeft, data.trial_days || 30)}
+                `;
+            } else {
+                const expires = data.expires_at ? new Date(data.expires_at) : null;
+                const expiryStr = expires ? expires.toLocaleDateString('es-ES', { month: '2-digit', year: 'numeric' }) : 'Sin expiración';
+                display.innerHTML = `
+                    <div class="info-row"><span class="info-label">Tipo</span><span class="info-value"><span class="license-badge-sm">🔑 ${data.type || 'Licencia'}</span></span></div>
+                    <div class="info-row"><span class="info-label">Estado</span><span class="info-value" style="color:var(--success)">Activa</span></div>
+                    <div class="info-row"><span class="info-label">Válida hasta</span><span class="info-value">Activa hasta ${expiryStr}</span></div>
+                `;
+            }
+        } catch (e) {
+            document.getElementById('licenseInfoDisplay').innerHTML = '<div class="info-row"><span class="info-label">Tipo</span><span class="info-value">No disponible</span></div>';
+        }
     }
+
+    // ============================================
+    // Save settings
+    // ============================================
+    async function saveSettingsPage() {
+        const data = {};
+        document.querySelectorAll('[data-setting]').forEach(el => { data[el.dataset.setting] = el.value; });
+        const res = await api('/api/settings', {method: 'PUT', body: JSON.stringify(data)});
+        if (res !== null) showToast('Configuración guardada', 'success');
+    }
+
+    // ============================================
+    // Test email
+    // ============================================
+    async function testEmail() {
+        const res = await api('/api/settings/test-email', {method: 'POST'});
+        if (res) {
+            if (res.status === 'ok') showToast('✅ Conexión exitosa', 'success');
+            else showToast(res.message || 'Error en la conexión', 'error');
+        }
+    }
+
+    // ============================================
+    // License activation
+    // ============================================
+    async function activateLicense() {
+        const key = document.getElementById('licenseKey').value.trim();
+        if (!key) { showToast('Ingresa una License Key', 'warning'); return; }
+        const res = await api('/api/license/validate', {method: 'POST', body: JSON.stringify({key})});
+        const info = document.getElementById('licenseResult');
+        info.classList.remove('hidden');
+        if (res && res.valid) {
+            info.className = 'alert alert-success fade-in';
+            info.textContent = `✅ Licencia ${res.type} activada. Expira: ${res.expires_at || 'sin expiración'}`;
+            showToast('Licencia activada correctamente', 'success');
+            loadLicenseDisplay();
+        } else {
+            info.className = 'alert alert-error fade-in';
+            info.textContent = `❌ ${res?.reason || 'Licencia inválida'}`;
+        }
+    }
+
+    // ============================================
+    // API Key management
+    // ============================================
+    function toggleApiKeyVisibility() {
+        apiKeyVisible = !apiKeyVisible;
+        const display = document.getElementById('apiKeyDisplay');
+        if (apiKeyVisible && currentApiKey) {
+            display.textContent = currentApiKey;
+            display.classList.remove('masked');
+        } else {
+            display.textContent = '••••••••••••';
+            display.classList.add('masked');
+        }
+    }
+
+    async function regenerateApiKey() {
+        if (!confirm('¿Regenerar la API Key? La clave actual dejará de funcionar.')) return;
+        try {
+            const res = await fetch('/api/settings/api-key', {method: 'POST', headers: {'Content-Type': 'application/json'}});
+            const data = await res.json();
+            if (res.ok && data.api_key) {
+                currentApiKey = data.api_key;
+                apiKeyVisible = true;
+                document.getElementById('apiKeyDisplay').textContent = currentApiKey;
+                document.getElementById('apiKeyDisplay').classList.remove('masked');
+                showToast('API Key regenerada', 'success');
+            } else {
+                showToast('Error al regenerar API Key', 'error');
+            }
+        } catch (e) {
+            showToast('Error de conexión', 'error');
+        }
+    }
+
+    // ============================================
+    // Backup
+    // ============================================
+    async function doBackup() {
+        try {
+            const res = await (await fetch('/api/system/backup', {method: 'POST'})).json();
+            if (res.status === 'completed') {
+                showToast('✅ Backup creado correctamente', 'success');
+                loadSystemStatus();
+            } else {
+                showToast('Error al crear backup', 'error');
+            }
+        } catch (e) {
+            showToast('Error de conexión', 'error');
+        }
+    }
+
+    // ============================================
+    // Logs
+    // ============================================
+    async function downloadLogs() {
+        try {
+            const res = await fetch('/api/system/logs');
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wfd-logs-${new Date().toISOString().slice(0,10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Logs descargados', 'success');
+            } else {
+                showToast('Error al descargar logs', 'error');
+            }
+        } catch (e) {
+            showToast('Error de conexión', 'error');
+        }
+    }
+
+    async function toggleLiveLogs() {
+        const viewer = document.getElementById('logViewer');
+        const indicator = document.getElementById('liveIndicator');
+        const btn = document.getElementById('liveLogsBtn');
+
+        if (liveLogsActive) {
+            liveLogsActive = false;
+            clearInterval(liveLogsInterval);
+            indicator.style.display = 'none';
+            btn.textContent = '📺 Ver logs en vivo';
+            return;
+        }
+
+        liveLogsActive = true;
+        indicator.style.display = 'inline-flex';
+        btn.textContent = '⏹ Detener';
+        viewer.innerHTML = '';
+
+        async function fetchLogs() {
+            if (!liveLogsActive) return;
+            try {
+                const res = await fetch('/api/system/logs?tail=50');
+                const text = await res.text();
+                const lines = text.split('\n').filter(l => l.trim());
+                viewer.innerHTML = lines.map(line => {
+                    let cls = 'log-line';
+                    if (line.includes(' ERROR ')) cls += ' log-error';
+                    else if (line.includes(' WARNING ')) cls += ' log-warn';
+                    else if (line.includes(' INFO ')) cls += ' log-info';
+                    return `<div class="${cls}">${escapeHtml(line)}</div>`;
+                }).join('');
+                viewer.scrollTop = viewer.scrollHeight;
+            } catch (e) { /* silently retry */ }
+        }
+
+        fetchLogs();
+        liveLogsInterval = setInterval(fetchLogs, 3000);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ============================================
+    // Password change
+    // ============================================
     document.getElementById('passwordForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const np = document.getElementById('newPassword').value;
         const cp = document.getElementById('confirmPassword').value;
-        if (np !== cp) { alert('Las contraseñas no coinciden'); return; }
-        const res = await fetch('/api/settings/change-password', {method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({current_password: document.getElementById('currentPassword').value, new_password: np})});
+        if (np !== cp) { showToast('Las contraseñas no coinciden', 'error'); return; }
+        if (np.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'warning'); return; }
+        const res = await fetch('/api/settings/change-password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                current_password: document.getElementById('currentPassword').value,
+                new_password: np
+            })
+        });
         const data = await res.json();
-        if (res.ok) alert('Contraseña cambiada');
-        else alert('Error: ' + (data.error || 'desconocido'));
+        if (res.ok) {
+            showToast('✅ Contraseña cambiada', 'success');
+            document.getElementById('passwordForm').reset();
+        } else {
+            showToast(data.error || 'Error al cambiar contraseña', 'error');
+        }
     });
-    loadSettings();
+
+    // ============================================
+    // Scroll to license section if hash
+    // ============================================
+    if (window.location.hash === '#license') {
+        setTimeout(() => {
+            document.getElementById('licenseSection')?.scrollIntoView({behavior: 'smooth'});
+        }, 300);
+    }
+
+    // ============================================
+    // Initialize
+    // ============================================
+    loadSettingsPage();
     </script>
 </body>
 </html>

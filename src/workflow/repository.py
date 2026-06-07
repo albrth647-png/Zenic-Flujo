@@ -329,11 +329,16 @@ class WorkflowRepository:
     def get_stats(self) -> dict:
         """Retorna estadísticas para el dashboard."""
         total = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions")
-        by_status = self._db.fetchall(
+        by_status_raw = self._db.fetchall(
             "SELECT status, COUNT(*) as count FROM workflow_definitions GROUP BY status"
         )
+        # Garantizar que los 4 estados aparezcan en el dict (con 0 si no hay)
+        by_status = {"active": 0, "paused": 0, "archived": 0, "failed": 0}
+        for r in by_status_raw:
+            by_status[r["status"]] = r["count"]
+
         recent = self._db.fetchall(
-            """SELECT wf.name, we.status, we.started_at, we.duration_ms
+            """SELECT we.id, wf.name, we.status, we.started_at
                FROM workflow_executions we
                JOIN workflow_definitions wf ON we.workflow_id = wf.id
                ORDER BY we.started_at DESC LIMIT 10"""
@@ -341,13 +346,13 @@ class WorkflowRepository:
 
         return {
             "total": total["count"] if total else 0,
-            "by_status": {r["status"]: r["count"] for r in by_status},
+            "by_status": by_status,
             "recent_executions": [
                 {
+                    "id": r["id"],
                     "name": r["name"],
                     "status": r["status"],
                     "started_at": r["started_at"],
-                    "duration_ms": r["duration_ms"],
                 }
                 for r in recent
             ],

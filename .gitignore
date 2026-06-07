@@ -1,0 +1,56 @@
+# ── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+
+# ── Virtual environments ───────────────────────
+venv/
+.venv/
+env/
+
+# ── Testing / Coverage ─────────────────────────
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+coverage.xml
+*.cover
+
+# ── Database (local only) ──────────────────────
+*.db
+*.db-wal
+*.db-shm
+
+# ── IDE / Editors ──────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Build artifacts ────────────────────────────
+*.exe
+*.dll
+*.so
+*.dylib
+.spec
+
+# ── Logs ───────────────────────────────────────
+*.log
+logs/
+
+# ── OS files ───────────────────────────────────
+Thumbs.db
+Desktop.ini
+
+# ── Backups ────────────────────────────────────
+backups/
+*.bak

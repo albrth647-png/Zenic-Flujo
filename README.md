@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Zenic-Flijo
-=======
 # ⚙️ Workflow Determinista
 
 **Automatización offline para tu negocio. Sin internet, sin mensualidades.**
@@ -96,7 +93,16 @@ bash installer/build_pyinstaller.sh
 bash installer/build_nuitka.sh
 ```
 
+## 🧪 Tests
+
+```bash
+# Ejecutar todos los tests
+pytest src/tests/ -v
+
+# Con cobertura
+pytest src/tests/ --cov=src --cov-report=term-missing
+```
+
 ## 📄 Licencia
 
 Propietaria — Pago Único. Ver detalles en la [documentación](docs/MASTERPLAN-WORKFLOW-DETERMINISTA.md).
->>>>>>> 3e928ff (Mi primer subida desde Termux)

@@ -28,9 +28,11 @@ class LicenseValidator:
         parts = key.split("-")
         if len(parts) != 5 or parts[0] != "WFD":
             return {"valid": False, "reason": "Formato inválido"}
-        # Verificar que solo use caracteres permitidos
-        key_body = "".join(parts[1:])
-        if not all(c in LICENSE_CHARSET for c in key_body):
+        # Verificar caracteres: first 3 blocks are HMAC hex, last block uses LICENSE_CHARSET
+        sig_body = "".join(parts[1:4])
+        if not all(c in "0123456789ABCDEF" for c in sig_body):
+            return {"valid": False, "reason": "Firma HMAC con caracteres inválidos"}
+        if not all(c in LICENSE_CHARSET for c in parts[4]):
             return {"valid": False, "reason": "Caracteres inválidos en la key"}
         stored = self._db.fetchone("SELECT * FROM license WHERE key = ?", (key,))
         if not stored:

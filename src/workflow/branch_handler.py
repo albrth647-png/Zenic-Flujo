@@ -99,14 +99,20 @@ class BranchHandler:
 
         logger.info(f"Evaluando switch: {expression} = {resolved_expr}")
 
+        default_case = None
         for case in cases:
             if "default" in case and case["default"]:
-                return BranchResult(branch_taken="default", steps=case.get("steps", []))
+                default_case = case
+                continue  # Check other cases first, default is fallback
             case_value = resolve_variables(str(case.get("value", "")), context)
             if resolved_expr == case_value:
                 return BranchResult(
                     branch_taken=f"case_{case_value}",
                     steps=case.get("steps", []),
                 )
+
+        # No case matched — use default if available
+        if default_case:
+            return BranchResult(branch_taken="default", steps=default_case.get("steps", []))
 
         raise ValueError(f"Switch: ningún case coincide con '{resolved_expr}' y no hay default")

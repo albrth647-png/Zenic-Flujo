@@ -49,6 +49,30 @@ def start_workers():
     return workers
 
 
+def register_tools():
+    """Registra todas las herramientas de negocio en el WorkflowEngine."""
+    from src.workflow.engine import WorkflowEngine
+    from src.tools.crm.service import CRMService
+    from src.tools.invoice.service import InvoiceService
+    from src.tools.inventory.service import InventoryService
+    from src.tools.notification.service import NotificationService
+    from src.tools.autopilot.service import AutoPilotService
+    from src.tools.logic_gate.service import LogicGateService
+
+    engine = WorkflowEngine()
+
+    # Registrar cada tool con su servicio
+    engine.register_tool("crm", CRMService())
+    engine.register_tool("invoice", InvoiceService())
+    engine.register_tool("inventory", InventoryService())
+    engine.register_tool("notification", NotificationService())
+    engine.register_tool("autopilot", AutoPilotService())
+    engine.register_tool("logic_gate", LogicGateService())
+
+    logger.info(f"Herramientas registradas: {list(engine._tools.keys())}")
+    return engine
+
+
 def create_web_app():
     """Crea y configura la aplicación Flask."""
     from src.web.app import create_app
@@ -66,13 +90,16 @@ def main():
     db = DatabaseManager()
     logger.info(f"Base de datos: {db._db_path}")
 
-    # 2. Iniciar workers
+    # 2. Registrar herramientas de negocio
+    register_tools()
+
+    # 3. Iniciar workers
     workers = start_workers()
 
-    # 3. Crear y ejecutar app Flask
+    # 4. Crear y ejecutar app Flask
     app = create_web_app()
 
-    # 4. Abrir navegador
+    # 5. Abrir navegador
     url = f"http://{WEB_HOST}:{WEB_PORT}"
     try:
         webbrowser.open(url)
@@ -82,7 +109,7 @@ def main():
     logger.info(f"Servidor iniciado en {url}")
     logger.info("Presiona Ctrl+C para detener el sistema")
 
-    # 5. Iniciar servidor Flask
+    # 6. Iniciar servidor Flask
     try:
         app.run(
             host=WEB_HOST,

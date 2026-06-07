@@ -1,7 +1,8 @@
 <nav class="navbar">
     <div class="nav-inner">
         <a href="/dashboard" class="nav-brand">⚙️ WFD</a>
-        <div class="nav-links">
+        <button id="navHamburger" class="nav-hamburger">☰</button>
+        <div class="nav-links" id="navLinks">
             <a href="/dashboard">📊 Dashboard</a>
             <a href="/workflows">📋 Workflows</a>
             <a href="/chat">💬 Chat</a>
@@ -21,5 +22,6 @@ async function logout() {
 fetch('/api/license/info').then(r=>r.json()).then(d=>{
     const badge = document.getElementById('trialBadge');
     if(d.is_trial) badge.textContent = `⏳ ${d.days_left || 30}d`;
-});
+    else if(d.type) { badge.textContent = `🔑 ${d.type}`; badge.className = 'license-badge-sm'; }
+}).catch(()=>{});
 </script>

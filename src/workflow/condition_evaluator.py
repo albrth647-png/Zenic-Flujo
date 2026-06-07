@@ -5,6 +5,7 @@ NUNCA usa eval() ni exec().
 """
 from typing import Any
 
+from src.utils.helpers import safe_get
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -135,7 +136,9 @@ class ConditionEvaluator:
                     elif word.startswith("$"):
                         tokens.append({"type": "variable", "value": word})
                     else:
-                        tokens.append({"type": "value", "value": word})
+                        # Bare words (no $ prefix) are treated as context variable references
+                        # This allows: "stock < 10" where 'stock' resolves from context
+                        tokens.append({"type": "variable", "value": word})
                     i = j
                     continue
 
@@ -234,14 +237,18 @@ class ConditionEvaluator:
         elif node["type"] == "value":
             return node["value"]
         elif node["type"] == "variable":
-            # Resolver $input.nombre, $output.step1.email
+            # Resolver $input.nombre, $output.step1.email, o bare words como 'stock'
             var_path = node["value"][1:] if node["value"].startswith("$") else node["value"]
-            from src.utils.helpers import safe_get
             result = safe_get(context, var_path)
-            if result is None:
-                logger.warning(f"Variable no encontrada en contexto: {var_path}")
-                return None
-            return result
+            if result is not None:
+                return result
+            # Si no está en contexto, podría ser un valor literal (e.g. True/False ya manejados)
+            # Pero si era un bare word como 'stock' y no está en contexto, log warning
+            if not node["value"].startswith("$"):
+                logger.warning(f"Variable '{var_path}' no encontrada en contexto, usando como string literal")
+                return node["value"]
+            logger.warning(f"Variable no encontrada en contexto: {var_path}")
+            return None
         return None
 
     def _apply_operator(self, left: Any, op: str, right: Any) -> bool:

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle — Workflow Determinista</title>
+    <title>Detalle — Zenic-Flijo</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -11,16 +11,249 @@
     <main class="container">
         <div class="page-header">
             <h1 id="wfName">Cargando...</h1>
-            <div><a href="/editor?wf={{ workflow_id }}" class="btn">✏️ Editar</a> <a href="/workflows" class="btn">← Volver</a></div>
+            <div class="detail-actions">
+                <button id="btnToggle" class="btn" onclick="toggleWfStatus()">⏸ Pausar</button>
+                <a id="btnEdit" href="#" class="btn">✏️ Editar</a>
+                <button class="btn btn-danger" onclick="deleteWf()">🗑 Eliminar</button>
+                <a href="/workflows" class="btn">← Volver</a>
+            </div>
         </div>
-        <div class="detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-            <div class="stat-card"><div class="stat-label">Estado</div><div id="wfStatus" style="font-size:1.2rem;font-weight:600;margin-top:4px">-</div></div>
-            <div class="stat-card"><div class="stat-label">Trigger</div><div id="wfTrigger" style="font-size:.85rem;color:var(--text-muted);margin-top:4px">-</div></div>
+
+        <!-- Info Cards -->
+        <div class="detail-grid">
+            <div class="stat-card" id="statusCard">
+                <div class="stat-label">Estado</div>
+                <div id="wfStatus" class="detail-status">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Disparador</div>
+                <div id="wfTrigger" class="detail-trigger">—</div>
+            </div>
         </div>
-        <div class="section"><h2>Pasos</h2><pre id="wfSteps" style="background:var(--bg);padding:16px;border-radius:var(--radius);overflow:auto;font-size:.85rem;color:var(--text-muted)">-</pre></div>
-        <div class="section"><h2>📊 Historial</h2><div id="wfHistory"><p class="loading">Cargando...</p></div></div>
+
+        <!-- Steps Section -->
+        <div class="section">
+            <h2>🔄 Pasos del Workflow</h2>
+            <div id="wfSteps" class="steps-flow"></div>
+        </div>
+
+        <!-- History Section -->
+        <div class="section">
+            <h2>📊 Historial de Ejecuciones</h2>
+            <div id="wfHistory"><p class="loading">Cargando...</p></div>
+        </div>
     </main>
+
     <script src="/static/app.js"></script>
-    <script>loadWorkflowDetail({{ workflow_id }});</script>
+    <script>
+    const WF_ID = {{ workflow_id }};
+    let wfData = null;
+
+    // ── Tool/action labels ──────────────────────────────
+    const TOOL_LABELS = { crm:'CRM', invoice:'Facturas', inventory:'Inventario', notification:'Notificaciones', system:'Sistema' };
+    const ACTION_LABELS = {
+        create_lead:'Crear lead', update_lead:'Actualizar lead', list_leads:'Listar leads', move_stage:'Mover etapa',
+        create_invoice:'Crear factura', list_invoices:'Listar facturas', mark_paid:'Marcar pagada',
+        create_product:'Crear producto', update_stock:'Actualizar stock', list_products:'Listar productos', low_stock:'Stock bajo',
+        send_email:'Enviar email', send_notification:'Enviar notificación',
+        backup:'Backup', log:'Log',
+    };
+    const PARAM_LABELS = {
+        name:'Nombre', email:'Email', phone:'Teléfono', company:'Empresa', source:'Origen',
+        notes:'Notas', lead_id:'ID Lead', stage:'Etapa', client_name:'Cliente', client_email:'Email cliente',
+        items:'Items', tax_rate:'Impuesto %', discount:'Descuento', due_days:'Días vencimiento',
+        invoice_id:'ID Factura', status:'Estado', sku:'SKU', description:'Descripción', category:'Categoría',
+        stock:'Stock', min_stock:'Stock mínimo', price:'Precio', product_id:'ID Producto', quantity:'Cantidad',
+        type:'Tipo', reason:'Razón', to:'Para', subject:'Asunto', body:'Cuerpo',
+        user_id:'ID Usuario', title:'Título', message:'Mensaje',
+    };
+
+    // ── Status badge ────────────────────────────────────
+    function statusBadge(status) {
+        const map = {
+            active:   { icon:'✅', label:'Activo',    cls:'active' },
+            paused:   { icon:'⏸',  label:'Pausado',   cls:'paused' },
+            error:    { icon:'❌', label:'Error',      cls:'error' },
+            failed:   { icon:'❌', label:'Error',      cls:'error' },
+            archived: { icon:'🗑', label:'Archivado',  cls:'archived' },
+        };
+        const s = map[status] || map.paused;
+        return `<span class="status-badge ${s.cls}">${s.icon} ${s.label}</span>`;
+    }
+
+    // ── Trigger human-readable ──────────────────────────
+    function triggerHuman(type, config) {
+        if (!config) config = {};
+        switch (type) {
+            case 'event':    return `Cuando <strong>${config.event || 'evento'}</strong> ocurra`;
+            case 'schedule': {
+                const freq = { daily:'Todos los días', weekly:'Todas las semanas', monthly:'Todos los meses' };
+                const time = config.time || '23:00';
+                const [h, m] = time.split(':');
+                const hour12 = ((+h % 12) || 12);
+                const ampm = +h >= 12 ? 'pm' : 'am';
+                return `${freq[config.frequency] || 'Diario'} a las <strong>${hour12}:${m}${ampm}</strong>`;
+            }
+            case 'webhook':  return `HTTP POST a <strong>localhost:8081/${config.path || 'webhook'}</strong>`;
+            case 'manual':   return `Ejecución manual`;
+            default:         return type;
+        }
+    }
+
+    // ── Render steps ────────────────────────────────────
+    function renderSteps(steps) {
+        const container = document.getElementById('wfSteps');
+        if (!steps || !steps.length) {
+            container.innerHTML = '<p class="loading">Sin pasos definidos</p>';
+            return;
+        }
+        container.innerHTML = steps.map((s, i) => {
+            const toolLabel = TOOL_LABELS[s.tool] || s.tool;
+            const actionLabel = ACTION_LABELS[s.action] || s.action;
+            const params = s.params || {};
+            const paramEntries = Object.entries(params).filter(([k, v]) => v !== undefined && v !== '');
+            return `
+                ${i > 0 ? '<div class="step-connector"><div class="connector-line"></div><div class="connector-arrow">▼</div></div>' : ''}
+                <div class="step-card detail-step">
+                    <div class="step-header">
+                        <div class="step-number">${i + 1}</div>
+                        <span class="step-tool-badge tool-${s.tool || 'default'}">${toolLabel}</span>
+                        <span class="step-action-name">${actionLabel}</span>
+                    </div>
+                    ${paramEntries.length ? `
+                        <div class="step-detail-params">
+                            ${paramEntries.map(([k, v]) => `
+                                <div class="param-kv">
+                                    <span class="param-key">${PARAM_LABELS[k] || k}</span>
+                                    <span class="param-val">${v}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${s.condition ? `<div class="step-condition-badge">⚙️ Si: ${s.condition}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ── Render history ──────────────────────────────────
+    async function renderHistory() {
+        const history = await api(`/api/workflows/${WF_ID}/history`);
+        const container = document.getElementById('wfHistory');
+        if (!history || !history.length) {
+            container.innerHTML = '<p class="loading">Sin ejecuciones registradas</p>';
+            return;
+        }
+        container.innerHTML = `
+            <div style="overflow-x:auto">
+            <table class="table history-table">
+                <thead><tr>
+                    <th>#</th><th>Fecha</th><th>Estado</th><th>Duración</th><th></th>
+                </tr></thead>
+                <tbody>
+                ${history.map((e, i) => `
+                    <tr class="history-row" onclick="toggleExecDetail(${e.id}, this)">
+                        <td>${i + 1}</td>
+                        <td>${e.started_at ? new Date(e.started_at).toLocaleString('es') : '—'}</td>
+                        <td>${statusBadge(e.status)}</td>
+                        <td>${e.duration_ms ? e.duration_ms + 'ms' : '—'}</td>
+                        <td><span class="expand-icon">▸</span></td>
+                    </tr>
+                    <tr class="exec-detail-row hidden" id="execDetail-${e.id}">
+                        <td colspan="5"><div class="exec-detail-content" id="execContent-${e.id}">Cargando...</div></td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table></div>
+        `;
+    }
+
+    async function toggleExecDetail(execId, row) {
+        const detailRow = document.getElementById(`execDetail-${execId}`);
+        const content = document.getElementById(`execContent-${execId}`);
+        const icon = row.querySelector('.expand-icon');
+
+        if (!detailRow.classList.contains('hidden')) {
+            detailRow.classList.add('hidden');
+            icon.textContent = '▸';
+            return;
+        }
+
+        detailRow.classList.remove('hidden');
+        icon.textContent = '▾';
+
+        if (content.textContent !== 'Cargando...') return; // already loaded
+
+        try {
+            const data = await api(`/api/workflows/${WF_ID}/history/${execId}`);
+            if (!data || !data.logs) {
+                content.textContent = 'Sin datos disponibles';
+                return;
+            }
+            if (!data.logs.length) {
+                content.textContent = 'Sin logs de pasos';
+                return;
+            }
+            content.innerHTML = `
+                <div class="exec-step-logs">
+                    ${data.logs.map(log => `
+                        <div class="exec-step-log ${log.status === 'completed' ? 'log-ok' : log.status === 'failed' ? 'log-err' : ''}">
+                            <span class="log-step">Paso ${log.step_index !== undefined ? log.step_index + 1 : '?'}</span>
+                            <span class="log-tool">${TOOL_LABELS[log.tool] || log.tool || ''}</span>
+                            <span class="log-action">${ACTION_LABELS[log.action] || log.action || ''}</span>
+                            <span class="log-status">${log.status === 'completed' ? '✅' : '❌'} ${log.status}</span>
+                            ${log.duration_ms ? `<span class="log-duration">${log.duration_ms}ms</span>` : ''}
+                            ${log.error ? `<span class="log-error">${log.error}</span>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } catch (e) {
+            content.textContent = 'Error cargando detalle: ' + e.message;
+        }
+    }
+
+    // ── Toggle status ───────────────────────────────────
+    async function toggleWfStatus() {
+        if (!wfData) return;
+        const action = wfData.status === 'active' ? 'pause' : 'activate';
+        await api(`/api/workflows/${WF_ID}/${action}`, { method: 'POST' });
+        loadWorkflowDetail();
+    }
+
+    async function deleteWf() {
+        if (!confirm('¿Eliminar este workflow permanentemente?')) return;
+        await api(`/api/workflows/${WF_ID}`, { method: 'DELETE' });
+        window.location.href = '/workflows';
+    }
+
+    // ── Load detail ─────────────────────────────────────
+    async function loadWorkflowDetail() {
+        const wf = await api(`/api/workflows/${WF_ID}`);
+        if (!wf) { document.getElementById('wfName').textContent = 'No encontrado'; return; }
+        wfData = wf;
+
+        document.getElementById('wfName').textContent = wf.name || 'Sin nombre';
+        document.getElementById('wfStatus').innerHTML = statusBadge(wf.status);
+        document.getElementById('wfTrigger').innerHTML = triggerHuman(wf.trigger_type, wf.trigger_config);
+        document.getElementById('btnEdit').href = `/editor?wf=${WF_ID}`;
+
+        // Toggle button text
+        const btn = document.getElementById('btnToggle');
+        btn.textContent = wf.status === 'active' ? '⏸ Pausar' : '▶️ Reanudar';
+
+        // Status card color
+        const statusCard = document.getElementById('statusCard');
+        statusCard.className = 'stat-card';
+        if (wf.status === 'active') statusCard.classList.add('active');
+        else if (wf.status === 'error' || wf.status === 'failed') statusCard.classList.add('error');
+        else if (wf.status === 'paused') statusCard.classList.add('paused');
+
+        renderSteps(wf.steps);
+        await renderHistory();
+    }
+
+    loadWorkflowDetail();
+    </script>
 </body>
 </html>

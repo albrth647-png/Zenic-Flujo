@@ -24,27 +24,71 @@
                     <input type="password" id="password" name="password" placeholder="••••••••" required>
                 </div>
                 <div id="loginError" class="error-message hidden"></div>
-                <button type="submit" class="btn btn-primary btn-full">Iniciar sesión</button>
+                <button type="submit" id="loginBtn" class="btn btn-primary btn-full">Iniciar sesión</button>
             </form>
             <div class="trial-info" id="trialInfo">
-                <span class="trial-badge">⏳ Prueba gratuita</span>
-                <span id="trialDays"></span>
+                <div id="trialBadgeArea"></div>
+                <div id="trialProgressArea"></div>
+                <div id="trialActions" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
             </div>
         </div>
     </div>
     <script>
         const trial = {{ trial|tojson }};
-        if (trial && trial.days_left !== undefined) {
-            document.getElementById('trialDays').textContent = 
-                trial.status === 'expired' ? 'Período de prueba expirado' : `${trial.days_left} días restantes`;
-        }
+        (function initTrial() {
+            const badgeArea = document.getElementById('trialBadgeArea');
+            const progressArea = document.getElementById('trialProgressArea');
+            const actionsArea = document.getElementById('trialActions');
+
+            if (!trial) return;
+
+            const isTrial = trial.is_trial || trial.status === 'trial';
+            const daysLeft = trial.days_left || 0;
+            const isExpired = trial.status === 'expired' || daysLeft <= 0;
+
+            if (isTrial) {
+                badgeArea.innerHTML = `<span class="trial-badge">⏳ Período de prueba</span>`;
+
+                // Trial progress bar
+                const totalDays = 30;
+                const pct = Math.max(0, Math.min(100, ((totalDays - daysLeft) / totalDays) * 100));
+                const cls = daysLeft <= 0 ? 'expired' : daysLeft <= 5 ? 'warning' : 'active';
+                progressArea.innerHTML = `
+                    <div class="trial-progress">
+                        <div class="trial-progress-label">
+                            <span>${isExpired ? 'Período de prueba expirado' : `${daysLeft} días restantes`}</span>
+                            <span>${totalDays} días totales</span>
+                        </div>
+                        <div class="trial-progress-bar">
+                            <div class="trial-progress-fill ${cls}" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+
+                // Comprar licencia button (shown when trial is active or expired)
+                actionsArea.innerHTML = `
+                    <a href="/settings#license" class="btn btn-sm btn-warning" style="text-decoration:none">🔑 Ingresar licencia</a>
+                    <a href="https://workflowdeterminista.com/comprar" target="_blank" class="btn btn-sm btn-success" style="text-decoration:none">🛒 Comprar licencia</a>
+                `;
+            } else {
+                // Licensed user
+                badgeArea.innerHTML = `<span class="license-badge-sm">🔑 Licencia ${trial.type || 'activa'}</span>`;
+            }
+        })();
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            // Reset and hide error
             errorEl.classList.add('hidden');
-            const btn = e.target.querySelector('button');
+            errorEl.classList.remove('fade-in');
+
+            // Show loading state
             btn.disabled = true;
-            btn.textContent = 'Iniciando sesión...';
+            btn.innerHTML = '<span class="spinner"></span> Iniciando sesión...';
+
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
@@ -60,13 +104,18 @@
                     const data = await res.json();
                     errorEl.textContent = data.error || 'Credenciales inválidas';
                     errorEl.classList.remove('hidden');
+                    // Trigger fade-in animation
+                    requestAnimationFrame(() => errorEl.classList.add('fade-in'));
                 }
             } catch (err) {
-                errorEl.textContent = 'Error de conexión';
+                errorEl.textContent = 'Error de conexión al servidor';
                 errorEl.classList.remove('hidden');
+                requestAnimationFrame(() => errorEl.classList.add('fade-in'));
             }
+
+            // Reset button
             btn.disabled = false;
-            btn.textContent = 'Iniciar sesión';
+            btn.innerHTML = 'Iniciar sesión';
         });
     </script>
 </body>
