@@ -41,6 +41,12 @@ const TOOL_ACTIONS = {
             backup: { label: 'Backup', params: [] },
             log:    { label: 'Log', params: [] },
         }
+    },
+    subworkflow: {
+        label: 'Sub-workflow',
+        actions: {
+            execute: { label: 'Ejecutar sub-workflow', params: ['workflow_id','input_mapping','output_mapping'] },
+        }
     }
 };
 
@@ -162,25 +168,17 @@ function addStep(stepData) {
     const num = stepCounter;
     const container = document.getElementById('stepsContainer');
 
-    // Connector arrow (not for first step)
-    if (container.children.length > 0) {
-        const arrow = document.createElement('div');
-        arrow.className = 'step-connector';
-        arrow.innerHTML = '<div class="connector-line"></div><div class="connector-arrow">▼</div>';
-        container.appendChild(arrow);
-    }
-
     const card = document.createElement('div');
     card.className = 'step-card';
     card.dataset.stepId = num;
+    card.draggable = true;
 
     card.innerHTML = `
         <div class="step-header">
+            <div class="drag-handle" title="Arrastrar para reordenar">⠿</div>
             <div class="step-number">${num}</div>
             <span class="step-title">Paso ${num}</span>
             <div class="step-controls">
-                <button class="btn btn-sm btn-icon" onclick="moveStepUp(this)" title="Subir">▲</button>
-                <button class="btn btn-sm btn-icon" onclick="moveStepDown(this)" title="Bajar">▼</button>
                 <button class="btn btn-sm btn-danger btn-icon" onclick="removeStep(this)" title="Eliminar">✕</button>
             </div>
         </div>
@@ -216,7 +214,6 @@ function addStep(stepData) {
         populateActions(toolSel, actionSel);
         if (stepData.action) actionSel.value = stepData.action;
         onActionChange(actionSel);
-        // Fill params
         if (stepData.params && typeof stepData.params === 'object') {
             setTimeout(() => {
                 Object.entries(stepData.params).forEach(([k, v]) => {
@@ -233,7 +230,85 @@ function addStep(stepData) {
         onActionChange(actionSel);
     }
 
+    // Drag and drop events
+    card.addEventListener('dragstart', onDragStart);
+    card.addEventListener('dragend', onDragEnd);
+    card.addEventListener('dragover', onDragOver);
+    card.addEventListener('drop', onDrop);
+
     renumberSteps();
+    updateConnectors();
+}
+
+// ── Drag & Drop ──────────────────────────────────────────────
+let dragSrcElement = null;
+
+function onDragStart(e) {
+    dragSrcElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', this.dataset.stepId);
+}
+
+function onDragEnd() {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.step-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+    dragSrcElement = null;
+}
+
+function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.step-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+    this.classList.add('drag-over');
+}
+
+function onDrop(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    if (dragSrcElement === this) return;
+
+    const container = document.getElementById('stepsContainer');
+    const allCards = Array.from(container.querySelectorAll('.step-card'));
+    const fromIndex = allCards.indexOf(dragSrcElement);
+    const toIndex = allCards.indexOf(this);
+
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    // Reorder by moving the dragged card before/after the target
+    if (fromIndex < toIndex) {
+        container.insertBefore(dragSrcElement, this.nextElementSibling);
+    } else {
+        container.insertBefore(dragSrcElement, this);
+    }
+
+    renumberSteps();
+    updateConnectors();
+}
+
+// ── SVG Connectors ───────────────────────────────────────────
+function updateConnectors() {
+    const container = document.getElementById('stepsContainer');
+    const cards = container.querySelectorAll('.step-card');
+
+    // Remove all existing SVG connectors
+    container.querySelectorAll('.step-svg-connector').forEach(el => el.remove());
+
+    // Add connectors between cards
+    cards.forEach((card, i) => {
+        if (i === cards.length - 1) return;
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'step-svg-connector');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '32');
+        svg.setAttribute('viewBox', '0 0 100 32');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.innerHTML = `<line x1="50" y1="0" x2="50" y2="24" stroke="#6366f1" stroke-width="2" opacity="0.4"/>
+            <polygon points="44,24 50,32 56,24" fill="#6366f1" opacity="0.6"/>`;
+
+        card.parentNode.insertBefore(svg, card.nextElementSibling);
+    });
 }
 
 function populateActions(toolSel, actionSel) {
@@ -275,49 +350,9 @@ function onActionChange(actionSel) {
 
 function removeStep(btn) {
     const card = btn.closest('.step-card');
-    const container = document.getElementById('stepsContainer');
-    // Remove connector before or after
-    const prev = card.previousElementSibling;
-    const next = card.nextElementSibling;
-    if (prev && prev.classList.contains('step-connector')) prev.remove();
-    else if (next && next.classList.contains('step-connector')) next.remove();
     card.remove();
     renumberSteps();
-}
-
-function moveStepUp(btn) {
-    const card = btn.closest('.step-card');
-    const container = document.getElementById('stepsContainer');
-    // Find previous connector + card
-    const prevConn = card.previousElementSibling;
-    if (!prevConn || !prevConn.classList.contains('step-connector')) return; // already first
-    const prevCard = prevConn.previousElementSibling;
-    if (!prevCard || !prevCard.classList.contains('step-card')) return;
-
-    // Swap: move prevCard + prevConn after current card
-    container.insertBefore(card, prevCard);
-    container.insertBefore(prevConn, card);
-    renumberSteps();
-}
-
-function moveStepDown(btn) {
-    const card = btn.closest('.step-card');
-    const container = document.getElementById('stepsContainer');
-    const nextConn = card.nextElementSibling;
-    if (!nextConn || !nextConn.classList.contains('step-connector')) return;
-    const nextCard = nextConn.nextElementSibling;
-    if (!nextCard || !nextCard.classList.contains('step-card')) return;
-
-    container.insertBefore(nextCard, card);
-    container.insertBefore(nextConn, nextCard);
-    // Actually we need: card, nextConn, nextCard -> nextCard, nextConn, card
-    // Let's just swap card and nextCard
-    // Better approach: move nextCard before card
-    container.insertBefore(nextCard, card);
-    // Now card needs to go after nextConn
-    container.insertBefore(card, nextConn.nextElementSibling);
-
-    renumberSteps();
+    updateConnectors();
 }
 
 function renumberSteps() {
@@ -325,6 +360,8 @@ function renumberSteps() {
     cards.forEach((card, i) => {
         card.querySelector('.step-number').textContent = i + 1;
         card.querySelector('.step-title').textContent = `Paso ${i + 1}`;
+        // Actualizar dataset para que coincida con el orden visual
+        card.dataset.stepId = String(i + 1);
     });
 }
 

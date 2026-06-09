@@ -112,7 +112,7 @@ class ReportGenerator:
 
         rows = self._db.fetchall(
             "SELECT id, name, description, trigger_type, status, "
-            "created_at FROM workflow_definitions ORDER BY updated_at DESC"
+            "steps, created_at FROM workflow_definitions ORDER BY updated_at DESC"
         )
         if not rows:
             pdf.set_text_color(136, 136, 136)

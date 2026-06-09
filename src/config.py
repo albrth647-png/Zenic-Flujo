@@ -54,9 +54,23 @@ LICENSE_SECRET_KEY = os.environ.get(
     "REDACTED_clave_maestra_hmac"
 )
 
+# ── Encryption ────────────────────────────────────────────
+# Derivada de SESSION_SECRET para cifrar tokens sensibles (WhatsApp, etc.)
+import base64
+import hashlib
+WHATSAPP_ENCRYPTION_KEY = base64.urlsafe_b64encode(
+    hashlib.sha256(SESSION_SECRET.encode()).digest()
+)
+
 # ── Free Tier Limits ──────────────────────────────────────
 FREE_TIER_MAX_WORKFLOWS = 3
 FREE_TIER_ALLOWED_TOOLS = ["crm"]  # Solo CRM en free
+
+# ── Ollama (AI Enhancement) ────────────────────────────────
+OLLAMA_ENABLED = os.environ.get("WFD_OLLAMA_ENABLED", "false").lower() == "true"
+OLLAMA_BASE_URL = os.environ.get("WFD_OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("WFD_OLLAMA_MODEL", "llama3.2")
+OLLAMA_TIMEOUT = int(os.environ.get("WFD_OLLAMA_TIMEOUT", "30"))
 
 # ── Logging ────────────────────────────────────────────────
 LOG_LEVEL = os.environ.get("WFD_LOG_LEVEL", "INFO")

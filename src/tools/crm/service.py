@@ -18,8 +18,9 @@ class CRMService:
 
     def create_lead(self, name: str, email: str | None = None,
                     phone: str | None = None, company: str | None = None,
-                    source: str = "manual", notes: str | None = None) -> dict:
-        lead = self._repo.create_lead(name, email, phone, company, source, notes)
+                    source: str = "manual", notes: str | None = None,
+                    user_id: int | None = None) -> dict:
+        lead = self._repo.create_lead(name, email, phone, company, source, notes, user_id)
         self._event_bus.publish("crm.lead.created", dict(lead))
         logger.info(f"Lead creado: {lead.get('name')} (ID: {lead.get('id')})")
         return lead
@@ -38,8 +39,9 @@ class CRMService:
     def get_lead(self, lead_id: int) -> dict | None:
         return self._repo.get_lead(lead_id)
 
-    def list_leads(self, stage: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
-        return self._repo.list_leads(stage, limit, offset)
+    def list_leads(self, stage: str | None = None, limit: int = 50, offset: int = 0,
+                    user_id: int | None = None) -> list[dict]:
+        return self._repo.list_leads(stage, limit, offset, user_id)
 
     def delete_lead(self, lead_id: int) -> bool:
         return self._repo.delete_lead(lead_id)

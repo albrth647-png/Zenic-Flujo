@@ -1,6 +1,6 @@
 """
 Workflow Determinista — IntentClassifier
-Clasificador determinista por keywords. NO usa AI. NO usa LLM.
+Clasificador determinista por keywords con fallback opcional a AI (Ollama).
 """
 import re
 from src.nlp.bilingual_router import BilingualRouter
@@ -13,6 +13,14 @@ logger = setup_logging(__name__)
 class IntentClassifier:
     def __init__(self):
         self._router = BilingualRouter()
+        self._ai_enhancer = None
+
+    def _get_ai_enhancer(self):
+        """Lazy import del AI Enhancer para no crear dependencia circular."""
+        if self._ai_enhancer is None:
+            from src.nlp.ai_enhancer import AIEnhancer
+            self._ai_enhancer = AIEnhancer()
+        return self._ai_enhancer
 
     def classify(self, text: str) -> list[dict]:
         normalized = self._normalize(text)
@@ -39,7 +47,18 @@ class IntentClassifier:
                 })
 
         intents.sort(key=lambda x: x["score"], reverse=True)
-        return intents[:5]
+        keyword_intents = intents[:5]
+
+        # Si no hay coincidencias por keywords, intentar con AI
+        if not keyword_intents:
+            enhancer = self._get_ai_enhancer()
+            if enhancer.enabled:
+                logger.info("Sin coincidencias por keywords, usando AI Enhancer")
+                ai_intents = enhancer.enhance_intents(text)
+                if ai_intents:
+                    return ai_intents
+
+        return keyword_intents
 
     def _normalize(self, text: str) -> str:
         text = text.lower()

@@ -20,7 +20,8 @@ class InvoiceService:
     def create_invoice(self, client_name: str, client_email: str | None = None,
                        items: list | None = None, tax_rate: float = 0.16,
                        discount: float = 0.0, due_days: int = 30,
-                       notes: str | None = None) -> dict:
+                       notes: str | None = None,
+                       user_id: int | None = None) -> dict:
         items = items or []
         # Asegurar tipos numéricos para evitar errores si llegan como string
         safe_items = []
@@ -48,7 +49,7 @@ class InvoiceService:
             number=number, client_name=client_name, client_email=client_email,
             items=items, subtotal=subtotal, tax_rate=tax_rate,
             tax_amount=tax_amount, discount=discount, total=total,
-            due_date=due_date, notes=notes,
+            due_date=due_date, notes=notes, user_id=user_id,
         )
         self._event_bus.publish("invoice.created", dict(invoice) if invoice else {})
         logger.info(f"Factura creada: {number} - ${total:.2f}")
@@ -81,8 +82,9 @@ class InvoiceService:
     def get_invoice(self, invoice_id: int) -> dict | None:
         return self._repo.get(invoice_id)
 
-    def list_invoices(self, status: str | None = None, limit: int = 50) -> list[dict]:
-        return self._repo.list_invoices(status, limit)
+    def list_invoices(self, status: str | None = None, limit: int = 50,
+                       user_id: int | None = None) -> list[dict]:
+        return self._repo.list_invoices(status, limit, user_id)
 
     def get_overdue_invoices(self) -> list[dict]:
         return self._repo.get_overdue()

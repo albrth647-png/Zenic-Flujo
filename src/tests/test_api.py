@@ -358,6 +358,47 @@ class TestDashboardAPI:
         assert "stats" in data
         assert "trial" in data
 
+    def test_dashboard_timeline(self, app_client):
+        """Test: GET /api/dashboard/timeline retorna datos de ejecuciones por día."""
+        client, password = app_client
+        _login(client, password)
+        # Crear workflow con ejecuciones para tener datos en el timeline
+        create_resp = client.post(
+            "/api/workflows",
+            json={"name": "Timeline Test WF", "trigger_type": "manual",
+                  "trigger_config": {}, "steps": []},
+        )
+        assert create_resp.status_code == 201
+        wf_id = create_resp.get_json()["id"]
+
+        # Ejecutar el workflow (crea una ejecución)
+        client.post(f"/api/workflows/{wf_id}/retry")
+
+        # Obtener timeline
+        response = client.get("/api/dashboard/timeline?days=30")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "daily" in data
+        assert "tools" in data
+        assert isinstance(data["daily"], list)
+        assert isinstance(data["tools"], list)
+
+        # Si hay datos, verificar estructura
+        if data["daily"]:
+            day = data["daily"][0]
+            assert "day" in day
+            assert "completed" in day
+            assert "failed" in day
+
+    def test_dashboard_timeline_default_days(self, app_client):
+        """Test: GET /api/dashboard/timeline sin parámetro days usa 14 por defecto."""
+        client, password = app_client
+        _login(client, password)
+        response = client.get("/api/dashboard/timeline")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "daily" in data
+
 
 class TestChatAPI:
     """Tests para la ruta de chat NLP."""

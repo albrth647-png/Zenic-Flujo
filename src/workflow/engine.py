@@ -14,6 +14,9 @@ from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
+# Profundidad máxima de anidamiento de subworkflows para evitar recursión infinita
+MAX_SUBWORKFLOW_DEPTH = 10
+
 
 class ExecutionResult:
     """Resultado completo de una ejecución de workflow."""
@@ -243,6 +246,10 @@ class WorkflowEngine:
                 },
             )
 
+        # Subworkflow step
+        if step_type == "subworkflow":
+            return self._execute_subworkflow(step, context)
+
         # Action step normal
         try:
             result = self._step_executor.execute(step, context)
@@ -260,6 +267,140 @@ class WorkflowEngine:
                 status="failed",
                 error_message=error_result.error_message,
             )
+
+    def _execute_subworkflow(self, step: dict, context: dict) -> StepResult:
+        """
+        Ejecuta un paso de tipo subworkflow.
+
+        Formato del paso:
+        {
+            "type": "subworkflow",
+            "workflow_id": 2,
+            "input_mapping": {"nombre": "$input.nombre"},
+            "output_mapping": {"resultado": "steps_output.1.message"}
+        }
+
+        Args:
+            step: Definición del paso subworkflow
+            context: Contexto de ejecución del padre
+
+        Returns:
+            StepResult con el resultado del subworkflow
+        """
+        start_time = time.time()
+        workflow_id = step.get("workflow_id")
+        input_mapping = step.get("input_mapping", {})
+        output_mapping = step.get("output_mapping", {})
+        parent_workflow_id = context.get("workflow", {}).get("id")
+        from src.utils.helpers import resolve_variables
+
+        # 1. Validar workflow_id
+        if not workflow_id:
+            return StepResult(
+                status="failed",
+                error_message="Subworkflow sin workflow_id",
+                duration_ms=self._elapsed(start_time),
+            )
+
+        # 2. Detectar recursión
+        if workflow_id == parent_workflow_id:
+            return StepResult(
+                status="failed",
+                error_message=f"Subworkflow recursivo detectado: workflow {workflow_id} se llama a sí mismo",
+                duration_ms=self._elapsed(start_time),
+            )
+
+        # 3. Verificar profundidad máxima
+        depth = context.get("_subworkflow_depth", 0)
+        if depth >= MAX_SUBWORKFLOW_DEPTH:
+            return StepResult(
+                status="failed",
+                error_message=f"Profundidad máxima de subworkflows ({MAX_SUBWORKFLOW_DEPTH}) excedida",
+                duration_ms=self._elapsed(start_time),
+            )
+
+        # 4. Cargar el workflow hijo
+        child_wf = self._repository.get(workflow_id)
+        if not child_wf:
+            return StepResult(
+                status="failed",
+                error_message=f"Workflow hijo no encontrado: {workflow_id}",
+                duration_ms=self._elapsed(start_time),
+            )
+
+        if child_wf.status != "active":
+            return StepResult(
+                status="failed",
+                error_message=f"Workflow hijo '{child_wf.name}' no está activo (estado: {child_wf.status})",
+                duration_ms=self._elapsed(start_time),
+            )
+
+        # 5. Resolver input_mapping desde el contexto del padre
+        child_input = {}
+        for target_key, source_expr in input_mapping.items():
+            resolved = resolve_variables(source_expr, context)
+            child_input[target_key] = resolved
+
+        # 6. Ejecutar el workflow hijo con contexto incrementado
+        child_context = {
+            **context,
+            "_subworkflow_depth": depth + 1,
+            "input": child_input,
+            "_parent_execution": {
+                "workflow_id": parent_workflow_id,
+                "step_id": step.get("id"),
+            },
+        }
+
+        try:
+            child_result = self.execute(workflow_id, child_input)
+
+            elapsed = self._elapsed(start_time)
+
+            # 7. Mapear outputs si hay output_mapping
+            mapped_output = {}
+            if child_result.step_results:
+                # Construir steps_output del hijo para resolver expresiones
+                child_steps_output = {}
+                for i, sr in enumerate(child_result.step_results):
+                    step_id = str(sr.get("step_id", i + 1))
+                    child_steps_output[step_id] = sr.get("output", {})
+
+                child_context["steps_output"] = child_steps_output
+
+                for target_key, source_expr in output_mapping.items():
+                    resolved = resolve_variables(source_expr, child_context)
+                    mapped_output[target_key] = resolved
+
+                if child_result.status == "failed":
+                    return StepResult(
+                        status="failed",
+                        error_message=f"Subworkflow '{child_wf.name}' falló: {child_result.error_message}",
+                        duration_ms=elapsed,
+                    )
+
+            return StepResult(
+                status="completed",
+                output_data={
+                    "child_status": "completed",
+                    "child_execution_id": child_result.execution_id,
+                    "mapped_output": mapped_output,
+                },
+                duration_ms=elapsed,
+            )
+
+        except Exception as e:
+            elapsed = self._elapsed(start_time)
+            logger.error(f"Error ejecutando subworkflow {workflow_id}: {e}")
+            return StepResult(
+                status="failed",
+                error_message=f"Error en subworkflow: {e}",
+                duration_ms=elapsed,
+            )
+
+    @staticmethod
+    def _elapsed(start_time: float) -> int:
+        return int((time.time() - start_time) * 1000)
 
     def _load_settings(self) -> dict:
         """Carga todas las settings del sistema en un dict."""

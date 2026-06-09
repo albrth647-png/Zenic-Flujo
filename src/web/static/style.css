@@ -238,9 +238,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); box-sh
 
 /* Step flow visual */
 .steps-flow { display: flex; flex-direction: column; gap: 0; margin-bottom: 16px; }
-.step-connector { display: flex; flex-direction: column; align-items: center; padding: 4px 0; }
-.connector-line { width: 2px; height: 16px; background: var(--primary); opacity: .4; }
-.connector-arrow { color: var(--primary); font-size: .8rem; opacity: .6; margin-top: -2px; }
+
+/* Drag handle */
+.drag-handle { cursor: grab; color: var(--text-muted); font-size: 1.1rem; padding: 0 4px; user-select: none; line-height: 1; }
+.drag-handle:active { cursor: grabbing; }
+
+/* Dragging state */
+.step-card.dragging { opacity: 0.5; border-style: dashed; }
+.step-card.drag-over { border-color: var(--primary); border-style: dashed; box-shadow: 0 0 0 3px rgba(99,102,241,.2); transform: scale(1.02); }
+
+/* SVG connectors between steps */
+.step-svg-connector { display: block; margin: -4px 0; pointer-events: none; }
 
 /* Step card enhanced */
 .step-card .step-number { background: var(--primary); color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700; flex-shrink: 0; }

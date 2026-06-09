@@ -126,21 +126,21 @@ class APIConnectorService:
                 "duration_ms": duration,
             }
 
-        except requests.ConnectionError as e:
+        except requests.exceptions.ConnectionError as e:
             logger.error(f"Error de conexión a {url}: {e}")
             return {
                 "status_code": 0,
                 "error": f"Error de conexión: {e}",
                 "duration_ms": self._elapsed(start_time),
             }
-        except requests.Timeout as e:
+        except requests.exceptions.Timeout as e:
             logger.error(f"Timeout en {url}: {e}")
             return {
                 "status_code": 0,
                 "error": f"Timeout después de {timeout}s: {e}",
                 "duration_ms": self._elapsed(start_time),
             }
-        except requests.RequestException as e:
+        except requests.exceptions.RequestException as e:
             logger.error(f"Error en petición a {url}: {e}")
             return {
                 "status_code": 0,

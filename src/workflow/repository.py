@@ -105,7 +105,7 @@ class WorkflowRepository:
 
     # ── Workflow Definitions ─────────────────────────────────
 
-    def create(self, definition: WorkflowDefinition) -> WorkflowDefinition:
+    def create(self, definition: WorkflowDefinition, user_id: int | None = None) -> WorkflowDefinition:
         """Crea una nueva definición de workflow."""
         # Verificar límite de free tier
         count = self.count()
@@ -123,8 +123,8 @@ class WorkflowRepository:
 
         cursor = self._db.execute(
             """INSERT INTO workflow_definitions 
-               (name, description, trigger_type, trigger_config, steps, status)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+               (name, description, trigger_type, trigger_config, steps, status, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 definition.name,
                 definition.description,
@@ -132,6 +132,7 @@ class WorkflowRepository:
                 json.dumps(definition.trigger_config),
                 json.dumps(definition.steps),
                 definition.status,
+                user_id or 1,
             ),
         )
         self._db.commit()
@@ -148,12 +149,22 @@ class WorkflowRepository:
         )
         return WorkflowDefinition.from_dict(row) if row else None
 
-    def list_all(self, status: str | None = None) -> list[WorkflowDefinition]:
-        """Lista todos los workflows, opcionalmente filtrados por estado."""
-        if status:
+    def list_all(self, status: str | None = None, user_id: int | None = None) -> list[WorkflowDefinition]:
+        """Lista todos los workflows, opcionalmente filtrados por estado y usuario."""
+        if status and user_id:
+            rows = self._db.fetchall(
+                "SELECT * FROM workflow_definitions WHERE status = ? AND user_id = ? ORDER BY updated_at DESC",
+                (status, user_id),
+            )
+        elif status:
             rows = self._db.fetchall(
                 "SELECT * FROM workflow_definitions WHERE status = ? ORDER BY updated_at DESC",
                 (status,),
+            )
+        elif user_id:
+            rows = self._db.fetchall(
+                "SELECT * FROM workflow_definitions WHERE user_id = ? ORDER BY updated_at DESC",
+                (user_id,),
             )
         else:
             rows = self._db.fetchall(
@@ -206,9 +217,12 @@ class WorkflowRepository:
         self._db.audit("workflow.deleted", f"Workflow ID {workflow_id} eliminado")
         return True
 
-    def count(self) -> int:
+    def count(self, user_id: int | None = None) -> int:
         """Retorna el número total de workflows."""
-        row = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions")
+        if user_id:
+            row = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions WHERE user_id = ?", (user_id,))
+        else:
+            row = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions")
         return row["count"] if row else 0
 
     # ── Workflow Executions ──────────────────────────────────
@@ -367,10 +381,11 @@ class WorkflowRepository:
             raise ValueError("campo 'steps' debe ser una lista")
 
         steps = steps or []
-        # Sanitizar: resetear IDs de pasos
-        for i, step in enumerate(steps):
-            if isinstance(step, dict):
-                step["id"] = i + 1
+        # Sanitizar: resetear IDs de pasos (sin mutar el dict original)
+        steps = [
+            {**step, "id": i + 1} if isinstance(step, dict) else step
+            for i, step in enumerate(steps)
+        ]
 
         # Advertir sobre tools desconocidas (no bloqueante)
         known_tools = {"crm", "invoice", "inventory", "notification",
@@ -394,15 +409,40 @@ class WorkflowRepository:
         logger.info(f"Workflow importado: {wf.name} (ID: {wf.id})")
         return wf
 
-    # ── Dashboard ────────────────────────────────────────────
+    # ── Schedule helpers ─────────────────────────────────────
 
-    def get_stats(self) -> dict:
-        """Retorna estadísticas para el dashboard."""
-        total = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions")
-        by_status_raw = self._db.fetchall(
-            "SELECT status, COUNT(*) as count FROM workflow_definitions GROUP BY status"
+    def get_active_scheduled(self) -> list[WorkflowDefinition]:
+        """Obtiene todos los workflows activos con trigger de tipo schedule."""
+        rows = self._db.fetchall(
+            """SELECT * FROM workflow_definitions 
+               WHERE status = 'active' AND trigger_type = 'schedule'"""
         )
-        # Garantizar que los 4 estados aparezcan en el dict (con 0 si no hay)
+        return [WorkflowDefinition.from_dict(r) for r in rows]
+
+    def get_active_webhooks(self) -> list[WorkflowDefinition]:
+        """Obtiene todos los workflows activos con trigger de tipo webhook."""
+        rows = self._db.fetchall(
+            """SELECT * FROM workflow_definitions 
+               WHERE status = 'active' AND trigger_type = 'webhook'"""
+        )
+        return [WorkflowDefinition.from_dict(r) for r in rows]
+
+    def get_stats(self, user_id: int | None = None) -> dict:
+        """Retorna estadísticas para el dashboard, opcionalmente filtradas por usuario."""
+        if user_id:
+            total = self._db.fetchone(
+                "SELECT COUNT(*) as count FROM workflow_definitions WHERE user_id = ?",
+                (user_id,),
+            )
+            by_status_raw = self._db.fetchall(
+                "SELECT status, COUNT(*) as count FROM workflow_definitions WHERE user_id = ? GROUP BY status",
+                (user_id,),
+            )
+        else:
+            total = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions")
+            by_status_raw = self._db.fetchall(
+                "SELECT status, COUNT(*) as count FROM workflow_definitions GROUP BY status"
+            )
         by_status = {"active": 0, "paused": 0, "archived": 0, "failed": 0}
         for r in by_status_raw:
             by_status[r["status"]] = r["count"]
@@ -427,21 +467,3 @@ class WorkflowRepository:
                 for r in recent
             ],
         }
-
-    # ── Schedule helpers ─────────────────────────────────────
-
-    def get_active_scheduled(self) -> list[WorkflowDefinition]:
-        """Obtiene todos los workflows activos con trigger de tipo schedule."""
-        rows = self._db.fetchall(
-            """SELECT * FROM workflow_definitions 
-               WHERE status = 'active' AND trigger_type = 'schedule'"""
-        )
-        return [WorkflowDefinition.from_dict(r) for r in rows]
-
-    def get_active_webhooks(self) -> list[WorkflowDefinition]:
-        """Obtiene todos los workflows activos con trigger de tipo webhook."""
-        rows = self._db.fetchall(
-            """SELECT * FROM workflow_definitions 
-               WHERE status = 'active' AND trigger_type = 'webhook'"""
-        )
-        return [WorkflowDefinition.from_dict(r) for r in rows]

@@ -14,15 +14,17 @@ class InvoiceRepository:
     def create(self, number: str, client_name: str, client_email: str | None,
                items: list, subtotal: float, tax_rate: float, tax_amount: float,
                discount: float, total: float, due_date: str | None = None,
-               notes: str | None = None) -> dict:
+               notes: str | None = None,
+               user_id: int | None = None) -> dict:
         if not due_date:
             due_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
         cursor = self._db.execute(
             """INSERT INTO invoices (number, client_name, client_email, items, subtotal,
-               tax_rate, tax_amount, discount, total, due_date, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               tax_rate, tax_amount, discount, total, due_date, notes, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (number, client_name, client_email, json.dumps(items),
-             subtotal, tax_rate, tax_amount, discount, total, due_date, notes),
+             subtotal, tax_rate, tax_amount, discount, total, due_date, notes,
+             user_id or 1),
         )
         self._db.commit()
         return self.get(cursor.lastrowid)
@@ -34,11 +36,22 @@ class InvoiceRepository:
                 row["items"] = json.loads(row["items"])
         return row
 
-    def list_invoices(self, status: str | None = None, limit: int = 50) -> list[dict]:
-        if status:
+    def list_invoices(self, status: str | None = None, limit: int = 50,
+                       user_id: int | None = None) -> list[dict]:
+        if status and user_id:
+            rows = self._db.fetchall(
+                "SELECT * FROM invoices WHERE status = ? AND user_id = ? ORDER BY issued_at DESC LIMIT ?",
+                (status, user_id, limit),
+            )
+        elif status:
             rows = self._db.fetchall(
                 "SELECT * FROM invoices WHERE status = ? ORDER BY issued_at DESC LIMIT ?",
                 (status, limit),
+            )
+        elif user_id:
+            rows = self._db.fetchall(
+                "SELECT * FROM invoices WHERE user_id = ? ORDER BY issued_at DESC LIMIT ?",
+                (user_id, limit),
             )
         else:
             rows = self._db.fetchall(

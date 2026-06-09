@@ -2,8 +2,11 @@
 Workflow Determinista — Web App (Flask)
 Servidor web con todas las rutas de la API REST.
 """
+import html as _html
 import json
 import os
+import re as _re
+import urllib.parse as _urlparse
 from functools import wraps
 from pathlib import Path
 
@@ -34,6 +37,25 @@ event_bus = EventBus()
 
 # Rate limiting state
 _login_attempts: dict[str, list[float]] = {}
+
+
+def _sanitize(s: str) -> str:
+    """Limpia inputs de texto contra XSS.
+
+    Preserva texto plano, elimina tags HTML, entidades codificadas,
+    y URI schemes maliciosos (javascript:, data:, vbscript:).
+    """
+    # 1. Decodificar URL encoding (%3C → <)
+    unquoted = _urlparse.unquote(s)
+    # 2. Unescape entidades HTML (&lt; → <)
+    unescaped = _html.unescape(unquoted)
+    # 3. Eliminar tags HTML completos
+    cleaned = _re.sub(r"<[^>]*>", "", unescaped)
+    # 4. Eliminar tags sin cerrar al final del string
+    cleaned = _re.sub(r"<[^>]+$", "", cleaned)
+    # 4. Eliminar URI schemes maliciosos
+    cleaned = _re.sub(r"(javascript|vbscript|data):", "", cleaned, flags=_re.IGNORECASE)
+    return cleaned.strip()
 
 
 def _check_rate_limit(ip: str) -> bool:
@@ -120,6 +142,21 @@ def create_app() -> Flask:
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["PERMANENT_SESSION_LIFETIME"] = SESSION_EXPIRY_HOURS * 3600
 
+    def require_role(role: str):
+        """Decorador: requiere un rol específico para acceder a la ruta."""
+        def decorator(f):
+            @wraps(f)
+            def decorated(*args, **kwargs):
+                if "user" not in session:
+                    return jsonify({"error": "No autenticado"}), 401
+                user_role = session.get("role", "")
+                roles_hierarchy = {"admin": 3, "editor": 2, "viewer": 1}
+                if roles_hierarchy.get(user_role, 0) < roles_hierarchy.get(role, 0):
+                    return jsonify({"error": f"Se requiere rol '{role}'"}), 403
+                return f(*args, **kwargs)
+            return decorated
+        return decorator
+
     # ── Rutas de páginas ──────────────────────────────────
 
     @app.route("/")
@@ -176,7 +213,7 @@ def create_app() -> Flask:
             return render_template("login.html", trial={"status": "expired"})
         return render_template("settings.html")
 
-    # ── API: Auth ──────────────────────────────────────────
+    # ── API: Auth (multi-user) ──────────────────────────────
 
     @app.route("/api/auth/login", methods=["POST"])
     def api_login():
@@ -188,27 +225,47 @@ def create_app() -> Flask:
         password = data.get("password", "")
 
         import bcrypt
-        stored_hash = db.get_setting("admin_password_hash")
-        if not stored_hash:
-            return jsonify({"error": "No hay usuario configurado"}), 401
 
-        if isinstance(stored_hash, str):
-            try:
-                valid = bcrypt.checkpw(password.encode(), stored_hash.encode())
-            except (ValueError, TypeError):
-                valid = False
-        else:
-            valid = False
-
-        if not valid:
-            ip = request.remote_addr or "unknown"
+        # Buscar usuario en tabla users
+        user = db.get_user_by_username(username)
+        if not user:
+            # Fallback al admin_password_hash legacy
+            stored_hash = db.get_setting("admin_password_hash")
+            if stored_hash and isinstance(stored_hash, str):
+                try:
+                    if bcrypt.checkpw(password.encode(), stored_hash.encode()):
+                        session["user"] = username
+                        session["user_id"] = 1
+                        session["role"] = "admin"
+                        session.permanent = True
+                        db.audit("login.success", f"Login legacy: {username}", ip, 1)
+                        return jsonify({"status": "ok", "user": username})
+                except (ValueError, TypeError):
+                    pass
             db.audit("login.failed", f"Intento fallido para {username}", ip)
             return jsonify({"error": "Credenciales inválidas"}), 401
 
+        if not user.get("is_active", 1):
+            return jsonify({"error": "Usuario desactivado"}), 403
+
+        try:
+            valid = bcrypt.checkpw(password.encode(), user["password_hash"].encode())
+        except (ValueError, TypeError):
+            valid = False
+
+        if not valid:
+            db.audit("login.failed", f"Intento fallido para {username}", ip, user["id"])
+            return jsonify({"error": "Credenciales inválidas"}), 401
+
         session["user"] = username
+        session["user_id"] = user["id"]
+        session["role"] = user["role"]
         session.permanent = True
-        db.audit("login.success", f"Login exitoso: {username}", request.remote_addr)
-        return jsonify({"status": "ok", "user": username})
+        db.audit("login.success", f"Login exitoso: {username}", ip, user["id"])
+        # Actualizar last_login
+        db.execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", (user["id"],))
+        db.commit()
+        return jsonify({"status": "ok", "user": username, "role": user["role"]})
 
     @app.route("/api/auth/logout", methods=["POST"])
     def api_logout():
@@ -278,18 +335,19 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows", methods=["POST"])
     @login_required
+    @require_role("editor")
     @check_free_tier()
     def api_create_workflow():
         data = request.get_json() or {}
         try:
             wf = WorkflowDefinition(
-                name=data.get("name", ""),
-                description=data.get("description", ""),
+                name=_sanitize(data.get("name", "")),
+                description=_sanitize(data.get("description", "")),
                 trigger_type=data.get("trigger_type", "manual"),
                 trigger_config=data.get("trigger_config", {}),
                 steps=data.get("steps", []),
             )
-            created = repo.create(wf)
+            created = repo.create(wf, user_id=session.get("user_id"))
 
             # Suscribir a eventos según trigger_type
             if created.trigger_type == "event":
@@ -315,6 +373,7 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows/<int:wf_id>", methods=["PUT"])
     @login_required
+    @require_role("editor")
     def api_update_workflow(wf_id):
         data = request.get_json() or {}
         updated = repo.update(wf_id, data)
@@ -324,6 +383,7 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows/<int:wf_id>", methods=["DELETE"])
     @login_required
+    @require_role("editor")
     def api_delete_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
         engine = WorkflowEngine()
@@ -333,6 +393,7 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows/<int:wf_id>/activate", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_activate_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
         engine = WorkflowEngine()
@@ -341,6 +402,7 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows/<int:wf_id>/pause", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_pause_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
         engine = WorkflowEngine()
@@ -383,6 +445,7 @@ def create_app() -> Flask:
 
     @app.route("/api/workflows/<int:wf_id>/retry", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_retry_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
         engine = WorkflowEngine()
@@ -393,6 +456,70 @@ def create_app() -> Flask:
             return jsonify({"error": str(e)}), 400
 
     # ── API: NLP Chat ───────────────────────────────────────
+
+    @app.route("/api/nlu/understand", methods=["POST"])
+    @login_required
+    def api_nlu_understand():
+        """Endpoint NLU completo: análisis + compilación + simulación."""
+        data = request.get_json() or {}
+        text = data.get("text", "")
+        mode = data.get("mode", "compile")  # 'analyze' | 'compile' | 'simulate'
+        lang = data.get("lang")
+        context = data.get("context")
+
+        if not text:
+            return jsonify({"error": "text es requerido"}), 400
+
+        from src.nlu.pipeline import Pipeline
+        pipeline = Pipeline()
+
+        if mode == "analyze":
+            result = pipeline.process(text, lang)
+            return jsonify({
+                "status": "analyzed",
+                "lang": result.lang,
+                "confidence": result.confidence,
+                "intents": [
+                    {"intent": i.intent, "score": i.score, "evidence": i.evidence}
+                    for i in result.intents[:5]
+                ],
+                "entities": [
+                    {"type": e.type, "value": str(e.value), "raw": e.raw}
+                    for e in result.entities
+                ],
+                "slots": [
+                    {"name": s.name, "required": s.required, "filled": s.filled, "value": s.value}
+                    for s in result.slots
+                ],
+                "trace": list(result.trace),
+            })
+
+        elif mode == "simulate":
+            result = pipeline.simulate(text, lang, context)
+            return jsonify({
+                "status": "simulated",
+                "workflow_name": result.workflow_name,
+                "trigger_type": result.trigger_type,
+                "total_steps": result.total_steps,
+                "would_succeed": result.steps_that_would_succeed,
+                "would_fail": result.steps_that_would_fail,
+                "feasible": result.overall_feasible,
+                "warnings": list(result.warnings),
+                "summary": result.summary,
+                "steps": [
+                    {"id": s.step_id, "tool": s.tool, "action": s.action, "ok": s.would_succeed}
+                    for s in result.steps
+                ],
+            })
+
+        else:  # compile (default)
+            result = pipeline.compile(text, lang)
+            return jsonify({
+                "status": result.status,
+                "explanation": result.explanation,
+                "workflow": result.workflow,
+                "missing_slots": list(result.missing_slots),
+            })
 
     @app.route("/api/workflows/chat", methods=["POST"])
     @login_required
@@ -425,6 +552,7 @@ def create_app() -> Flask:
 
     @app.route("/api/tools/crm/leads", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_create_lead():
         from src.tools.crm.service import CRMService
         crm = CRMService()
@@ -436,6 +564,7 @@ def create_app() -> Flask:
             company=data.get("company"),
             source=data.get("source", "web_form"),
             notes=data.get("notes"),
+            user_id=session.get("user_id"),
         )
         return jsonify(lead), 201
 
@@ -450,6 +579,7 @@ def create_app() -> Flask:
 
     @app.route("/api/tools/inventory/products", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_create_product():
         """Crear un nuevo producto en inventario."""
         from src.tools.inventory.service import InventoryService
@@ -463,11 +593,13 @@ def create_app() -> Flask:
             stock=data.get("stock", 0),
             min_stock=data.get("min_stock", 10),
             price=data.get("price", 0.0),
+            user_id=session.get("user_id"),
         )
         return jsonify(product), 201
 
     @app.route("/api/tools/inventory/stock-movement", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_stock_movement():
         """Registrar un movimiento de stock (entrada/salida/ajuste)."""
         from src.tools.inventory.service import InventoryService
@@ -493,6 +625,7 @@ def create_app() -> Flask:
 
     @app.route("/api/tools/invoice/create", methods=["POST"])
     @login_required
+    @require_role("editor")
     def api_create_invoice():
         """Crear una nueva factura."""
         from src.tools.invoice.service import InvoiceService
@@ -509,6 +642,7 @@ def create_app() -> Flask:
             discount=data.get("discount", 0.0),
             due_days=data.get("due_days", 30),
             notes=data.get("notes"),
+            user_id=session.get("user_id"),
         )
         return jsonify(invoice), 201
 
@@ -535,6 +669,7 @@ def create_app() -> Flask:
 
     @app.route("/api/settings", methods=["PUT"])
     @login_required
+    @require_role("admin")
     def api_update_settings():
         data = request.get_json() or {}
         for key in ["smtp_server", "smtp_port", "email_user", "email_password",
@@ -551,6 +686,30 @@ def create_app() -> Flask:
         current = data.get("current_password", "")
         new_pass = data.get("new_password", "")
 
+        if len(new_pass) < 6:
+            return jsonify({"error": "La nueva contraseña debe tener al menos 6 caracteres"}), 400
+
+        user_id = session.get("user_id")
+        if user_id:
+            # Multi-user: actualizar contraseña del usuario logueado
+            user = db.get_user(user_id)
+            if user:
+                user_full = db.get_user_by_username(user["username"])
+                if user_full and user_full.get("password_hash"):
+                    try:
+                        stored = user_full["password_hash"]
+                        if not bcrypt.checkpw(current.encode(), stored.encode()):
+                            return jsonify({"error": "Contraseña actual incorrecta"}), 400
+                    except (ValueError, TypeError):
+                        return jsonify({"error": "Error verificando contraseña"}), 400
+                    new_hash = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt(rounds=12)).decode()
+                    db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+                    db.commit()
+                    db.audit("password.changed", "Contraseña cambiada", request.remote_addr, user_id)
+                    return jsonify({"status": "ok"})
+            # Fallback: si no hay usuario en tabla, usa legacy
+
+        # Fallback legacy: admin_password_hash
         stored_hash = db.get_setting("admin_password_hash")
         if stored_hash:
             if isinstance(stored_hash, str):
@@ -559,9 +718,6 @@ def create_app() -> Flask:
                         return jsonify({"error": "Contraseña actual incorrecta"}), 400
                 except (ValueError, TypeError):
                     return jsonify({"error": "Error verificando contraseña"}), 400
-
-        if len(new_pass) < 6:
-            return jsonify({"error": "La nueva contraseña debe tener al menos 6 caracteres"}), 400
 
         new_hash = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt(rounds=12)).decode()
         db.set_setting("admin_password_hash", new_hash)
@@ -604,6 +760,7 @@ def create_app() -> Flask:
 
     @app.route("/api/system/backup", methods=["POST"])
     @login_required
+    @require_role("admin")
     def api_system_backup():
         from src.data.backup_engine import BackupEngine
         be = BackupEngine()
@@ -691,7 +848,65 @@ def create_app() -> Flask:
         response.headers["Content-Disposition"] = f'attachment; filename="{gen.filename("invoices", fmt)}"'
         return response
 
-    # ── API: WhatsApp Settings ───────────────────────────────
+    # ── API: Users Management (RBAC) ─────────────────────────
+
+    @app.route("/api/users", methods=["GET"])
+    @login_required
+    @require_role("admin")
+    def api_list_users():
+        users = db.list_users()
+        return jsonify(users)
+
+    @app.route("/api/users", methods=["POST"])
+    @login_required
+    @require_role("admin")
+    def api_create_user():
+        data = request.get_json() or {}
+        username = data.get("username", "")
+        password = data.get("password", "")
+        role = data.get("role", "editor")
+        allowed_roles = {"admin", "editor", "viewer"}
+        if role not in allowed_roles:
+            return jsonify({"error": f"Rol inválido. Roles válidos: {', '.join(sorted(allowed_roles))}"}), 400
+        if not username or len(username) < 3:
+            return jsonify({"error": "Usuario debe tener al menos 3 caracteres"}), 400
+        if len(password) < 6:
+            return jsonify({"error": "Contraseña debe tener al menos 6 caracteres"}), 400
+        existing = db.get_user_by_username(username)
+        if existing:
+            return jsonify({"error": "El usuario ya existe"}), 400
+        user = db.create_user(
+            username=username,
+            password=password,
+            role=role,
+            display_name=data.get("display_name", ""),
+            email=data.get("email", ""),
+        )
+        db.audit("user.created", f"Usuario creado: {username}", request.remote_addr, session.get("user_id"))
+        return jsonify(user), 201
+
+    @app.route("/api/users/<int:user_id>", methods=["PUT"])
+    @login_required
+    @require_role("admin")
+    def api_update_user(user_id):
+        data = request.get_json() or {}
+        allowed = {"role", "display_name", "email", "is_active"}
+        updates = {k: v for k, v in data.items() if k in allowed}
+        if not updates:
+            return jsonify({"error": "Sin campos válidos para actualizar"}), 400
+        db.update_user(user_id, updates)
+        db.audit("user.updated", f"Usuario {user_id} actualizado", request.remote_addr, session.get("user_id"))
+        return jsonify({"status": "updated"})
+
+    @app.route("/api/users/<int:user_id>", methods=["DELETE"])
+    @login_required
+    @require_role("admin")
+    def api_delete_user(user_id):
+        if user_id == session.get("user_id"):
+            return jsonify({"error": "No puedes eliminarte a ti mismo"}), 400
+        db.delete_user(user_id)
+        db.audit("user.deleted", f"Usuario {user_id} desactivado", request.remote_addr, session.get("user_id"))
+        return jsonify({"status": "deleted"})
 
     @app.route("/api/settings/whatsapp", methods=["GET"])
     @login_required

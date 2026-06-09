@@ -14,11 +14,12 @@ class CRMRepository:
 
     def create_lead(self, name: str, email: str | None = None,
                     phone: str | None = None, company: str | None = None,
-                    source: str = "manual", notes: str | None = None) -> dict:
+                    source: str = "manual", notes: str | None = None,
+                    user_id: int | None = None) -> dict:
         cursor = self._db.execute(
-            """INSERT INTO leads (name, email, phone, company, source, notes, stage)
-               VALUES (?, ?, ?, ?, ?, ?, 'new')""",
-            (name, email, phone, company, source, notes),
+            """INSERT INTO leads (name, email, phone, company, source, notes, stage, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, 'new', ?)""",
+            (name, email, phone, company, source, notes, user_id or 1),
         )
         self._db.commit()
         return self.get_lead(cursor.lastrowid)
@@ -26,11 +27,22 @@ class CRMRepository:
     def get_lead(self, lead_id: int) -> dict | None:
         return self._db.fetchone("SELECT * FROM leads WHERE id = ?", (lead_id,))
 
-    def list_leads(self, stage: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
-        if stage:
+    def list_leads(self, stage: str | None = None, limit: int = 50, offset: int = 0,
+                    user_id: int | None = None) -> list[dict]:
+        if stage and user_id:
+            return self._db.fetchall(
+                "SELECT * FROM leads WHERE stage = ? AND user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                (stage, user_id, limit, offset),
+            )
+        elif stage:
             return self._db.fetchall(
                 "SELECT * FROM leads WHERE stage = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
                 (stage, limit, offset),
+            )
+        elif user_id:
+            return self._db.fetchall(
+                "SELECT * FROM leads WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                (user_id, limit, offset),
             )
         return self._db.fetchall(
             "SELECT * FROM leads ORDER BY created_at DESC LIMIT ? OFFSET ?",

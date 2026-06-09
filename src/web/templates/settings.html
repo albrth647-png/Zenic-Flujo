@@ -133,6 +133,28 @@
 
             <hr class="section-divider">
 
+            <!-- Users Section -->
+            <div class="section-card" id="usersSection">
+                <h2>👥 Usuarios</h2>
+                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px">
+                    Gestiona los usuarios del sistema. Roles: <strong>admin</strong> (acceso total),
+                    <strong>editor</strong> (crear/editar workflows), <strong>viewer</strong> (solo ver).
+                </p>
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                    <input type="text" id="newUserUsername" placeholder="Usuario (mín 3 caracteres)" style="flex:1;min-width:140px">
+                    <input type="password" id="newUserPassword" placeholder="Contraseña" style="flex:1;min-width:140px">
+                    <select id="newUserRole" style="flex:0 0 auto;width:auto">
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Visor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button onclick="createUser()" class="btn btn-primary btn-sm">➕ Crear</button>
+                </div>
+                <div id="usersList"><p style="color:var(--text-muted);font-size:0.85rem">Cargando...</p></div>
+            </div>
+
+            <hr class="section-divider">
+
             <!-- Logs Section -->
             <div class="section-card">
                 <h2>📋 Logs</h2>
@@ -470,6 +492,65 @@
     }
 
     // ============================================
+    // User management
+    // ============================================
+    async function loadUsers() {
+        const users = await api('/api/users');
+        const container = document.getElementById('usersList');
+        if (!users || !users.length) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Sin usuarios (usa el login legacy)</p>';
+            return;
+        }
+        container.innerHTML = `
+            <table class="table">
+                <thead><tr>
+                    <th>Usuario</th><th>Rol</th><th>Email</th><th>Activo</th><th>Acciones</th>
+                </tr></thead>
+                <tbody>
+                ${users.map(u => `
+                    <tr>
+                        <td>${u.display_name || u.username}</td>
+                        <td><span class="status-badge ${u.role === 'admin' ? 'active' : u.role === 'editor' ? 'paused' : ''}">${u.role}</span></td>
+                        <td style="color:var(--text-muted);font-size:0.85rem">${u.email || '—'}</td>
+                        <td>${u.is_active ? '✅' : '❌'}</td>
+                        <td>
+                            <button onclick="deleteUser(${u.id})" class="btn btn-sm btn-danger" ${u.id === 1 ? 'disabled' : ''}>${u.id === 1 ? '—' : '🗑'}</button>
+                        </td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    async function createUser() {
+        const username = document.getElementById('newUserUsername').value.trim();
+        const password = document.getElementById('newUserPassword').value.trim();
+        const role = document.getElementById('newUserRole').value;
+        if (!username || username.length < 3) { showToast('Usuario debe tener al menos 3 caracteres', 'warning'); return; }
+        if (!password || password.length < 6) { showToast('Contraseña debe tener al menos 6 caracteres', 'warning'); return; }
+        const res = await api('/api/users', {
+            method: 'POST',
+            body: JSON.stringify({username, password, role}),
+        });
+        if (res) {
+            showToast('Usuario creado ✅', 'success');
+            document.getElementById('newUserUsername').value = '';
+            document.getElementById('newUserPassword').value = '';
+            loadUsers();
+        }
+    }
+
+    async function deleteUser(userId) {
+        if (!confirm('¿Desactivar este usuario?')) return;
+        const res = await api(`/api/users/${userId}`, {method: 'DELETE'});
+        if (res) {
+            showToast('Usuario desactivado', 'success');
+            loadUsers();
+        }
+    }
+
+    // ============================================
     // Scroll to license section if hash
     // ============================================
     if (window.location.hash === '#license') {
@@ -483,6 +564,7 @@
     // ============================================
     loadSettingsPage();
     loadWhatsAppSettings();
+    loadUsers();
     </script>
 </body>
 </html>

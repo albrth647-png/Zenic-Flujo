@@ -15,9 +15,10 @@ class InventoryService:
 
     def add_product(self, sku: str, name: str, description: str = "",
                     category: str = "", stock: int = 0,
-                    min_stock: int = 10, price: float = 0.0) -> dict:
+                    min_stock: int = 10, price: float = 0.0,
+                    user_id: int | None = None) -> dict:
         product = self._repo.create_product(sku, name, description, category,
-                                            stock, min_stock, price)
+                                            stock, min_stock, price, user_id)
         logger.info(f"Producto creado: {name} (SKU: {sku})")
         return product
 
@@ -48,8 +49,9 @@ class InventoryService:
         return self._repo.get_product(product_id)
 
     def list_products(self, category: str | None = None,
-                      low_stock_only: bool = False) -> list[dict]:
-        return self._repo.list_products(category, low_stock_only)
+                      low_stock_only: bool = False,
+                      user_id: int | None = None) -> list[dict]:
+        return self._repo.list_products(category, low_stock_only, user_id)
 
     def delete_product(self, product_id: int) -> bool:
         return self._repo.delete_product(product_id)

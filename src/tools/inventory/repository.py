@@ -10,11 +10,12 @@ class InventoryRepository:
 
     def create_product(self, sku: str, name: str, description: str = "",
                        category: str = "", stock: int = 0,
-                       min_stock: int = 10, price: float = 0.0) -> dict:
+                       min_stock: int = 10, price: float = 0.0,
+                       user_id: int | None = None) -> dict:
         cursor = self._db.execute(
-            """INSERT INTO products (sku, name, description, category, stock, min_stock, price)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (sku, name, description, category, stock, min_stock, price),
+            """INSERT INTO products (sku, name, description, category, stock, min_stock, price, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (sku, name, description, category, stock, min_stock, price, user_id or 1),
         )
         self._db.commit()
         return self.get_product(cursor.lastrowid)
@@ -26,14 +27,24 @@ class InventoryRepository:
         return self._db.fetchone("SELECT * FROM products WHERE sku = ?", (sku,))
 
     def list_products(self, category: str | None = None,
-                      low_stock_only: bool = False) -> list[dict]:
-        if low_stock_only:
+                      low_stock_only: bool = False,
+                      user_id: int | None = None) -> list[dict]:
+        if low_stock_only and user_id:
+            return self._db.fetchall(
+                "SELECT * FROM products WHERE stock <= min_stock AND user_id = ? ORDER BY name",
+                (user_id,),
+            )
+        elif low_stock_only:
             return self._db.fetchall(
                 "SELECT * FROM products WHERE stock <= min_stock ORDER BY name"
             )
         if category:
             return self._db.fetchall(
                 "SELECT * FROM products WHERE category = ? ORDER BY name", (category,)
+            )
+        if user_id:
+            return self._db.fetchall(
+                "SELECT * FROM products WHERE user_id = ? ORDER BY name", (user_id,)
             )
         return self._db.fetchall("SELECT * FROM products ORDER BY name")
 

@@ -3,6 +3,10 @@ Workflow Determinista — Notification Service
 """
 import smtplib
 from datetime import datetime
+
+from cryptography.fernet import Fernet
+
+from src.config import WHATSAPP_ENCRYPTION_KEY
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 
@@ -101,9 +105,20 @@ class NotificationService:
 
     # ── WhatsApp Cloud API ────────────────────────────────────
 
+    def _get_whatsapp_token(self) -> str | None:
+        """Obtiene y descifra el token WhatsApp."""
+        encrypted = self._db.get_setting("whatsapp_token")
+        if not encrypted:
+            return None
+        try:
+            return self._decrypt_token(encrypted)
+        except Exception as e:
+            logger.error(f"Error descifrando token WhatsApp: {e}")
+            return None
+
     def send_whatsapp(self, to: str, message: str) -> dict:
         """Envía un mensaje de texto vía WhatsApp Cloud API."""
-        token = self._db.get_setting("whatsapp_token")
+        token = self._get_whatsapp_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
 
         if not token or not phone_number_id:
@@ -148,7 +163,7 @@ class NotificationService:
                                 language_code: str = "es",
                                 components: list[dict] | None = None) -> dict:
         """Envía un mensaje template (para fuera de ventana 24h)."""
-        token = self._db.get_setting("whatsapp_token")
+        token = self._get_whatsapp_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
 
         if not token or not phone_number_id:
@@ -191,16 +206,30 @@ class NotificationService:
             logger.error(f"WhatsApp template exception: {e}")
             return {"status": "failed", "message": str(e)}
 
+    @staticmethod
+    def _encrypt_token(token: str) -> str:
+        """Cifra el token WhatsApp antes de guardarlo."""
+        f = Fernet(WHATSAPP_ENCRYPTION_KEY)
+        return f.encrypt(token.encode()).decode()
+
+    @staticmethod
+    def _decrypt_token(encrypted: str) -> str:
+        """Descifra el token WhatsApp al usarlo."""
+        f = Fernet(WHATSAPP_ENCRYPTION_KEY)
+        return f.decrypt(encrypted.encode()).decode()
+
     def configure_whatsapp(self, token: str, phone_number_id: str) -> bool:
-        """Configura credenciales de WhatsApp Cloud API."""
-        self._db.set_setting("whatsapp_token", token)
+        """Configura credenciales de WhatsApp Cloud API (token cifrado)."""
+        encrypted = self._encrypt_token(token)
+        self._db.set_setting("whatsapp_token", encrypted)
         self._db.set_setting("whatsapp_phone_number_id", phone_number_id)
-        logger.info("Configuración WhatsApp guardada")
+        logger.info("Configuración WhatsApp guardada (token cifrado)")
         return True
 
     def get_whatsapp_status(self) -> dict:
         """Retorna estado de la configuración WhatsApp."""
-        token = self._db.get_setting("whatsapp_token")
+        encrypted = self._db.get_setting("whatsapp_token")
+        token = "" if not encrypted else (self._get_whatsapp_token() or "")
         phone_id = self._db.get_setting("whatsapp_phone_number_id")
         return {
             "whatsapp_configured": bool(token and phone_id),

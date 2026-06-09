@@ -41,7 +41,7 @@ class TestWhatsAppService:
         assert "no configurado" in result["message"].lower()
 
     def test_configure_whatsapp(self, db_manager):
-        """Configurar credenciales de WhatsApp."""
+        """Configurar credenciales de WhatsApp (token cifrado)."""
         from src.tools.notification.service import NotificationService
         ns = NotificationService()
 
@@ -51,12 +51,18 @@ class TestWhatsAppService:
         )
         assert result is True
 
-        # Verificar que se guardaron
+        # Verificar que se guardaron (el token está cifrado, phone_id no)
         from src.data.database_manager import DatabaseManager
         db = DatabaseManager()
-        assert db.get_setting("whatsapp_token") == "EAATestToken123"
+        stored_token = db.get_setting("whatsapp_token")
+        assert stored_token != "EAATestToken123"  # Debe estar cifrado
+        assert "EAATestToken123" not in stored_token  # No en texto plano
         stored_id = db.get_setting("whatsapp_phone_number_id")
         assert str(stored_id) == "123456789"
+
+        # Verificar que se puede descifrar correctamente
+        decrypted = ns._decrypt_token(stored_token)
+        assert decrypted == "EAATestToken123"
 
     def test_send_whatsapp_after_configure(self, db_manager):
         """Envía después de configurar credenciales."""
@@ -144,3 +150,16 @@ class TestWhatsAppService:
         ns.configure_whatsapp(token="EAAToken", phone_number_id="123")
         status = ns.get_whatsapp_status()
         assert status["whatsapp_configured"] is True
+
+    def test_encrypt_decrypt_roundtrip(self, db_manager):
+        """Verifica que cifrado y descifrado sean consistentes."""
+        from src.tools.notification.service import NotificationService
+        ns = NotificationService()
+
+        original = "test-token-123!@#"
+        encrypted = ns._encrypt_token(original)
+        assert encrypted != original
+        assert encrypted != ""
+
+        decrypted = ns._decrypt_token(encrypted)
+        assert decrypted == original

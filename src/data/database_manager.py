@@ -1,6 +1,6 @@
 """
 Workflow Determinista — Database Manager (Singleton SQLite)
-Gestión de UNA sola base de datos: workflow_determinista.db
+Gestion de UNA sola base de datos: workflow_determinista.db
 """
 import os
 import sqlite3
@@ -18,7 +18,7 @@ logger = setup_logging(__name__)
 
 
 class DatabaseManager:
-    """Singleton que gestiona la conexión a SQLite unificada."""
+    """Singleton que gestiona la conexion a SQLite unificada."""
 
     _instance: "DatabaseManager | None" = None
     _lock = threading.RLock()
@@ -43,10 +43,10 @@ class DatabaseManager:
             self._max_audit_logs = int(os.environ.get("WFD_MAX_AUDIT_LOGS", "10000"))
             self._init_database()
 
-    # ── Conexión ─────────────────────────────────────────────
+    # ── Conexion ─────────────────────────────────────────────
 
     def get_connection(self) -> sqlite3.Connection:
-        """Obtiene una conexión SQLite (una por hilo)."""
+        """Obtiene una conexion SQLite (una por hilo)."""
         if not hasattr(self._local, "connection") or self._local.connection is None:
             conn = sqlite3.connect(str(self._db_path))
             conn.row_factory = sqlite3.Row
@@ -54,16 +54,16 @@ class DatabaseManager:
             conn.execute("PRAGMA foreign_keys=ON")
             self._local.connection = conn
             if self._initialized:
-                logger.debug("Nueva conexión SQLite creada con foreign_keys=ON")
+                logger.debug("Nueva conexion SQLite creada con foreign_keys=ON")
         return self._local.connection
 
     def close_connection(self) -> None:
-        """Cierra la conexión del hilo actual."""
+        """Cierra la conexion del hilo actual."""
         if hasattr(self._local, "connection") and self._local.connection:
             self._local.connection.close()
             self._local.connection = None
 
-    # ── Inicialización ───────────────────────────────────────
+    # ── Inicializacion ───────────────────────────────────────
 
     def _init_database(self) -> None:
         """Crea las tablas si no existen."""
@@ -72,11 +72,28 @@ class DatabaseManager:
 
         cursor.executescript(self._get_schema())
         conn.commit()
+        self._migrate()
         logger.info(f"Base de datos inicializada: {self._db_path}")
 
     def _get_schema(self) -> str:
         """Retorna el schema completo de la base de datos unificada."""
         return """
+        -- Users & Auth (Mejora #10)
+        CREATE TABLE IF NOT EXISTS users (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            username        TEXT UNIQUE NOT NULL,
+            password_hash   TEXT NOT NULL,
+            role            TEXT DEFAULT 'admin',
+            display_name    TEXT,
+            email           TEXT,
+            is_active       INTEGER DEFAULT 1,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login_at   TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+        CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
         -- Workflow Engine
         CREATE TABLE IF NOT EXISTS workflow_definitions (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,7 +104,8 @@ class DatabaseManager:
             steps           TEXT NOT NULL,
             status          TEXT DEFAULT 'active',
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id         INTEGER DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS workflow_executions (
@@ -99,6 +117,7 @@ class DatabaseManager:
             completed_at    TIMESTAMP,
             duration_ms     INTEGER,
             error_message   TEXT,
+            user_id         INTEGER DEFAULT 1,
             FOREIGN KEY (workflow_id) REFERENCES workflow_definitions(id)
         );
 
@@ -148,7 +167,8 @@ class DatabaseManager:
             source          TEXT,
             notes           TEXT,
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id         INTEGER DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS lead_activities (
@@ -171,7 +191,8 @@ class DatabaseManager:
             min_stock       INTEGER DEFAULT 10,
             price           REAL,
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id         INTEGER DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS stock_movements (
@@ -200,7 +221,8 @@ class DatabaseManager:
             due_date        DATE,
             issued_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             paid_at         TIMESTAMP,
-            notes           TEXT
+            notes           TEXT,
+            user_id         INTEGER DEFAULT 1
         );
 
         -- Settings
@@ -226,10 +248,11 @@ class DatabaseManager:
             event           TEXT NOT NULL,
             details         TEXT,
             ip_address      TEXT,
+            user_id         INTEGER,
             created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        -- Índices
+        -- Indices
         CREATE INDEX IF NOT EXISTS idx_workflow_status ON workflow_definitions(status);
         CREATE INDEX IF NOT EXISTS idx_execution_workflow ON workflow_executions(workflow_id);
         CREATE INDEX IF NOT EXISTS idx_execution_status ON workflow_executions(status);
@@ -241,7 +264,91 @@ class DatabaseManager:
         CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
         CREATE INDEX IF NOT EXISTS idx_audit_log_event ON audit_log(event);
         CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
+
+        -- NLU (Sprint 4)
+        CREATE TABLE IF NOT EXISTS nlp_synonyms (
+            word            TEXT NOT NULL,
+            synonym_of      TEXT NOT NULL,
+            intent          TEXT NOT NULL,
+            usage_count     INTEGER DEFAULT 1,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (word, intent)
+        );
+
+        CREATE TABLE IF NOT EXISTS nlp_intent_vectors (
+            intent          TEXT NOT NULL,
+            keyword         TEXT NOT NULL,
+            idf_weight      REAL NOT NULL,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (intent, keyword)
+        );
+
+        CREATE TABLE IF NOT EXISTS nlu_traces (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            text_hash       TEXT NOT NULL,
+            lang            TEXT,
+            intent_top      TEXT,
+            confidence      REAL,
+            trace_json      TEXT,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_nlu_traces_hash ON nlu_traces(text_hash);
+        CREATE INDEX IF NOT EXISTS idx_nlp_synonyms_intent ON nlp_synonyms(intent);
         """
+
+    def _migrate(self) -> None:
+        """Migraciones incrementales: agrega columnas faltantes sin perder datos."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        # Migración: audit_log.user_id
+        try:
+            cursor.execute("SELECT user_id FROM audit_log LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE audit_log ADD COLUMN user_id INTEGER")
+            conn.commit()
+            logger.info("Migración: audit_log.user_id agregada")
+
+        # Migración: workflow_definitions.user_id
+        try:
+            cursor.execute("SELECT user_id FROM workflow_definitions LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE workflow_definitions ADD COLUMN user_id INTEGER DEFAULT 1")
+            conn.commit()
+            logger.info("Migración: workflow_definitions.user_id agregada")
+
+        # Migración: workflow_executions.user_id
+        try:
+            cursor.execute("SELECT user_id FROM workflow_executions LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE workflow_executions ADD COLUMN user_id INTEGER DEFAULT 1")
+            conn.commit()
+            logger.info("Migración: workflow_executions.user_id agregada")
+
+        # Migración: leads.user_id
+        try:
+            cursor.execute("SELECT user_id FROM leads LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE leads ADD COLUMN user_id INTEGER DEFAULT 1")
+            conn.commit()
+            logger.info("Migración: leads.user_id agregada")
+
+        # Migración: products.user_id
+        try:
+            cursor.execute("SELECT user_id FROM products LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE products ADD COLUMN user_id INTEGER DEFAULT 1")
+            conn.commit()
+            logger.info("Migración: products.user_id agregada")
+
+        # Migración: invoices.user_id
+        try:
+            cursor.execute("SELECT user_id FROM invoices LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE invoices ADD COLUMN user_id INTEGER DEFAULT 1")
+            conn.commit()
+            logger.info("Migración: invoices.user_id agregada")
 
     # ── Operaciones generales ────────────────────────────────
 
@@ -251,7 +358,7 @@ class DatabaseManager:
         return conn.execute(sql, params)
 
     def executemany(self, sql: str, params_list: list[tuple]) -> sqlite3.Cursor:
-        """Ejecuta una consulta SQL con múltiples parámetros."""
+        """Ejecuta una consulta SQL con multiples parametros."""
         conn = self.get_connection()
         return conn.executemany(sql, params_list)
 
@@ -267,11 +374,11 @@ class DatabaseManager:
         return [dict(row) for row in cursor.fetchall()]
 
     def commit(self) -> None:
-        """Confirma la transacción actual."""
+        """Confirma la transaccion actual."""
         self.get_connection().commit()
 
     def rollback(self) -> None:
-        """Revierte la transacción actual."""
+        """Rev介 la transaccion actual."""
         self.get_connection().rollback()
 
     # ── Backup ───────────────────────────────────────────────
@@ -295,12 +402,11 @@ class DatabaseManager:
     # ── Settings helpers ─────────────────────────────────────
 
     def get_setting(self, key: str, default: T | None = None) -> str | int | float | bool | list | dict | None:
-        """Obtiene un valor de settings con parseo JSON automático."""
+        """Obtiene un valor de settings con parseo JSON automatico."""
         row = self.fetchone("SELECT value FROM settings WHERE key = ?", (key,))
         if not row:
             return default
         raw = row["value"]
-        # Intentar parsear como JSON para tipos booleanos, numéricos, listas
         try:
             return _json.loads(raw)
         except (_json.JSONDecodeError, TypeError):
@@ -316,13 +422,13 @@ class DatabaseManager:
 
     # ── Audit helpers ────────────────────────────────────────
 
-    def audit(self, event: str, details: str | None = None, ip_address: str | None = None) -> None:
-        """Registra un evento de auditoría y purga registros viejos si excede el límite."""
+    def audit(self, event: str, details: str | None = None,
+              ip_address: str | None = None, user_id: int | None = None) -> None:
+        """Registra un evento de auditoria."""
         self.execute(
-            "INSERT INTO audit_log (event, details, ip_address) VALUES (?, ?, ?)",
-            (event, details, ip_address),
+            "INSERT INTO audit_log (event, details, ip_address, user_id) VALUES (?, ?, ?, ?)",
+            (event, details, ip_address, user_id),
         )
-        # Purge audit logs beyond max threshold (probabilistic: 10% chance to avoid perf hit)
         import random
         if random.random() < 0.1:
             count = self.fetchone("SELECT COUNT(*) as c FROM audit_log")
@@ -334,6 +440,63 @@ class DatabaseManager:
                 )
                 logger.info(f"Audit log purged: {delete_count} registros eliminados")
         self.commit()
+
+    # ── User helpers ─────────────────────────────────────────
+
+    def create_user(self, username: str, password: str,
+                    role: str = "admin", display_name: str = "",
+                    email: str = "") -> dict:
+        """Crea un nuevo usuario con contraseña hasheada."""
+        import bcrypt
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+        cursor = self.execute(
+            "INSERT INTO users (username, password_hash, role, display_name, email) VALUES (?, ?, ?, ?, ?)",
+            (username, hashed, role, display_name, email),
+        )
+        self.commit()
+        return self.get_user(cursor.lastrowid)
+
+    def get_user(self, user_id: int) -> dict | None:
+        """Obtiene un usuario por ID."""
+        return self.fetchone(
+            "SELECT id, username, role, display_name, email, is_active, created_at, last_login_at FROM users WHERE id = ?",
+            (user_id,),
+        )
+
+    def get_user_by_username(self, username: str) -> dict | None:
+        """Obtiene un usuario por nombre de usuario."""
+        return self.fetchone("SELECT * FROM users WHERE username = ?", (username,))
+
+    def list_users(self) -> list[dict]:
+        """Lista todos los usuarios activos."""
+        return self.fetchall(
+            "SELECT id, username, role, display_name, email, is_active, created_at, last_login_at FROM users ORDER BY username"
+        )
+
+    def update_user(self, user_id: int, updates: dict) -> bool:
+        """Actualiza un usuario."""
+        allowed = {"role", "display_name", "email", "is_active"}
+        set_parts = []
+        params = []
+        for key, value in updates.items():
+            if key in allowed:
+                set_parts.append(f"{key} = ?")
+                params.append(value)
+        if not set_parts:
+            return False
+        params.append(user_id)
+        self.execute(
+            f"UPDATE users SET {', '.join(set_parts)} WHERE id = ?",
+            tuple(params),
+        )
+        self.commit()
+        return True
+
+    def delete_user(self, user_id: int) -> bool:
+        """Elimina (desactiva) un usuario."""
+        self.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+        self.commit()
+        return True
 
     # ── Cleanup ──────────────────────────────────────────────
 
