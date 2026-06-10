@@ -18,7 +18,6 @@ Compatibilidad: mantiene la misma API que ConditionEvaluator.
 from __future__ import annotations
 
 import hashlib
-import math
 
 from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
@@ -275,53 +274,52 @@ class ConditionEvaluator:
         return tokens
 
     def _parse(self, tokens: list[dict]) -> dict:
-        self._pos = 0
-        self._tokens = tokens
-        ast = self._parse_boolean_expr()
-        if self._pos < len(tokens):
-            raise ValueError(f"Tokens inesperados: {tokens[self._pos:]}")
+        """Parsea tokens a AST usando índice local (thread-safe)."""
+        pos = 0
+
+        def parse_boolean_expr() -> dict:
+            nonlocal pos
+            left = parse_comparison_expr()
+            while pos < len(tokens) and tokens[pos]["type"] == "boolean_op":
+                op = tokens[pos]["value"]
+                pos += 1
+                right = parse_comparison_expr()
+                left = {"type": "boolean", "op": op, "left": left, "right": right}
+            return left
+
+        def parse_comparison_expr() -> dict:
+            nonlocal pos
+            if pos < len(tokens) and tokens[pos]["type"] == "paren" and tokens[pos]["value"] == "(":
+                pos += 1
+                expr = parse_boolean_expr()
+                if pos >= len(tokens) or tokens[pos]["type"] != "paren" or tokens[pos]["value"] != ")":
+                    raise ValueError("Parentesis sin cerrar")
+                pos += 1
+                return expr
+
+            left = parse_value()
+            if pos < len(tokens) and tokens[pos]["type"] == "operator":
+                op = tokens[pos]["value"]
+                pos += 1
+                right = parse_value()
+                return {"type": "comparison", "op": op, "left": left, "right": right}
+
+            return left
+
+        def parse_value() -> dict:
+            nonlocal pos
+            if pos >= len(tokens):
+                raise ValueError("Se esperaba un valor")
+            token = tokens[pos]
+            if token["type"] in ("value", "string", "number", "variable"):
+                pos += 1
+                return {"type": token["type"], "value": token["value"]}
+            raise ValueError(f"Se esperaba un valor, pero se encontro: {token}")
+
+        ast = parse_boolean_expr()
+        if pos < len(tokens):
+            raise ValueError(f"Tokens inesperados: {tokens[pos:]}")
         return ast
-
-    def _parse_boolean_expr(self) -> dict:
-        left = self._parse_comparison_expr()
-        while self._pos < len(self._tokens) and self._tokens[self._pos]["type"] == "boolean_op":
-            op = self._tokens[self._pos]["value"]
-            self._pos += 1
-            right = self._parse_comparison_expr()
-            left = {"type": "boolean", "op": op, "left": left, "right": right}
-        return left
-
-    def _parse_comparison_expr(self) -> dict:
-        if self._pos < len(self._tokens) and self._tokens[self._pos]["type"] == "paren" and self._tokens[self._pos]["value"] == "(":
-            self._pos += 1
-            expr = self._parse_boolean_expr()
-            if self._pos >= len(self._tokens) or self._tokens[self._pos]["type"] != "paren" or self._tokens[self._pos]["value"] != ")":
-                raise ValueError("Parentesis sin cerrar")
-            self._pos += 1
-            return expr
-
-        left = self._parse_value()
-        if self._pos < len(self._tokens) and self._tokens[self._pos]["type"] == "operator":
-            op = self._tokens[self._pos]["value"]
-            self._pos += 1
-            right = self._parse_value()
-            return {"type": "comparison", "op": op, "left": left, "right": right}
-
-        if self._pos < len(self._tokens) and self._tokens[self._pos]["type"] == "value" and str(self._tokens[self._pos]["value"]).upper() == "NOT":
-            self._pos += 1
-            expr = self._parse_comparison_expr()
-            return {"type": "not", "expr": expr}
-
-        return left
-
-    def _parse_value(self) -> dict:
-        if self._pos >= len(self._tokens):
-            raise ValueError("Se esperaba un valor")
-        token = self._tokens[self._pos]
-        if token["type"] in ("value", "string", "number", "variable"):
-            self._pos += 1
-            return {"type": token["type"], "value": token["value"]}
-        raise ValueError(f"Se esperaba un valor, pero se encontro: {token}")
 
     def _eval_ast(self, ast: dict, context: dict) -> bool:
         if ast["type"] == "boolean":

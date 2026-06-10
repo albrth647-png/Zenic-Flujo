@@ -23,9 +23,8 @@ import hashlib
 import math
 import threading
 import time
-from typing import Any
 
-from src.orbital.models import VariableOrbital, TWO_PI
+from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
 from src.utils.helpers import resolve_variables
 from src.utils.logger import setup_logging
@@ -169,7 +168,7 @@ class StepExecutor:
             nonlocal output, execution_error
             try:
                 if tool_name == "system":
-                    output = self._execute_system_action(action, resolved_params)
+                    output = self._execute_system_action(action, resolved_params, context)
                 else:
                     tool = self._tools[tool_name]
                     action_func = getattr(tool, action, None)
@@ -274,8 +273,9 @@ class StepExecutor:
         except (ValueError, TypeError):
             return value
 
-    def _execute_system_action(self, action: str, params: dict) -> dict:
-        """Ejecuta acciones del sistema (backup, etc.)."""
+    def _execute_system_action(self, action: str, params: dict,
+                                context: dict | None = None) -> dict:
+        """Ejecuta acciones del sistema (backup, wait, schedule)."""
         from src.data.database_manager import DatabaseManager
         db = DatabaseManager()
 
@@ -286,6 +286,58 @@ class StepExecutor:
         elif action == "get_setting":
             key = params.get("key", "")
             return {"value": db.get_setting(key)}
+        elif action == "wait":
+            """Pausa por N segundos. Bloqueante, con límite máximo de 86400s (24h)."""
+            import time
+            seconds = float(params.get("seconds", 1))
+            seconds = max(0, min(seconds, 86400))  # Cap at 24 hours
+            if seconds >= 3600:
+                logger.warning(f"Wait node: pausa de {seconds:.0f}s ({seconds/3600:.1f}h) ")
+            time.sleep(seconds)
+            return {"waited_seconds": int(seconds), "status": "completed"}
+        elif action == "wait_until":
+            """Pausa hasta una fecha/hora específica. Usa UTC para evitar naive/aware crashes."""
+            import time
+            from datetime import datetime, timezone
+            target_str = params.get("datetime", "")
+            if not target_str:
+                return {"waited_seconds": 0, "status": "skipped", "reason": "no_datetime"}
+            try:
+                target = datetime.fromisoformat(target_str)
+                # Normalizar a UTC: si target es naive, asumir UTC; si es aware, convertir
+                if target.tzinfo is None:
+                    target = target.replace(tzinfo=timezone.utc)
+                now = datetime.now(timezone.utc)
+                if target <= now:
+                    return {"waited_seconds": 0, "status": "completed", "reason": "already_passed"}
+                diff = (target - now).total_seconds()
+                diff = min(diff, 86400)  # Cap at 24 hours
+                if diff >= 3600:
+                    logger.warning(f"WaitUntil node: esperando {diff:.0f}s ({diff/3600:.1f}h) hasta {target_str}")
+                time.sleep(diff)
+                return {"waited_seconds": int(diff), "status": "completed"}
+            except ValueError as e:
+                raise ValueError(f"Formato datetime inválido: {target_str}. Usa ISO 8601 (2026-06-15T14:30:00). Error: {e}")
+        elif action == "variable":
+            """
+            Workflow variable operations: set, get, delete, exists,
+            transform (upper, lower, trim, replace, split, join,
+            substring, length), math (add, subtract, multiply, divide,
+            floor, ceil, round, abs, min, max, power, sqrt, modulo),
+            y aggregate (sum, avg, count, min, max).
+            """
+            from src.workflow.workflow_variables import WorkflowVariables
+            return WorkflowVariables.execute(params, context)
+        elif action == "schedule_interval":
+            """Configura un intervalo de ejecución recurrente.
+            Se guarda en la DB y el ScheduleWorker lo recoge.
+            """
+            interval_minutes = int(params.get("interval_minutes", 60))
+            workflow_id = params.get("workflow_id")
+            if not workflow_id:
+                return {"status": "failed", "reason": "workflow_id required"}
+            db.set_setting(f"interval_{workflow_id}", str(interval_minutes))
+            return {"interval_minutes": interval_minutes, "workflow_id": workflow_id, "status": "scheduled"}
         else:
             raise ValueError(f"Accion de sistema desconocida: {action}")
 

@@ -2,7 +2,7 @@
 Tests para DryRunSimulator (Sprint 4, Tarea 1).
 """
 import pytest
-from src.nlu.dry_run import DryRunSimulator, DryRunResult, DryRunStep
+from src.nlu.dry_run import DryRunSimulator, DryRunResult
 
 
 @pytest.fixture

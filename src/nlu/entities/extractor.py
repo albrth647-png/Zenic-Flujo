@@ -175,8 +175,6 @@ class EntityExtractor:
             ))
         return entities
 
-    PHONE_RE = re.compile(r'\b[\+]?\d[\d\s\-\(\)]{6,14}\b')
-
     def _resolve_overlaps(self, entities: list[Entity]) -> list[Entity]:
         """Resuelve solapamientos: el de mayor score se queda.
 

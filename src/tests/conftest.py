@@ -2,10 +2,8 @@
 Workflow Determinista — Test Fixtures Compartidas
 Fixtures de pytest compartidas por todos los tests.
 """
-import os
 import sys
 import pytest
-import tempfile
 from pathlib import Path
 
 # Asegurar que src/ está en el path

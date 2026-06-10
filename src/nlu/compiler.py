@@ -10,7 +10,7 @@ Determinista: mismo intent + mismos slots + mismas entidades → mismo workflow.
 from __future__ import annotations
 from src.nlu.entities.base import Slot, Entity, CompileResult
 from src.nlu.fragments import get_fragments_by_intent
-from src.nlp.templates import TEMPLATES
+from src.nlu.templates import TEMPLATES
 
 # Tools conocidas para validación suave
 KNOWN_TOOLS = {
@@ -211,10 +211,6 @@ class WorkflowCompiler:
         for key, value in target.items():
             if isinstance(value, str) and ("$slot." in value or "$settings." in value):
                 resolved[key] = _resolve_string(value)
-            elif isinstance(value, str) and "$settings." in value:
-                setting_name = value.replace("$settings.", "").strip()
-                setting_value = settings_defaults.get(setting_name, value)
-                resolved[key] = setting_value
             elif isinstance(value, dict):
                 resolved[key] = self._resolve_slots(value, slot_map)
             elif isinstance(value, list):

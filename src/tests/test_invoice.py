@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del Invoice Service
 Tests unitarios para el servicio de facturación: crear, listar, pagar, cancelar, cálculos.
 """
-import pytest
 from datetime import datetime
 
 

@@ -4,7 +4,6 @@ Tests de integración usando Flask test client: auth, workflows, settings, licen
 """
 import pytest
 import bcrypt
-from unittest.mock import patch, MagicMock
 
 
 @pytest.fixture

@@ -1,7 +1,10 @@
 """
 Workflow Determinista — BilingualRouter
 Detecta si el texto está en español o inglés.
+
+Migrado de src/nlp/bilingual_router.py → src/nlu/bilingual_router.py
 """
+from __future__ import annotations
 import re
 
 

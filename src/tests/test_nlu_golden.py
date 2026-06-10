@@ -4,7 +4,6 @@ DDE v3 — Golden Tests (30+ frases)
 Verifica que el pipeline NLU produce los resultados esperados
 para un conjunto fijo de frases de prueba. Determinismo verificado.
 """
-import pytest
 from src.nlu.entities.base import NLUResult
 
 

@@ -34,12 +34,10 @@ Ejemplo de uso:
 
 from __future__ import annotations
 
-import math
 
 from src.orbital.models import (
     CicloOrbital,
     RCCResult,
-    TORResult,
     DEFAULT_THRESHOLD,
 )
 from src.utils.logger import setup_logging

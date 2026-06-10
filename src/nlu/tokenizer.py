@@ -7,7 +7,6 @@ NO usa ML. NO usa NLTK. Puro Python, cero dependencias.
 Determinista: misma entrada → mismos tokens siempre.
 """
 from __future__ import annotations
-import re
 from src.nlu.entities.base import Token
 
 

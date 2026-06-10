@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del Tokenizer + Stemmer (Etapa 2)
 """
-import pytest
 
 
 class TestStemmerSpanish:

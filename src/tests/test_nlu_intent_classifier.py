@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del IntentClassifier TF-IDF (Etapa 5)
 """
-import pytest
 
 
 class TestIntentClassifier:

@@ -40,7 +40,6 @@ from src.orbital.models import (
     CicloOrbital,
     OrbitalResult,
     EspectroEstado,
-    TWO_PI,
     DEFAULT_AMPLITUDE,
     DEFAULT_VELOCITY,
     DEFAULT_THRESHOLD,

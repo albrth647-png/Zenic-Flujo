@@ -5,8 +5,7 @@ Detecta si el texto está en español o inglés por frecuencia de stopwords.
 Herencia del BilingualRouter existente con mejoras.
 """
 from __future__ import annotations
-import re
-from src.nlp.bilingual_router import BilingualRouter
+from src.nlu.bilingual_router import BilingualRouter
 
 
 class LanguageRouter(BilingualRouter):

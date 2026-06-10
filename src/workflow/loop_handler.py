@@ -14,9 +14,8 @@ Compatibilidad: mantiene la misma API que LoopHandler.
 from __future__ import annotations
 
 import hashlib
-import math
 
-from src.orbital.models import TWO_PI, DEFAULT_THRESHOLD, DEFAULT_EPSILON, MAX_COD_ITERATIONS
+from src.orbital.models import TWO_PI, DEFAULT_THRESHOLD, DEFAULT_EPSILON
 from src.orbital.context import OrbitalContext
 from src.utils.logger import setup_logging
 

@@ -9,7 +9,6 @@ Cada modelo representa un concepto del paradigma circular determinista.
 from __future__ import annotations
 
 import math
-import json
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4

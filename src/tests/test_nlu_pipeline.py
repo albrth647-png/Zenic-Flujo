@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del Pipeline Orquestador (Etapas 1-5)
 """
-import pytest
 
 
 class TestPipeline:

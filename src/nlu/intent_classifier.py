@@ -35,7 +35,7 @@ class IntentClassifier:
         Normaliza las keywords (NFKD) para que coincidan con los lemas
         del tokenizer, que también normaliza por NFKD.
         """
-        from src.nlp.templates import TEMPLATES
+        from src.nlu.templates import TEMPLATES
         from src.nlu.normalizer import normalize
 
         # Colección de todos los documentos (lemas de keywords)

@@ -153,7 +153,6 @@ class TestConditionEvaluator:
 
     def test_no_eval_used(self):
         """Test: verificar que NUNCA se usa eval()."""
-        import ast
         import inspect
         from src.workflow.condition_evaluator import ConditionEvaluator
 

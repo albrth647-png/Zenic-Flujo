@@ -357,11 +357,11 @@ class EspectroOrbital:
         lines.append(f"  Tick: {estado.tick}")
         lines.append(f"  Modos: {len(estado.modes)}")
         lines.append(f"  Modo primario: #{estado.primary_mode}")
-        lines.append(f"  Estado primario:")
+        lines.append("  Estado primario:")
         for name, value in estado.primary.items():
             lines.append(f"    {name}: {value:.4f}")
         if estado.retrofeedback:
-            lines.append(f"  Retroalimentacion:")
+            lines.append("  Retroalimentacion:")
             for name, value in estado.retrofeedback.items():
                 lines.append(f"    {name} ← {value:.6f}")
 

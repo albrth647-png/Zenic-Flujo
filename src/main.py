@@ -2,8 +2,6 @@
 Workflow Determinista — Entry Point
 Inicia el servidor web Flask y todos los workers en segundo plano.
 """
-import sys
-import threading
 import webbrowser
 from datetime import datetime
 
@@ -36,12 +34,38 @@ def start_workers():
     be.start_auto_backup(interval_hours=24)
     workers.append(("BackupEngine", be))
 
+    # DatabaseTrigger — instala triggers SQL para eventos de DB
+    from src.events.db_trigger import DatabaseTrigger
+    dt = DatabaseTrigger()
+    dt.install_triggers()
+    logger.info("DatabaseTrigger: triggers SQL instalados")
+
+    # EmailWatcher — monitoreo IMAP (solo si configurado)
+    from src.events.email_watcher import EmailWatcher
+    ew = EmailWatcher(callback=lambda event_type, data: eb.publish(event_type, data))
+    ew.start()
+    workers.append(("EmailWatcher", ew))
+
+    # FileWatcher — monitoreo de archivos (solo si se configuran directorios)
+    from src.events.file_watcher import FileWatcher
+    fw = FileWatcher(callback=lambda event_type, data: eb.publish(event_type, data), interval=10.0)
+    fw.start()
+    workers.append(("FileWatcher", fw))
+
     # EventBus — reprocesar eventos pendientes
     from src.events.bus import EventBus
     eb = EventBus()
     reprocessed = eb.reprocess_pending()
     if reprocessed > 0:
         logger.info(f"{reprocessed} eventos pendientes reprocesados")
+
+    # WorkerManager (Sprint 7-8): workers de cola de ejecución
+    from src.events.worker_manager import WorkerManager
+    wm = WorkerManager(num_workers=4)
+    wm.start()
+    workers.append(("WorkerManager", wm))
+
+    logger.info(f"WorkerManager: {4} workers de cola iniciados")
 
     # Emitir evento de inicio
     eb.publish("system.started", {"timestamp": datetime.now().isoformat()})
@@ -66,6 +90,12 @@ def register_tools():
     from src.tools.integrations.sheets_service import SheetsService
     from src.tools.integrations.telegram_service import TelegramService
     from src.tools.integrations.slack_service import SlackService
+    from src.tools.integrations.openai_service import OpenAIService
+    from src.tools.integrations.ollama_service import OllamaService
+    from src.tools.integrations.postgresql_service import PostgreSQLService
+    from src.tools.integrations.drive_service import DriveService
+    from src.tools.integrations.stripe_service import StripeService
+    from src.tools.integrations.mercadopago_service import MercadoPagoService
 
     engine = WorkflowEngine()
 
@@ -85,6 +115,13 @@ def register_tools():
     engine.register_tool("sheets", SheetsService())
     engine.register_tool("telegram", TelegramService())
     engine.register_tool("slack", SlackService())
+    # Sprint 6: Nuevos conectores
+    engine.register_tool("openai", OpenAIService())
+    engine.register_tool("ollama", OllamaService())
+    engine.register_tool("postgresql", PostgreSQLService())
+    engine.register_tool("drive", DriveService())
+    engine.register_tool("stripe", StripeService())
+    engine.register_tool("mercadopago", MercadoPagoService())
 
     logger.info(f"Herramientas registradas: {list(engine._tools.keys())}")
     return engine
@@ -98,7 +135,6 @@ def create_web_app():
 
 def main():
     """Punto de entrada principal."""
-    import time
     logger.info("=" * 50)
     logger.info("Workflow Determinista — Iniciando...")
     logger.info("=" * 50)

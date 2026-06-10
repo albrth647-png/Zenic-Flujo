@@ -3,109 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workflow Determinista — Automatización offline para tu negocio</title>
+<title>Workflow Determinista — Automatización offline con ORBITAL</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f0f;color:#e0e0e0;line-height:1.6}
-.container{max-width:800px;margin:0 auto;padding:40px 24px}
-h1{font-size:2.5rem;margin-bottom:8px}
+.container{max-width:900px;margin:0 auto;padding:40px 24px}
+h1{font-size:2.8rem;margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 h2{font-size:1.5rem;margin:40px 0 16px;color:#6366f1}
-.hero{text-align:center;padding:60px 0;border-bottom:1px solid #2a2a2a}
-.logo{font-size:4rem;margin-bottom:16px}
-.tagline{font-size:1.2rem;color:#888;margin-bottom:32px}
-.cta{display:inline-block;background:#6366f1;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1.1rem}
-.cta:hover{background:#4f46e5}
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
-.pricing-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;text-align:center}
-.pricing-card.featured{border-color:#6366f1}
-.price{font-size:2rem;font-weight:700;color:#6366f1;margin:12px 0}
+.hero{text-align:center;padding:80px 0 60px;border-bottom:1px solid #2a2a2a}
+.logo{font-size:5rem;margin-bottom:16px;animation:pulse 3s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.tagline{font-size:1.3rem;color:#888;margin-bottom:32px}
+.cta{display:inline-block;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:16px 36px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1.1rem;transition:transform .2s}
+.cta:hover{transform:translateY(-2px)}
+.cta-secondary{display:inline-block;background:transparent;border:1px solid #6366f1;color:#6366f1;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;margin-left:12px;transition:all .2s}
+.cta-secondary:hover{background:rgba(99,102,241,.1)}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin:24px 0}
+.feature-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:24px;transition:border-color .2s}
+.feature-card:hover{border-color:#6366f1}
+.feature-icon{font-size:2rem;margin-bottom:8px}
+.feature-card h3{font-size:1.1rem;margin-bottom:8px}
+.feature-card p{color:#888;font-size:.9rem}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:24px 0}
+.pricing-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:28px;text-align:center;transition:border-color .2s}
+.pricing-card.featured{border-color:#6366f1;position:relative}
+.pricing-card.featured::before{content:'★ RECOMENDADO';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:2px 12px;border-radius:4px;font-size:.75rem;font-weight:600}
+.price{font-size:2.5rem;font-weight:700;color:#6366f1;margin:12px 0}
 .price-label{color:#888;font-size:.9rem}
-.features{list-style:none;margin:24px 0}
-.features li{padding:8px 0;border-bottom:1px solid #2a2a2a}
+.features{list-style:none;margin:24px 0;text-align:left}
+.features li{padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:.9rem}
 .features li:before{content:'✅ ';margin-right:8px}
+.orbital-section{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(34,197,94,.05));border:1px solid #2a2a2a;border-radius:16px;padding:32px;margin:40px 0}
+.orbital-badge{display:inline-block;background:#6366f1;color:#fff;padding:4px 12px;border-radius:4px;font-size:.8rem;font-weight:600;margin-bottom:12px}
+.orbital-section h2{margin-top:0}
+.orbital-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+.stat{text-align:center;padding:16px;background:rgba(0,0,0,.2);border-radius:8px}
+.stat-value{font-size:1.8rem;font-weight:700;color:#22c55e}
+.stat-label{font-size:.8rem;color:#888;margin-top:4px}
 .footer{text-align:center;padding:40px 0;color:#888;font-size:.85rem;border-top:1px solid #2a2a2a;margin-top:60px}
+@media(max-width:600px){h1{font-size:2rem}.hero{padding:40px 0}.orbital-stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <div class="hero">
 <div class="logo">⚙️</div>
 <h1>Workflow Determinista</h1>
-<p class="tagline">Automatización offline para tu negocio.<br>Sin internet. Sin mensualidades. Pago único.</p>
+<p class="tagline">Motor ORBITAL — Automatización circular determinista.<br>100% offline. Pago único. Sin suscripciones.</p>
+<div style="display:flex;justify-content:center;flex-wrap:wrap;gap:12px">
 <a href="#comprar" class="cta">🛒 Comprar — $399 USD</a>
-<p style="margin-top:12px;color:#888;font-size:.85rem">🛡️ 30 días de garantía de devolución</p>
+<a href="#orbital" class="cta-secondary">🔬 Conocer ORBITAL</a>
 </div>
+<p style="margin-top:12px;color:#888;font-size:.85rem">🛡️ 30 días de garantía de devolución · 🚀 v3.2 con motor ORBITAL</p>
+</div>
+
 <div class="container">
-<h2>🚀 ¿Qué es?</h2>
-<p>Workflow Determinista es un sistema de automatización de procesos de negocio que instalas en <strong>tu propia computadora</strong>, pagas <strong>una sola vez ($399)</strong>, y funciona <strong>100% offline</strong>.</p>
-<p style="margin-top:12px">Olvídate de suscripciones mensuales, dependencia de internet y datos en la nube de terceros.</p>
+
+<h2>🚀 Automatización que converge</h2>
+<p>Workflow Determinista usa el <strong>motor ORBITAL</strong>, un sistema circular determinista basado en el Teorema del Punto Fijo de Brouwer. A diferencia de los sistemas lineales (Zapier, n8n), ORBITAL converge a estados estables garantizados — sin aleatoriedad, sin suscripciones, 100% offline.</p>
+
+<div class="features-grid">
+<div class="feature-card"><div class="feature-icon">🔄</div><h3>Circular</h3><p>No lineal — las variables orbitan y retroalimentan el sistema en un ciclo cerrado.</p></div>
+<div class="feature-card"><div class="feature-icon">✅</div><h3>Determinista</h3><p>Mismas condiciones → mismo resultado. Garantizado por el teorema de Brouwer.</p></div>
+<div class="feature-card"><div class="feature-icon">📊</div><h3>Dashboard</h3><p>WebSocket en tiempo real con Chart.js, estadísticas y sugerencias automáticas.</p></div>
+<div class="feature-card"><div class="feature-icon">💬</div><h3>Chat Inteligente</h3><p>Crea workflows describiendo lo que necesitas en lenguaje natural.</p></div>
+<div class="feature-card"><div class="feature-icon">🎨</div><h3>Tema Oscuro/Claro</h3><p>Interfaz moderna con toggle de tema persistente en localStorage.</p></div>
+<div class="feature-card"><div class="feature-icon">🔒</div><h3>Seguridad</h3><p>Zero data en la nube. bcrypt, rate limiting, SQL parameterizado.</p></div>
+</div>
+
+<div id="orbital" class="orbital-section">
+<span class="orbital-badge">🔬 ORBITAL v3.2</span>
+<h2>5 Pilares del Motor Determinista</h2>
+<p style="color:#888">ORBITAL = OVC + TOR + RCC + COD + Espectro</p>
+<div class="orbital-stats">
+<div class="stat"><div class="stat-value">100%</div><div class="stat-label">Convergencia</div></div>
+<div class="stat"><div class="stat-value">10.9</div><div class="stat-label">Ticks/s</div></div>
+<div class="stat"><div class="stat-value">1-10K</div><div class="stat-label">Amplitudes</div></div>
+<div class="stat"><div class="stat-value">0</div><div class="stat-label">eval()</div></div>
+</div>
+</div>
 
 <h2>💡 ¿Para quién es?</h2>
 <ul class="features">
-<li>Dueños de PYME que pagan $600+/año en suscripciones</li>
-<li>Distribuidoras pequeñas que necesitan CRM + inventario sin mensualidades</li>
+<li>Dueños de PYME que pagan $600+/año en suscripciones de automatización</li>
+<li>Distribuidoras que necesitan CRM + inventario + facturación integrados</li>
+<li>Empresas reguladas que requieren datos 100% locales (GDPR, HIPAA)</li>
 <li>Consultores TI que buscan herramientas para revender</li>
-<li>Empresas reguladas que necesitan datos locales (GDPR, HIPAA)</li>
 <li>Cualquiera que quiera control TOTAL de sus datos</li>
 </ul>
 
 <h2>🔧 ¿Qué incluye?</h2>
-<ul class="features">
-<li><strong>CRM</strong> — Gestión de clientes y pipeline de ventas</li>
-<li><strong>Facturación</strong> — Generación y seguimiento de facturas</li>
-<li><strong>Inventario</strong> — Control de stock con alertas automáticas</li>
-<li><strong>Notificaciones</strong> — Emails automáticos vía SMTP</li>
-<li><strong>Automatizaciones</strong> — Crea workflows con lenguaje natural</li>
-<li><strong>Backups</strong> — Respaldo automático de tu base de datos</li>
-</ul>
+<div class="features-grid">
+<div class="feature-card"><h3>👥 CRM</h3><p>Gestión de clientes, pipeline de ventas y leads. Creación desde workflows.</p></div>
+<div class="feature-card"><h3>📄 Facturación</h3><p>Generación automática de facturas con PDF y seguimiento.</p></div>
+<div class="feature-card"><h3>📦 Inventario</h3><p>Control de stock con alertas cuando baja del mínimo.</p></div>
+<div class="feature-card"><h3>📧 Notificaciones</h3><p>Emails automáticos vía SMTP, WhatsApp Cloud API.</p></div>
+<div class="feature-card"><h3>🔄 Webhooks</h3><p>Webhooks de entrada y salida con API Key authentication.</p></div>
+<div class="feature-card"><h3>💾 Backups</h3><p>Respaldo automático de tu base de datos SQLite.</p></div>
+</div>
 
-<h2 id="comprar">💰 Precios</h2>
+<h2 id="comprar">💰 Precios — Pago Único</h2>
 <div class="pricing-grid">
 <div class="pricing-card">
 <h3>Free</h3>
 <div class="price">$0</div>
 <div class="price-label">Para siempre</div>
-<ul class="features" style="text-align:left">
+<ul class="features">
 <li>Hasta 3 workflows</li>
 <li>Solo CRM</li>
-<li>Historial de 7 días</li>
+<li>Historial 7 días</li>
 </ul>
+<a href="/" style="display:block;margin-top:16px;color:#6366f1">Descargar →</a>
 </div>
 <div class="pricing-card featured">
 <h3>Individual</h3>
 <div class="price">$399</div>
-<div class="price-label">Pago único</div>
-<ul class="features" style="text-align:left">
+<div class="price-label">Pago único · Sin suscripción</div>
+<ul class="features">
 <li>Workflows ilimitados</li>
 <li>Todas las herramientas</li>
+<li>Motor ORBITAL completo</li>
 <li>Historial ilimitado</li>
 <li>30 días de soporte</li>
 </ul>
+<a href="#" class="cta" style="display:block;text-align:center;margin-top:16px">🛒 Comprar</a>
 </div>
 <div class="pricing-card">
 <h3>Revendedor</h3>
 <div class="price">$1,499</div>
 <div class="price-label">Hasta 10 clientes</div>
-<ul class="features" style="text-align:left">
+<ul class="features">
 <li>Todas las funciones</li>
 <li>Instalaciones ilimitadas por cliente</li>
 <li>90 días de soporte</li>
 </ul>
+<a href="#" style="display:block;margin-top:16px;color:#6366f1">Contactar →</a>
 </div>
 </div>
 
 <h2>❓ Preguntas frecuentes</h2>
-<p><strong>¿Necesito internet para usarlo?</strong><br>No. Funciona 100% offline en tu computadora.</p>
-<p style="margin-top:12px"><strong>¿Cómo pago?</strong><br>USDT TRC20 desde Binance, Trust Wallet o cualquier exchange. Tarda 10 segundos.</p>
+<p><strong>¿Necesito internet para usarlo?</strong><br>No. Funciona 100% offline en tu computadora. Sin data en la nube.</p>
+<p style="margin-top:12px"><strong>¿Qué es ORBITAL?</strong><br>Es nuestro motor determinista circular. A diferencia de sistemas lineales (Zapier), usa 5 pilares (OVC, TOR, RCC, COD, Espectro) que garantizan convergencia.</p>
+<p style="margin-top:12px"><strong>¿Cómo pago?</strong><br>USDT TRC20 desde Binance, Trust Wallet o cualquier exchange.</p>
 <p style="margin-top:12px"><strong>¿Y si no funciona?</strong><br>30 días de garantía de devolución. Sin preguntas.</p>
-<p style="margin-top:12px"><strong>¿Necesito saber de tecnología?</strong><br>No. Descargas, instalas con doble clic, y usas. Como una app del celular.</p>
-<p style="margin-top:12px"><strong>¿Puedo probarlo antes?</strong><br>Sí. La versión gratuita funciona para siempre con hasta 3 workflows.</p>
+<p style="margin-top:12px"><strong>¿Puedo probarlo antes?</strong><br>Sí. Versión gratuita para siempre con hasta 3 workflows y CRM.</p>
 
 <h2>📱 Contacto</h2>
 <p>¿Preguntas? Escríbenos por WhatsApp o email.</p>
 <p style="margin-top:8px">💬 <a href="#" style="color:#6366f1">WhatsApp</a> &nbsp;·&nbsp; ✉️ <a href="mailto:info@workflowdeterminista.com" style="color:#6366f1">info@workflowdeterminista.com</a></p>
 </div>
+
 <div class="footer">
-<p>Workflow Determinista v1.0 — Pago único, sin suscripciones, 100% offline</p>
+<p>Workflow Determinista v3.2 — Motor ORBITAL · Pago único · 100% offline</p>
 <p style="margin-top:8px">Aceptamos: USDT TRC20 · BTC · ETH</p>
 </div>
 </body>

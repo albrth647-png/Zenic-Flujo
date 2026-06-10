@@ -1,7 +1,6 @@
 """
 Workflow Determinista — CRM Repository
 """
-import json
 from datetime import datetime
 from src.data.database_manager import DatabaseManager
 

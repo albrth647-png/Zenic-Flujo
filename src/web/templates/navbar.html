@@ -1,20 +1,51 @@
 <nav class="navbar">
     <div class="nav-inner">
-        <a href="/dashboard" class="nav-brand">⚙️ WFD</a>
-        <button id="navHamburger" class="nav-hamburger">☰</button>
+        <a href="/dashboard" class="nav-brand"><span>⚙️</span> WFD</a>
+        <button id="navHamburger" class="nav-hamburger" aria-label="Menú">☰</button>
         <div class="nav-links" id="navLinks">
-            <a href="/dashboard">📊 Dashboard</a>
-            <a href="/workflows">📋 Workflows</a>
-            <a href="/chat">💬 Chat</a>
-            <a href="/settings">⚙️ Config</a>
+            <a href="/dashboard" class="nav-dashboard">📊 Dashboard</a>
+            <a href="/workflows" class="nav-workflows">📋 Workflows</a>
+            <a href="/chat" class="nav-chat">💬 Chat</a>
+            <a href="/settings" class="nav-settings">⚙️ Config</a>
+            <a href="/orbital" class="nav-orbital">🌀 Orbital</a>
+            <a href="/dead-letter" class="nav-dead-letter">⚠️ DLQ</a>
         </div>
         <div class="nav-right">
+            <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
             <span id="trialBadge" class="trial-badge-sm"></span>
             <button onclick="logout()" class="btn btn-sm">Cerrar sesión</button>
         </div>
     </div>
 </nav>
 <script>
+// ── Theme toggle ─────────────────────────────────────────
+(function() {
+    const saved = localStorage.getItem('wfd-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+})();
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('wfd-theme', next);
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+}
+
+// ── Active nav highlighting ──────────────────────────────
+(function() {
+    const path = window.location.pathname;
+    document.querySelectorAll('.nav-links a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href === path || (href !== '/' && path.startsWith(href))) {
+            a.classList.add('active');
+        }
+    });
+})();
+
+// ── Logout ───────────────────────────────────────────────
 async function logout() {
     await fetch('/api/auth/logout', {method: 'POST'});
     window.location.href = '/login';

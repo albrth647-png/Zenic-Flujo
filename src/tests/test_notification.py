@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del Notification Service
 Tests unitarios para el servicio de notificaciones: modelos, SMTP, plantillas, errores.
 """
-import pytest
 from unittest.mock import patch, MagicMock
 
 
@@ -110,7 +109,6 @@ class TestNotificationService:
             username="user@test.com",
             password="testpass",
         )
-        import smtplib
         mock_smtp_class.side_effect = OSError("Connection refused")
 
         result = notification_service.test_connection()

@@ -134,7 +134,6 @@ class OrbitalContext:
 
         Todos los componentes ven los cambios inmediatamente.
         """
-        from src.orbital.models import OrbitalResult
 
         result = self._engine.run_tick(dt=dt, retrofeed_damping=retrofeed_damping)
 

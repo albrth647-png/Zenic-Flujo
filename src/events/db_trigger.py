@@ -2,7 +2,6 @@
 Workflow Determinista — DatabaseTrigger
 Detecta cambios en tablas SQLite y emite eventos correspondientes.
 """
-import json
 from src.data.database_manager import DatabaseManager
 from src.events.bus import EventBus
 from src.utils.logger import setup_logging

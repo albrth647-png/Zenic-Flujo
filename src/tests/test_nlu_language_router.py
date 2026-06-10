@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del LanguageRouter (Etapa 3)
 """
-import pytest
 
 
 class TestLanguageRouter:

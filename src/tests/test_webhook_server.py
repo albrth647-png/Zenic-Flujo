@@ -5,7 +5,7 @@ Tests unitarios para el servidor HTTP de webhooks.
 import json
 import time
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 
 class TestWebhookServer:

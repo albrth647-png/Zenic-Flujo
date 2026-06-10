@@ -11,7 +11,7 @@ from typing import TypeVar
 
 T = TypeVar("T")
 
-from src.config import DB_PATH, DB_WAL_MODE
+from src.config import DB_PATH
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -294,6 +294,29 @@ class DatabaseManager:
         );
 
         CREATE INDEX IF NOT EXISTS idx_nlu_traces_hash ON nlu_traces(text_hash);
+        -- Dead Letter Queue (Sprint 4)
+        CREATE TABLE IF NOT EXISTS dead_letter_queue (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            workflow_id     INTEGER NOT NULL,
+            workflow_name   TEXT NOT NULL DEFAULT '',
+            execution_id    INTEGER NOT NULL,
+            step_id         INTEGER NOT NULL,
+            tool            TEXT NOT NULL DEFAULT '',
+            action          TEXT NOT NULL DEFAULT '',
+            error_message   TEXT NOT NULL DEFAULT '',
+            retry_count     INTEGER DEFAULT 0,
+            step_definition TEXT NOT NULL DEFAULT '{}',
+            context_snapshot TEXT NOT NULL DEFAULT '{}',
+            status          TEXT NOT NULL DEFAULT 'pending',
+            notified        INTEGER DEFAULT 0,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_dead_letter_status ON dead_letter_queue(status);
+        CREATE INDEX IF NOT EXISTS idx_dead_letter_workflow ON dead_letter_queue(workflow_id);
+        CREATE INDEX IF NOT EXISTS idx_dead_letter_created ON dead_letter_queue(created_at);
+
         CREATE INDEX IF NOT EXISTS idx_nlp_synonyms_intent ON nlp_synonyms(intent);
         """
 

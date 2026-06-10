@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del DurationExtractor (cron normalization)
 """
-import pytest
 
 
 class TestDurationExtractor:

@@ -4,10 +4,8 @@ Backup automático programado con soporte para directorios externos (USB).
 """
 import datetime
 import os
-import shutil
 import sqlite3
 import threading
-import time
 from pathlib import Path
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging

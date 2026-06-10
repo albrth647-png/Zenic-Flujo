@@ -28,11 +28,8 @@ from __future__ import annotations
 
 import json
 import hashlib
-from typing import Any
 
 from src.orbital.models import (
-    VariableOrbital,
-    CicloOrbital,
     TWO_PI,
 )
 from src.orbital.db import OrbitalDB

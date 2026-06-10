@@ -3,8 +3,6 @@ Workflow Determinista — Web App (Flask)
 Servidor web con todas las rutas de la API REST.
 """
 import html as _html
-import json
-import os
 import re as _re
 import urllib.parse as _urlparse
 from functools import wraps
@@ -12,11 +10,11 @@ from pathlib import Path
 
 from flask import (
     Flask, render_template, request, jsonify, session,
-    redirect, url_for, send_from_directory,
+    redirect, url_for,
 )
 
 from src.config import (
-    WEB_HOST, WEB_PORT, SESSION_SECRET, SESSION_EXPIRY_HOURS,
+    SESSION_SECRET, SESSION_EXPIRY_HOURS,
     LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MINUTES,
     FREE_TIER_MAX_WORKFLOWS, FREE_TIER_ALLOWED_TOOLS,
     SESSION_COOKIE_SECURE,
@@ -212,6 +210,13 @@ def create_app() -> Flask:
         if check_trial():
             return render_template("login.html", trial={"status": "expired"})
         return render_template("settings.html")
+
+    @app.route("/dead-letter")
+    @login_required
+    def dead_letter_page():
+        if check_trial():
+            return render_template("login.html", trial={"status": "expired"})
+        return render_template("dead_letter.html")
 
     # ── API: Auth (multi-user) ──────────────────────────────
 
@@ -527,16 +532,36 @@ def create_app() -> Flask:
         data = request.get_json() or {}
         text = data.get("text", "")
 
-        from src.nlp.intent_classifier import IntentClassifier
-        classifier = IntentClassifier()
-        intents = classifier.classify(text)
+        from src.nlu.intent_classifier import IntentClassifier
+        from src.nlu.templates import TEMPLATES
 
-        if not intents:
+        classifier = IntentClassifier()
+        intent_matches = classifier.classify_text(text)
+
+        if not intent_matches:
             return jsonify({"suggestions": [], "message": "No entendí tu solicitud. Intenta describir qué quieres automatizar."})
 
+        # Mantener compatibilidad con el formato de respuesta legacy
+        suggestions = []
+        for im in intent_matches[:5]:
+            template = next(
+                (t for t in TEMPLATES if t["name"] == im.intent),
+                None,
+            )
+            if template:
+                suggestions.append({
+                    "template_name": im.intent,
+                    "confidence": im.score,
+                    "description": template.get("description_es", ""),
+                    "trigger": template["trigger"],
+                    "steps": template["steps"],
+                    "score": im.score,
+                    "evidence": im.evidence,
+                })
+
         return jsonify({
-            "suggestions": intents,
-            "message": f"Encontré {len(intents)} sugerencias para tu solicitud.",
+            "suggestions": suggestions,
+            "message": f"Encontré {len(suggestions)} sugerencias para tu solicitud.",
         })
 
     @app.route("/api/nlu/ai-generate", methods=["POST"])
@@ -1037,6 +1062,149 @@ def create_app() -> Flask:
             message="🧪 Conexión WhatsApp exitosa desde Workflow Determinista",
         )
         return jsonify(result)
+
+    # ── API: Dead Letter Queue (Sprint 4) ─────────────────────
+
+    @app.route("/api/dead-letter", methods=["GET"])
+    @login_required
+    def api_dead_letter_list():
+        """Lista entradas de la Dead Letter Queue."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        status = request.args.get("status")
+        workflow_id = request.args.get("workflow_id", type=int)
+        limit = int(request.args.get("limit", 50))
+        offset = int(request.args.get("offset", 0))
+        entries = dl.list(status=status, workflow_id=workflow_id,
+                          limit=limit, offset=offset)
+        return jsonify({
+            "entries": [e.to_dict() for e in entries],
+            "stats": dl.get_stats(),
+        })
+
+    @app.route("/api/dead-letter/stats", methods=["GET"])
+    @login_required
+    def api_dead_letter_stats():
+        """Estadísticas de la Dead Letter Queue."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        return jsonify(dl.get_stats())
+
+    @app.route("/api/dead-letter/<int:entry_id>/retry", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_dead_letter_retry(entry_id):
+        """Reintenta una entrada de dead letter."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        result = dl.retry(entry_id)
+        return jsonify(result)
+
+    @app.route("/api/dead-letter/<int:entry_id>/discard", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_dead_letter_discard(entry_id):
+        """Descarta una entrada de dead letter."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        success = dl.discard(entry_id)
+        return jsonify({"status": "discarded" if success else "not_found"})
+
+    @app.route("/api/dead-letter/retry-all", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_dead_letter_retry_all():
+        """Reintenta todas las entradas pendientes."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        results = dl.retry_all()
+        return jsonify(results)
+
+    @app.route("/api/dead-letter/discard-all", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_dead_letter_discard_all():
+        """Descarta todas las entradas pendientes."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        count = dl.discard_all()
+        return jsonify({"discarded": count})
+
+    @app.route("/api/dead-letter/notify/<int:entry_id>", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_dead_letter_notify(entry_id):
+        """Dispara notificación para una entrada."""
+        from src.workflow.dead_letter import DeadLetterManager
+        dl = DeadLetterManager()
+        result = dl.notify_dead_letter(entry_id)
+        return jsonify({"notified": result})
+
+    # ── API: Work Queue + Workers (Sprint 7-8) ──────────────────
+
+    @app.route("/api/queue/status")
+    @login_required
+    def api_queue_status():
+        """Estado de la cola de ejecución."""
+        from src.events.work_queue import WorkQueue
+        queue = WorkQueue()
+        metrics = queue.get_metrics()
+        peek = queue.peek(limit=10)
+        return jsonify({
+            "metrics": metrics,
+            "next_items": [item.to_dict() for item in peek],
+        })
+
+    @app.route("/api/queue/workers")
+    @login_required
+    def api_queue_workers():
+        """Estado de los workers activos."""
+        from src.events.worker_manager import WorkerManager
+        mgr = WorkerManager()
+        return jsonify(mgr.get_metrics())
+
+    @app.route("/api/queue/enqueue", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_queue_enqueue():
+        """Encola un workflow manualmente."""
+        data = request.get_json() or {}
+        workflow_id = data.get("workflow_id")
+        if not workflow_id:
+            return jsonify({"error": "workflow_id es requerido"}), 400
+        from src.workflow.engine import WorkflowEngine
+        engine = WorkflowEngine()
+        try:
+            result = engine.execute_async(
+                workflow_id=workflow_id,
+                trigger_data=data.get("trigger_data"),
+                priority=data.get("priority", 0),
+            )
+            return jsonify(result), 202
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/queue/<int:item_id>/retry", methods=["POST"])
+    @login_required
+    @require_role("editor")
+    def api_queue_retry(item_id):
+        """Re-intenta un item fallido."""
+        from src.events.work_queue import WorkQueue
+        queue = WorkQueue()
+        result = queue.retry_failed(max_items=1)
+        return jsonify({"retried": result})
+
+    @app.route("/api/queue/cleanup", methods=["POST"])
+    @login_required
+    @require_role("admin")
+    def api_queue_cleanup():
+        """Limpia items completados/failed viejos."""
+        data = request.get_json() or {}
+        max_age = int(data.get("max_age_hours", 24))
+        from src.events.work_queue import WorkQueue
+        queue = WorkQueue()
+        deleted = queue.cleanup(max_age_hours=max_age)
+        return jsonify({"deleted": deleted})
 
     @app.route("/api/system/status")
     def api_system_status():

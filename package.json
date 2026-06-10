@@ -1,0 +1,9 @@
+{
+  "name": "zenic-flujo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Workflow Determinista — Frontend",
+  "dependencies": {
+    "chart.js": "^4.5.1"
+  }
+}

@@ -25,11 +25,9 @@ Solo envuelve las llamadas con logica orbital.
 from __future__ import annotations
 
 import math
-from typing import Any, Callable
+from typing import Any
 
-from src.orbital.models import VariableOrbital, TWO_PI
-from src.orbital.ovc import OVC
-from src.orbital.tor import TOR
+from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
 from src.utils.logger import setup_logging
 

@@ -4,8 +4,6 @@ Tests unitarios para el monitor de cambios en archivos.
 """
 import os
 import time
-import pytest
-from pathlib import Path
 
 
 class TestFileWatcher:

@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del EntityExtractor (Etapa 4)
 """
-import pytest
 
 
 class TestEntityExtractor:

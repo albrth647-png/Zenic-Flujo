@@ -2,8 +2,7 @@
 Workflow Determinista — Tests del EmailWatcher
 Tests unitarios para el monitor de correo IMAP.
 """
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestEmailWatcher:

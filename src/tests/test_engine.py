@@ -3,7 +3,7 @@ Workflow Determinista — Tests del WorkflowEngine
 Tests unitarios para el motor de workflows: ciclo de vida, ejecución, pausa, reanudación.
 """
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 class TestWorkflowEngine:

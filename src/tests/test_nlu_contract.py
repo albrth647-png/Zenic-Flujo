@@ -81,7 +81,7 @@ class TestNLUResultContract:
     """Tests para la dataclass NLUResult."""
 
     def test_nlu_result_creation(self):
-        from src.nlu.entities.base import Token, Entity, IntentMatch, Slot, NLUResult
+        from src.nlu.entities.base import Token, IntentMatch, Slot, NLUResult
         result = NLUResult(
             text="hola",
             lang="es",

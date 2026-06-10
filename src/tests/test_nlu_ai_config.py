@@ -2,7 +2,6 @@
 Tests para AI Config (Sprint 5).
 Valida configuración multi-proveedor: Ollama, OpenAI, Anthropic.
 """
-import pytest
 from unittest.mock import patch
 import os
 

@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del WorkflowValidator
 """
-import pytest
 
 
 class TestWorkflowValidator:

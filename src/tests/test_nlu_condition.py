@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del ConditionExtractor (AST seguro, sin eval)
 """
-import pytest
 
 
 class TestConditionExtractor:

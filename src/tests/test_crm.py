@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del CRM
 Tests unitarios para el servicio CRM: crear leads, actualizar etapas, estadísticas.
 """
-import pytest
 
 
 class TestCRMService:

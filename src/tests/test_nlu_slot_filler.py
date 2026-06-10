@@ -1,8 +1,7 @@
 """
 DDE v3 — Tests del SlotFiller
 """
-import pytest
-from src.nlu.entities.base import Entity, IntentMatch, Slot
+from src.nlu.entities.base import Entity, IntentMatch
 
 
 class TestSlotFiller:

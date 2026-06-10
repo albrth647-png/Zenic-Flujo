@@ -8,7 +8,7 @@ Fallback: si ningún proveedor está disponible, usa el compilador determinista.
 NO envía datos a terceros a menos que el usuario active un proveedor cloud.
 """
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from src.utils.logger import setup_logging
 

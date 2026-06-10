@@ -7,7 +7,6 @@ Ejecutar con:
 
 Estos tests atacan los endpoints Flask para encontrar vulnerabilidades.
 """
-import pytest
 
 
 # ── Helper: crear app Flask para testing ──────────────────────

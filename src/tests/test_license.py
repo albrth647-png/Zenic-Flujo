@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del License System
 Tests unitarios para el generador y validador de licencias: formato, HMAC, trial.
 """
-import pytest
 
 
 class TestLicenseGenerator:

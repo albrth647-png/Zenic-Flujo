@@ -1,8 +1,6 @@
 """
 Workflow Determinista — Notification Service
 """
-import smtplib
-from datetime import datetime
 
 from cryptography.fernet import Fernet
 

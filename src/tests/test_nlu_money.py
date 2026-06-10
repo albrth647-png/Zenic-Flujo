@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del MoneyExtractor
 """
-import pytest
 
 
 class TestMoneyExtractor:

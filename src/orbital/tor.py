@@ -47,6 +47,10 @@ class TOR:
     una matriz de tensiones que describe el estado de las interacciones
     reciprocas en el sistema orbital.
 
+    Incluye cache de tensiones: si las fases de una pareja no han cambiado
+    desde el ultimo calculo, retorna el valor cachead en lugar de recalcular.
+    Esto reduce el costo computacional de O(N^2) a O(cambios) por tick.
+
     La tension orbital es la base para:
     - RCC: resonancia cuando TOR > umbral
     - COD: colapso basado en tensiones acumuladas
@@ -61,6 +65,30 @@ class TOR:
             ovc: Instancia de OVC que contiene las variables orbitales
         """
         self._ovc = ovc
+        # ── Cache de tensiones ──────────────────────────────────
+        # _cache[(name_i, name_j)] = (phase_diff_hash, tor_value, alignment, is_resonant)
+        # Si las fases no cambiaron, se reusa el valor cachead.
+        # El hash de fase_diff evita recalcular cos() si la diferencia no cambio.
+        self._cache: dict[tuple[str, str], tuple[float, float, float, bool]] = {}
+        self._cache_hits = 0
+        self._cache_misses = 0
+
+    @property
+    def cache_stats(self) -> dict:
+        """Estadisticas del cache de tensiones."""
+        total = self._cache_hits + self._cache_misses
+        return {
+            "hits": self._cache_hits,
+            "misses": self._cache_misses,
+            "hit_rate": round(self._cache_hits / total, 4) if total > 0 else 0,
+            "cache_size": len(self._cache),
+        }
+
+    def clear_cache(self) -> None:
+        """Limpia el cache de tensiones."""
+        self._cache.clear()
+        self._cache_hits = 0
+        self._cache_misses = 0
 
     # ── Calculo individual ─────────────────────────────────
 
@@ -94,21 +122,46 @@ class TOR:
     def _compute_tor(self, var_i: VariableOrbital, var_j: VariableOrbital,
                      threshold: float = 0.0) -> TORResult:
         """
-        Calculo interno de TOR entre dos VariableOrbital.
+        Calculo interno de TOR entre dos VariableOrbital con cache.
 
         Formula: TOR = Ai * Aj * cos(theta_i - theta_j)
+
+        Cachea resultados por pareja simetrica. Si las fases no cambiaron
+        desde el ultimo calculo, retorna el valor cachead (O(1) en vez de
+        recalcular cos().
         """
-        # Diferencia de fase
+        # Usar clave simetrica: orden alfabetico para cache
+        pair_key = (var_i.name, var_j.name) if var_i.name < var_j.name else (var_j.name, var_i.name)
         phase_diff = var_i.theta - var_j.theta
+        # Hash de la diferencia de fase (redondeado a 8 decimales)
+        phase_hash = round(phase_diff, 8)
 
-        # Alineacion: cos(theta_i - theta_j) ∈ [-1, 1]
+        # Cache lookup
+        if pair_key in self._cache:
+            cached_hash, cached_value, cached_alignment, cached_resonant = self._cache[pair_key]
+            if cached_hash == phase_hash:
+                self._cache_hits += 1
+                # Amplitudes pueden cambiar aunque las fases no
+                tor_value = var_i.amplitude * var_j.amplitude * cached_alignment
+                is_resonant = abs(tor_value) > threshold if threshold > 0 else False
+                result = TORResult(
+                    variable_i=var_i.name,
+                    variable_j=var_j.name,
+                    tor_value=tor_value,
+                    phase_diff=phase_diff,
+                    alignment=cached_alignment,
+                    is_resonant=is_resonant,
+                )
+                return result
+
+        # Miss — recalcular
+        self._cache_misses += 1
         alignment = math.cos(phase_diff)
-
-        # TOR: producto de amplitudes por alineacion
         tor_value = var_i.amplitude * var_j.amplitude * alignment
-
-        # Es resonante si supera el umbral
         is_resonant = abs(tor_value) > threshold if threshold > 0 else False
+
+        # Actualizar cache
+        self._cache[pair_key] = (phase_hash, tor_value, alignment, is_resonant)
 
         result = TORResult(
             variable_i=var_i.name,

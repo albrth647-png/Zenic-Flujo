@@ -1,7 +1,6 @@
 """
 Workflow Determinista — Invoice Service
 """
-import json
 from datetime import datetime, timedelta
 
 from src.tools.invoice.repository import InvoiceRepository

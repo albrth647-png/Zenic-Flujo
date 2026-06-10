@@ -1,8 +1,54 @@
-# Workflow Determinista — Dependencias
+# Workflow Determinista — Dependencias completas
+# Core
+flask>=3.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# NLU / ML
+numpy>=1.26.0
+scikit-learn>=1.5.0
+openai>=1.0.0
+
+# Web UI
+fpdf2>=2.8.7
+
+# Auth & Security
 bcrypt>=4.1.0
+cryptography>=41.0.0
+passlib>=1.7.4
+
+# HTTP & APIs
+httpx>=0.28.0
+
+# FastAPI / ASGI (orbital)
+fastapi>=0.115.0
+uvicorn>=0.34.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+starlette>=0.41.0
+sse-starlette>=2.0.0
+
+# Databases
+psycopg2-binary>=2.9.0
+motor>=3.6.0
+redis>=5.0.0
+sqlalchemy>=2.0.0
+
+# Google integrations
+google-auth-oauthlib>=1.0.0
+google-api-python-client>=2.0.0
+
+# Payments
+stripe>=7.0.0
+mercadopago>=2.0.0
+
+# File watching
+watchdog>=4.0.0
+
+# OAuth
+oauthlib>=3.2.2
+
+# Testing
 pytest>=8.0.0
 pytest-cov>=5.0.0
-flask>=3.0.0
-fpdf2>=2.8.7
-requests>=2.31.0
-cryptography>=41.0.0
+pytest-asyncio>=0.24.0

@@ -22,10 +22,9 @@ Ejemplo de uso:
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
-from src.orbital.models import VariableOrbital, TWO_PI, DEFAULT_AMPLITUDE, DEFAULT_VELOCITY
+from src.orbital.models import VariableOrbital, DEFAULT_AMPLITUDE, DEFAULT_VELOCITY
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)

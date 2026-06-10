@@ -24,7 +24,6 @@ from src.orbital.models import (
     EspectroEstado,
     OrbitalResult,
     TWO_PI,
-    DEFAULT_THRESHOLD,
 )
 from src.orbital.ovc import OVC
 from src.orbital.tor import TOR

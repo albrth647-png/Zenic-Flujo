@@ -1,8 +1,6 @@
 """
 Tests para Integración WhatsApp (Mejora #6).
 """
-import json
-import pytest
 from unittest.mock import patch, MagicMock
 
 

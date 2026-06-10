@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del EventBus
 Tests unitarios para el sistema de mensajería pub/sub: suscripciones, publicación, persistencia.
 """
-import pytest
 from unittest.mock import MagicMock, patch
 
 

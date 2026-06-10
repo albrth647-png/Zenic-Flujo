@@ -9,12 +9,11 @@ Orquesta las etapas del pipeline NLU determinista + IA:
 5. IntentClassifier
 6. SlotFiller
 7. Disambiguator
-8. ClarifyDialog
-9. WorkflowCompiler
-10. Validator
-11. Explainer
-12. DryRunSimulator
-13. AI WorkflowGenerator (opcional)
+8. WorkflowCompiler
+9. Validator
+10. Explainer
+11. DryRunSimulator
+12. AI WorkflowGenerator (opcional)
 
 El pipeline ofrece cuatro modos:
 - process() → NLUResult (etapas 1-6: análisis)
@@ -26,7 +25,7 @@ Determinista: misma entrada → misma salida.
 IA: complemento opcional que genera workflows desde texto libre.
 """
 from __future__ import annotations
-from src.nlu.entities.base import Token, Entity, IntentMatch, Slot, NLUResult, CompileResult
+from src.nlu.entities.base import NLUResult, CompileResult
 from src.nlu.normalizer import normalize
 from src.nlu.tokenizer import tokenize
 from src.nlu.language_router import LanguageRouter

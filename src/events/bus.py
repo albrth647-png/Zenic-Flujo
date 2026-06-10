@@ -23,7 +23,7 @@ import math
 from typing import Any, Callable
 
 from src.data.database_manager import DatabaseManager
-from src.orbital.models import VariableOrbital, TWO_PI, DEFAULT_THRESHOLD
+from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
 from src.utils.logger import setup_logging
 
@@ -415,7 +415,7 @@ class EventBus:
 
     def orbital_summary(self) -> str:
         lines = ["OrbitalBus — Estado Orbital del Bus de Eventos (OVC Compartido)"]
-        lines.append(f"  Modo: ORBITAL (compartido)")
+        lines.append("  Modo: ORBITAL (compartido)")
         lines.append(f"  Variables orbitales: {self._ctx.ovc.variable_count}")
         lines.append(f"  Eventos procesados: {len(self._event_history)}")
         if self._ctx.ovc.variable_count > 0:

@@ -2,7 +2,6 @@
 Tests para Integraciones (Sprint 7).
 Tests mockeados para Gmail, Sheets, Telegram, Slack.
 """
-import pytest
 from unittest.mock import patch, MagicMock
 from src.tools.integrations.gmail_service import GmailService
 from src.tools.integrations.sheets_service import SheetsService

@@ -144,6 +144,21 @@ class COD:
         # Esto evita que amplitudes grandes saturen tanh y prevengan convergencia
         amplitude_norm = self._compute_amplitude_normalization(cycle)
 
+        # Pre-computar amplitudes y velocidades para evitar get_variable() repetido
+        # en cada iteracion. Obtener referencias a las variables una sola vez.
+        var_refs: dict[str, tuple] = {}
+        for var_name in cycle.variable_ids:
+            var = self._ovc.get_variable(var_name)
+            if var:
+                var_refs[var_name] = (var, var.amplitude, var.velocity)
+
+        # Pre-computar parejas del ciclo (pares ordenados para evitar duplicados)
+        cycle_pairs = []
+        vids = list(cycle.variable_ids)
+        for i in range(len(vids)):
+            for j in range(i + 1, len(vids)):
+                cycle_pairs.append((vids[i], vids[j]))
+
         # Relajacion adaptativa: reducir paso si el sistema oscila
         # relaxation_decay va de 1.0 a ~0.01 a lo largo de las iteraciones,
         # forzando convergencia cuando el sistema oscila alrededor del punto fijo
@@ -391,7 +406,7 @@ class COD:
         lines.append(f"  Iteraciones: {result.iterations}/{self._max_iterations}")
         lines.append(f"  Delta final: {result.convergence_delta:.8f}")
         lines.append(f"  Estado estable: {'SI' if result.steady_state_reached else 'NO'}")
-        lines.append(f"  Fases finales:")
+        lines.append("  Fases finales:")
         for name, theta in result.final_phases.items():
             deg = math.degrees(theta) % 360
             val = result.final_values.get(name, 0.0)

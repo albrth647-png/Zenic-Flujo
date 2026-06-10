@@ -199,7 +199,6 @@ class TestAIGeneratorLLM:
 
     def test_generate_with_ollama_mock(self):
         from src.nlu.ai_generator import WorkflowAIGenerator
-        from src.nlu.ai_config import AIConfig, AIProvider
         with patch.dict(os.environ, {
             "WFD_OLLAMA_ENABLED": "true",
             "WFD_OLLAMA_URL": "http://localhost:11434",

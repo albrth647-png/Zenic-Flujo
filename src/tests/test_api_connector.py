@@ -1,5 +1,4 @@
 """Tests para el API Connector Service."""
-import pytest
 from unittest.mock import patch, MagicMock
 
 

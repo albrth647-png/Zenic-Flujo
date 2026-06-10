@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del Inventory Service
 Tests unitarios para el servicio de inventario: productos, stock, movimientos, alertas.
 """
-import pytest
 
 
 class TestInventoryModels:

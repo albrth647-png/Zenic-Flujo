@@ -3,9 +3,6 @@ Tests para Reportes PDF/CSV (Mejora #5).
 """
 import io
 import csv
-import json
-import pytest
-from pathlib import Path
 
 
 class TestCSVReports:

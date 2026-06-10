@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del QuantityExtractor
 """
-import pytest
 
 
 class TestQuantityExtractor:

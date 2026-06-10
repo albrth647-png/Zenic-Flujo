@@ -25,22 +25,12 @@ Compatibilidad: misma salida que el NLU pipeline (CompileResult).
 
 from __future__ import annotations
 
-import math
 import hashlib
-from typing import Any
 
 from src.orbital.models import (
-    VariableOrbital,
-    CicloOrbital,
     TWO_PI,
-    DEFAULT_THRESHOLD,
 )
-from src.orbital.ovc import OVC
-from src.orbital.tor import TOR
-from src.orbital.rcc import RCC
-from src.orbital.cod import COD
-from src.orbital.espectro import EspectroOrbital
-from src.orbital.engine import OrbitalEngine
+from src.orbital.context import OrbitalContext
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -183,7 +173,8 @@ class OrbitalCompiler:
     """
 
     def __init__(self):
-        self._orbital_engine = OrbitalEngine()
+        self._ctx = OrbitalContext()
+        self._orbital_engine = self._ctx.engine
         self._templates = dict(ORBITAL_TEMPLATES)
         self._compilation_count = 0
 
@@ -212,8 +203,17 @@ class OrbitalCompiler:
                 confidence=0.0,
             )
 
-        # 2. Reset del motor orbital para esta compilacion
-        self._orbital_engine.reset()
+        # 2. Limpiar variables de compilaciones anteriores del grupo input_tokens
+        for name in list(self._orbital_engine.get_all_variables().keys()):
+            if name.startswith("token_") or name.startswith("kw_"):
+                try:
+                    del self._orbital_engine._ovc._variables[name]
+                except KeyError:
+                    pass
+        # Limpiar ciclos de match anteriores
+        for cid in list(self._orbital_engine._rcc._cycles.keys()):
+            if cid.startswith("match_"):
+                del self._orbital_engine._rcc._cycles[cid]
 
         # 3. Crear variables orbitales para cada token
         for i, token in enumerate(tokens):

@@ -8,7 +8,7 @@ Determinista: mismo workflow → misma explicación.
 """
 from __future__ import annotations
 from src.nlu.entities.base import CompileResult
-from src.nlp.templates import TEMPLATES
+from src.nlu.templates import TEMPLATES
 
 
 def explain_intent(intent_name: str, lang: str = "es") -> str:

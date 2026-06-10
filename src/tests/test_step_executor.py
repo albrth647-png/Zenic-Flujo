@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del StepExecutor
 Tests unitarios para el ejecutor de pasos: resolución de variables, timeout, tools.
 """
-import pytest
 from unittest.mock import MagicMock
 
 
@@ -11,7 +10,7 @@ class TestStepExecutor:
 
     def test_execute_simple_step(self):
         """Test: ejecutar un paso simple con una tool registrada."""
-        from src.workflow.step_executor import StepExecutor, StepResult
+        from src.workflow.step_executor import StepExecutor
 
         executor = StepExecutor()
         mock_tool = MagicMock()

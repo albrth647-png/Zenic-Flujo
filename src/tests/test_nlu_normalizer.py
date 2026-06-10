@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del Normalizer (Etapa 1)
 """
-import pytest
 
 
 class TestNormalizer:

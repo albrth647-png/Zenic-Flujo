@@ -17,25 +17,20 @@ from __future__ import annotations
 import hashlib
 import threading
 import time
-from typing import Any
 
 from src.workflow.step_executor import StepExecutor, StepResult
 from src.workflow.condition_evaluator import ConditionEvaluator
-from src.workflow.branch_handler import BranchHandler, BranchResult
-from src.workflow.loop_handler import LoopHandler, LoopResult
-from src.workflow.error_handler import ErrorHandler
+from src.workflow.branch_handler import BranchHandler
+from src.workflow.loop_handler import LoopHandler
+from src.workflow.fork_handler import ForkHandler, JoinHandler
 from src.workflow.repository import WorkflowRepository, WorkflowDefinition
 from src.orbital.models import (
-    VariableOrbital,
-    CicloOrbital,
     OrbitalResult,
     TWO_PI,
     DEFAULT_THRESHOLD,
-    DEFAULT_EPSILON,
     RETROFEEDBACK_DAMPING,
 )
 from src.orbital.context import OrbitalContext
-from src.orbital.engine import OrbitalEngine
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -113,7 +108,10 @@ class WorkflowEngine:
             self._condition_evaluator = ConditionEvaluator()
             self._branch_handler = BranchHandler()
             self._loop_handler = LoopHandler()
+            from src.workflow.error_handler import ErrorHandler
             self._error_handler = ErrorHandler()
+            self._fork_handler = ForkHandler(self._step_executor)
+            self._join_handler = JoinHandler()
             self._tools: dict[str, object] = {}
             # ── ORBITAL COMPARTIDO ───────────────────
             self._ctx = OrbitalContext()
@@ -153,16 +151,23 @@ class WorkflowEngine:
         # 3. Usar OrbitalContext compartido
         orbital_engine = self._ctx.engine
 
-        # 4. Preparar contexto
+        # 4. Preparar contexto (Sprint 4: continue_on_error, _execution_id)
+        # continue_on_error se detecta a nivel de step individual.
+        # Si algún step tiene la flag, el motor no detiene la ejecución
+        # cuando ese step falla (el ErrorHandler maneja el skip).
+        continue_on_error = False
+
         context = {
             "input": trigger_data or {},
             "workflow": {
                 "id": definition.id,
                 "name": definition.name,
+                "continue_on_error": continue_on_error,
             },
             "output": {},
             "steps_output": {},
             "settings": self._load_settings(),
+            "_execution_id": execution.id,
         }
 
         # 5. Convertir trigger_data a variables orbitales (OVC compartido)
@@ -210,11 +215,19 @@ class WorkflowEngine:
                     error_message=step_result.error_message,
                 )
 
+                # Sprint 4: continue_on_error — no romper el flujo
                 if step_result.status == "failed":
-                    final_status = "failed"
                     error_message = step_result.error_message
                     logger.error(f"Workflow {workflow_id} fallo en paso {step.get('id')}: {error_message}")
-                    break
+                    if not continue_on_error:
+                        final_status = "failed"
+                        break
+                    logger.info(f"continue_on_error=True: continuando despues de paso {step.get('id')}")
+
+                # Sprint 4: skipped por continue_on_error no es fallo
+                if step_result.status == "skipped" and \
+                   step_result.output_data.get("reason") == "continue_on_error":
+                    logger.info(f"Paso {step.get('id')} skipped (continue_on_error)")
 
         except Exception as e:
             final_status = "failed"
@@ -316,6 +329,50 @@ class WorkflowEngine:
                     "converged": getattr(loop_result, "converged", False),
                     "convergence_delta": getattr(loop_result, "convergence_delta", 0.0),
                 },
+            )
+
+        # Parallel / Fork step (DAG)
+        if step_type == "parallel":
+            fork_result = self._fork_handler.execute_parallel(step, context)
+            # Unir resultados automáticamente
+            join_result = self._join_handler.join(fork_result, step, context)
+            return StepResult(
+                status=fork_result.status if fork_result.status == "completed" else "failed",
+                output_data={
+                    "parallel": fork_result.branches,
+                    "merged": join_result.merged_output,
+                    "merge_strategy": fork_result.merge_strategy,
+                },
+                duration_ms=fork_result.duration_ms,
+                error_message=fork_result.error_message,
+            )
+
+        # Fork step (mismos steps, diferentes datos)
+        if step_type == "fork":
+            fork_result = self._fork_handler.execute_fork(step, context)
+            join_result = self._join_handler.join(fork_result, step, context)
+            return StepResult(
+                status="completed" if fork_result.status == "completed" else "failed",
+                output_data={
+                    "fork": fork_result.branches,
+                    "merged": join_result.merged_output,
+                    "merge_strategy": fork_result.merge_strategy,
+                },
+                duration_ms=fork_result.duration_ms,
+                error_message=fork_result.error_message,
+            )
+
+        # Join step (explícito, para después de parallel/fork)
+        if step_type == "join":
+            fork_result_data = context.get(f"_join_{step.get('id', 0)}")
+            if fork_result_data:
+                return StepResult(
+                    status="completed",
+                    output_data={"joined": fork_result_data},
+                )
+            return StepResult(
+                status="completed",
+                output_data={"joined": context.get("output", {})},
             )
 
         # Subworkflow step
@@ -566,7 +623,7 @@ class WorkflowEngine:
         lines = ["=" * 60]
         lines.append("ORBITAL WORKFLOW ENGINE — Reporte (OVC Compartido)")
         lines.append("=" * 60)
-        lines.append(f"  Modo: ORBITAL (OVC compartido)")
+        lines.append("  Modo: ORBITAL (OVC compartido)")
         lines.append(f"  OVC variables: {self._ctx.ovc.variable_count}")
         lines.append(f"  Tools registradas: {len(self.get_registered_tools())}")
         lines.append(f"  Ejecuciones orbitales: {len(self._orbital_results)}")
@@ -578,6 +635,52 @@ class WorkflowEngine:
             lines.append(f"  RCC resultados: {len(last.rcc_results)}")
         lines.append("=" * 60)
         return "\n".join(lines)
+
+    # ── Ejecucion Asincrona (Sprint 7-8) ───────────────────────
+
+    def execute_async(self, workflow_id: int,
+                      trigger_data: dict | None = None,
+                      priority: int = 0) -> dict:
+        """
+        Encola un workflow para ejecución asíncrona via WorkQueue.
+
+        Args:
+            workflow_id: ID del workflow a ejecutar
+            trigger_data: Datos de entrada
+            priority: Prioridad (mayor = más prioritario)
+
+        Returns:
+            dict con status del encolamiento
+
+        Raises:
+            ValueError: Si el workflow no existe o no está activo
+        """
+        definition = self._repository.get(workflow_id)
+        if not definition:
+            raise ValueError(f"Workflow no encontrado: {workflow_id}")
+        if definition.status != "active":
+            raise ValueError(
+                f"Workflow '{definition.name}' no está activo (estado: {definition.status})"
+            )
+
+        from src.events.work_queue import WorkQueue
+        queue = WorkQueue()
+        item = queue.enqueue(
+            workflow_id=workflow_id,
+            trigger_data=trigger_data,
+            priority=priority,
+        )
+
+        logger.info(
+            f"Workflow {workflow_id} encolado asíncronamente "
+            f"(#queue{item.id}, prioridad {priority})"
+        )
+        return {
+            "status": "queued",
+            "queue_id": item.id,
+            "workflow_id": workflow_id,
+            "priority": priority,
+        }
 
     # ── Reset para testing ──────────────────────────────────
 

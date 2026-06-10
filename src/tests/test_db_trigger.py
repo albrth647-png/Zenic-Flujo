@@ -2,7 +2,6 @@
 Workflow Determinista — Tests del DatabaseTrigger
 Tests unitarios para la detección de cambios en tablas SQLite.
 """
-import pytest
 
 
 class TestDatabaseTrigger:

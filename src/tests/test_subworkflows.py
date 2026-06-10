@@ -1,7 +1,6 @@
 """
 Tests para Sub-workflows (Mejora #7).
 """
-import pytest
 
 
 def _make_engine():

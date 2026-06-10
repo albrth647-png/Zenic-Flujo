@@ -23,6 +23,32 @@ async function api(path, options = {}) {
 }
 
 // ============================================
+// Markdown renderer (simple, safe)
+// ============================================
+function renderMarkdown(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+    // Code blocks (```...```)
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+    // Inline code (`...`)
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold (**...**)
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italic (*...*)
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // Line breaks
+    html = html.replace(/\n{2,}/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+    return `<p>${html}</p>`;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
 // Toast notification system
 // ============================================
 function showToast(message, type = 'info') {
@@ -137,153 +163,112 @@ async function loadDashboardCharts() {
     const data = await api('/api/dashboard/timeline?days=14');
     if (!data) return;
 
-    // ── Chart colors (dark theme) ───────────────────────────
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const colors = {
-        success: '#22c55e',
-        failed: '#ef4444',
-        primary: '#6366f1',
+        success: '#22c55e', failed: '#ef4444', primary: '#6366f1',
         warning: '#f59e0b',
-        grid: 'rgba(255,255,255,0.06)',
-        text: '#888',
+        grid: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+        text: isDark ? '#888' : '#6b7280',
     };
     const chartDefaults = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                labels: { color: colors.text, font: { size: 11 } },
-            }
-        },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: colors.text, font: { size: 11 } } } },
         scales: {
-            x: {
-                ticks: { color: colors.text, font: { size: 10 } },
-                grid: { color: colors.grid },
-            },
-            y: {
-                beginAtZero: true,
-                ticks: { color: colors.text, font: { size: 10 } },
-                grid: { color: colors.grid },
-            }
+            x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid } },
+            y: { beginAtZero: true, ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid } }
         }
     };
 
-    // ── 1. Ejecuciones por día (bar chart) ──────────────────
+    // 1. Ejecuciones por día (bar chart)
     const execCtx = document.getElementById('executionsChart');
     if (execCtx && data.daily?.length) {
-        const days = data.daily.map(d => {
-            const parts = d.day.split('-');
-            return `${parts[2]}/${parts[1]}`;
-        });
+        const days = data.daily.map(d => { const p = d.day.split('-'); return `${p[2]}/${p[1]}`; });
         chartInstances.executions = new Chart(execCtx, {
             type: 'bar',
             data: {
                 labels: days,
                 datasets: [
-                    {
-                        label: '✅ Completadas',
-                        data: data.daily.map(d => d.completed),
-                        backgroundColor: colors.success,
-                        borderRadius: 4,
-                    },
-                    {
-                        label: '❌ Fallidas',
-                        data: data.daily.map(d => d.failed),
-                        backgroundColor: colors.failed,
-                        borderRadius: 4,
-                    },
+                    { label: '✅ Completadas', data: data.daily.map(d => d.completed), backgroundColor: colors.success, borderRadius: 4 },
+                    { label: '❌ Fallidas', data: data.daily.map(d => d.failed), backgroundColor: colors.failed, borderRadius: 4 },
                 ]
             },
-            options: {
-                ...chartDefaults,
-                plugins: {
-                    ...chartDefaults.plugins,
-                    legend: {
-                        ...chartDefaults.plugins.legend,
-                        position: 'top',
-                    }
-                },
-                scales: {
-                    ...chartDefaults.scales,
-                    x: {
-                        ...chartDefaults.scales.x,
-                        stacked: true,
-                    },
-                    y: {
-                        ...chartDefaults.scales.y,
-                        stacked: true,
-                    }
-                }
-            }
+            options: { ...chartDefaults, scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: true }, y: { ...chartDefaults.scales.y, stacked: true } } }
         });
     }
 
-    // ── 2. Tasa de éxito (doughnut) ─────────────────────────
+    // 2. Tasa de éxito (doughnut)
     const successCtx = document.getElementById('successChart');
     if (successCtx && data.daily?.length) {
         const totalCompleted = data.daily.reduce((s, d) => s + d.completed, 0);
         const totalFailed = data.daily.reduce((s, d) => s + d.failed, 0);
         chartInstances.success = new Chart(successCtx, {
             type: 'doughnut',
-            data: {
-                labels: ['Completadas', 'Fallidas'],
-                datasets: [{
-                    data: [totalCompleted, totalFailed || 0],
-                    backgroundColor: [colors.success, colors.failed],
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: colors.text,
-                            font: { size: 11 },
-                            padding: 12,
-                        }
-                    }
-                }
-            }
+            data: { labels: ['Completadas', 'Fallidas'], datasets: [{ data: [totalCompleted, totalFailed || 0], backgroundColor: [colors.success, colors.failed], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: colors.text, font: { size: 11 }, padding: 12 } } } }
         });
     }
 
-    // ── 3. Tools más usadas (horizontal bar) ────────────────
+    // 3. Tools más usadas (horizontal bar)
     const toolsCtx = document.getElementById('toolsChart');
     if (toolsCtx && data.tools?.length) {
-        const toolLabels = {
-            crm: 'CRM', invoice: 'Facturas', inventory: 'Inventario',
-            notification: 'Notificaciones', system: 'Sistema',
-            api_connector: 'API Connector', data_keeper: 'Data Keeper',
-            autopilot: 'Autopilot', logic_gate: 'Logic Gate',
-        };
+        const toolLabels = { crm: 'CRM', invoice: 'Facturas', inventory: 'Inventario', notification: 'Notificaciones', system: 'Sistema', api_connector: 'API Connector', data_keeper: 'Data Keeper', autopilot: 'Autopilot', logic_gate: 'Logic Gate' };
         const labels = data.tools.map(t => toolLabels[t.tool] || t.tool);
         const values = data.tools.map(t => t.count);
         const barColors = ['#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#a855f7','#ec4899'];
         chartInstances.tools = new Chart(toolsCtx, {
             type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Ejecuciones',
-                    data: values,
-                    backgroundColor: barColors.slice(0, labels.length),
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                ...chartDefaults,
-                indexAxis: 'y',
-                plugins: {
-                    ...chartDefaults.plugins,
-                    legend: { display: false },
-                }
-            }
+            data: { labels, datasets: [{ label: 'Ejecuciones', data: values, backgroundColor: barColors.slice(0, labels.length), borderRadius: 4 }] },
+            options: { ...chartDefaults, indexAxis: 'y', plugins: { ...chartDefaults.plugins, legend: { display: false } } }
         });
     }
 }
+
+// ============================================
+// WebSocket Manager for real-time dashboard
+// ============================================
+class WebSocketManager {
+    constructor() {
+        this.ws = null;
+        this.reconnectTimer = null;
+        this.listeners = {};
+    }
+
+    connect() {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const url = `${protocol}//${window.location.host}/ws`;
+        try {
+            this.ws = new WebSocket(url);
+            this.ws.onopen = () => { console.log('WS conectado'); };
+            this.ws.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    Object.entries(this.listeners).forEach(([evt, fns]) => {
+                        if (evt === data.type || evt === '*') fns.forEach(fn => fn(data));
+                    });
+                } catch {}
+            };
+            this.ws.onclose = () => {
+                this.ws = null;
+                this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+            };
+            this.ws.onerror = () => { if (this.ws) this.ws.close(); };
+        } catch (e) { this.reconnectTimer = setTimeout(() => this.connect(), 5000); }
+    }
+
+    on(event, callback) {
+        if (!this.listeners[event]) this.listeners[event] = [];
+        this.listeners[event].push(callback);
+    }
+
+    disconnect() {
+        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+        if (this.ws) try { this.ws.close(); } catch {}
+        this.ws = null;
+    }
+}
+
+const wsManager = new WebSocketManager();
 
 // ============================================
 // Dashboard loader
@@ -293,23 +278,18 @@ async function loadDashboard() {
     if (!data) return;
     const { stats, trial } = data;
 
-    // Stats
     document.getElementById('statTotal').textContent = stats.total || 0;
     document.getElementById('statActive').textContent = stats.by_status?.active || 0;
     document.getElementById('statError').textContent = (stats.by_status?.failed || 0) + (stats.by_status?.error || 0);
     document.getElementById('statPaused').textContent = stats.by_status?.paused || 0;
 
-    // Trial/license badge in header
     const headerBadge = document.getElementById('headerBadge');
     if (headerBadge && trial) {
-        if (trial.is_trial) {
-            headerBadge.innerHTML = `<span class="trial-badge-sm">⏳ Prueba: ${trial.days_left || 0}d</span>`;
-        } else {
-            headerBadge.innerHTML = `<span class="license-badge-sm">🔑 Licencia activa</span>`;
-        }
+        headerBadge.innerHTML = trial.is_trial
+            ? `<span class="trial-badge-sm">⏳ Prueba: ${trial.days_left || 0}d</span>`
+            : `<span class="license-badge-sm">🔑 Licencia activa</span>`;
     }
 
-    // Recent executions with proper icons and time
     const list = document.getElementById('executionsList');
     if (stats.recent_executions?.length) {
         list.innerHTML = stats.recent_executions.map(e => `
@@ -323,8 +303,16 @@ async function loadDashboard() {
         list.innerHTML = '<p class="loading">Sin ejecuciones aún</p>';
     }
 
-    // Suggestions from chat API (real templates)
     loadDashboardSuggestions();
+
+    // WebSocket for real-time updates
+    wsManager.on('dashboard_update', (data) => {
+        if (data.stats) {
+            document.getElementById('statTotal').textContent = data.stats.total || 0;
+            document.getElementById('statActive').textContent = data.stats.by_status?.active || 0;
+        }
+    });
+    wsManager.connect();
 }
 
 async function loadDashboardSuggestions() {
@@ -347,9 +335,8 @@ async function loadDashboardSuggestions() {
             return;
         }
     } catch (e) { /* fallback */ }
-    // Fallback suggestions
     const defaults = [
-        { name: 'Backup automático de base de datos', desc: 'Respaldo diario de tu información' },
+        { name: 'Backup automático de base de datos', desc: 'Respaldo diario' },
         { name: 'Alerta de stock bajo', desc: 'Notificación cuando el inventario baja' },
         { name: 'Email de cumpleaños', desc: 'Saludo automático a clientes' },
         { name: 'Facturación semanal', desc: 'Genera facturas cada semana' }
@@ -439,7 +426,7 @@ async function loadWorkflowDetail(workflowId) {
 }
 
 // ============================================
-// Settings (global, used by settings page)
+// Settings
 // ============================================
 async function loadSettingsGlobal() {
     const settings = await api('/api/settings');

@@ -22,7 +22,6 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from src.orbital.models import TWO_PI, DEFAULT_THRESHOLD
 
 
 # ══════════════════════════════════════════════════════════════
@@ -318,7 +317,7 @@ class TestErrorHandlerOrbital:
 
     def test_error_has_orbital_metadata(self):
         """El resultado del error handler debe tener metadatos orbitales."""
-        from src.workflow.error_handler import ErrorHandler, ErrorHandlerResult
+        from src.workflow.error_handler import ErrorHandler
         handler = ErrorHandler()
 
         step = {

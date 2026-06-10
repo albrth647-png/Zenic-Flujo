@@ -14,7 +14,6 @@ Compatibilidad: mantiene la misma API que BranchHandler.
 from __future__ import annotations
 
 import hashlib
-import math
 
 from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext

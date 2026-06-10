@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del Explainer
 """
-import pytest
 
 
 class TestExplainer:

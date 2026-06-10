@@ -2,8 +2,8 @@
 Workflow Determinista — AutoPilot Service
 Plantillas predefinidas de automatización para empezar rápido.
 """
-from src.nlp.intent_classifier import IntentClassifier
-from src.nlp.templates import TEMPLATES
+from src.nlu.intent_classifier import IntentClassifier
+from src.nlu.templates import TEMPLATES
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -14,20 +14,20 @@ class AutoPilotService:
         self._classifier = IntentClassifier()
 
     def suggest_templates(self, text: str) -> list[dict]:
-        intents = self._classifier.classify(text)
+        intent_matches = self._classifier.classify_text(text)
         results = []
-        for intent in intents[:5]:
+        for im in intent_matches[:5]:
             template = next(
-                (t for t in TEMPLATES if t["name"] == intent["template_name"]),
+                (t for t in TEMPLATES if t["name"] == im.intent),
                 None,
             )
-            if template and intent["confidence"] > 0.3:
+            if template and im.score > 0.3:
                 results.append({
                     "name": template["name"],
-                    "confidence": intent["confidence"],
+                    "confidence": im.score,
                     "trigger": template["trigger"],
                     "steps": template["steps"],
-                    "description": intent.get("description", ""),
+                    "description": template.get("description_es", ""),
                 })
         return results
 

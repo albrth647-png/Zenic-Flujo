@@ -1,7 +1,6 @@
 """
 DDE v3 — Tests del WorkflowCompiler
 """
-import pytest
 
 
 class TestWorkflowCompiler:
@@ -35,7 +34,7 @@ class TestWorkflowCompiler:
 
     def test_compile_missing_slots(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
         slots = (
@@ -51,7 +50,6 @@ class TestWorkflowCompiler:
 
     def test_compile_unknown_intent(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
 
         compiler = WorkflowCompiler()
         slots = ()
@@ -62,7 +60,7 @@ class TestWorkflowCompiler:
 
     def test_compile_alerta_stock(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
         # El fragmento trigger de schedule requiere 'frecuencia'
@@ -82,7 +80,7 @@ class TestWorkflowCompiler:
 
     def test_compile_resuelve_slots_en_params(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
         # Todos los slots requeridos por fragmentos + telefono (usado en params)
@@ -108,7 +106,7 @@ class TestWorkflowCompiler:
 
     def test_compile_resuelve_intent_event(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
         slots = (
@@ -130,7 +128,7 @@ class TestWorkflowCompiler:
 
     def test_compile_resuelve_settings_defaults(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
         # alerta_stock_bajo requiere 'frecuencia' del trigger fragment
@@ -152,7 +150,7 @@ class TestWorkflowCompiler:
 
     def test_compile_determinista(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
         slots = (

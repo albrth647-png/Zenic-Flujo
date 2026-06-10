@@ -1,9 +1,12 @@
 """
 Workflow Determinista — Plantillas de Intención
 Templates para convertir lenguaje natural en definiciones de workflow.
-"""
 
-TEMPLATES = [
+Migrado de src/nlp/templates.py → src/nlu/templates.py
+"""
+from __future__ import annotations
+
+TEMPLATES: list[dict] = [
     {
         "name": "registro_cliente",
         "label": "Registro de cliente con bienvenida",

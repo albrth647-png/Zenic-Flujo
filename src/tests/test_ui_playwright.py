@@ -109,7 +109,7 @@ async def run_ui_test():
 
         # Screenshot
         await page.screenshot(path="test_ui_final.png")
-        print(f"\n  📸 Screenshot guardado: test_ui_final.png")
+        print("\n  📸 Screenshot guardado: test_ui_final.png")
 
         await browser.close()
 

@@ -2,9 +2,6 @@
 Tests para Code Runner (Sprint 6).
 Valida ejecución segura de Python: sandbox, timeout, seguridad.
 """
-import os
-import pytest
-from unittest.mock import patch
 
 
 class TestCodeSandbox:
