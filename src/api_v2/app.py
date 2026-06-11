@@ -179,10 +179,11 @@ def _ensure_api_v2_tables(db: Any) -> None:
 
 app = FastAPI(
     title="Zenic-Flijo API v2",
-    version="2.0.0",
+    version="2.1.0",
     description=(
-        "API publica v2 de Zenic-Flijo con mas de 50 endpoints para "
-        "gestion de workflows, conectores, NLU, multi-tenancy y marketplace."
+        "API publica v2 de Zenic-Flijo con mas de 70 endpoints para "
+        "gestion de workflows, conectores, NLU, multi-tenancy, marketplace, "
+        "agent framework, BPMN y compliance SOC 2."
     ),
     lifespan=lifespan,
     docs_url="/api/v2/docs",
@@ -321,12 +322,16 @@ except ImportError:
 
 # ── Incluir Routers ────────────────────────────────────────────
 
+from src.api_v2.routers.agents import router as agents_router
 from src.api_v2.routers.auth_routes import router as auth_router
+from src.api_v2.routers.bpmn import router as bpmn_router
+from src.api_v2.routers.compliance import router as compliance_router
 from src.api_v2.routers.connectors import router as connectors_router
 from src.api_v2.routers.marketplace import router as marketplace_router
 from src.api_v2.routers.nlu import router as nlu_router
 from src.api_v2.routers.tenants import router as tenants_router
 from src.api_v2.routers.workflows import router as workflows_router
+from src.mobile.api import router as mobile_router
 
 app.include_router(workflows_router)
 app.include_router(connectors_router)
@@ -334,6 +339,10 @@ app.include_router(nlu_router)
 app.include_router(tenants_router)
 app.include_router(marketplace_router)
 app.include_router(auth_router)
+app.include_router(agents_router)
+app.include_router(bpmn_router)
+app.include_router(compliance_router)
+app.include_router(mobile_router)
 
 
 # ── Health Check Endpoint ──────────────────────────────────────
@@ -400,13 +409,43 @@ async def health_check() -> HealthResponse:
     except Exception:
         services["connector_registry"] = "unhealthy"
 
+    # Verificar agent runtime (Phase 3)
+    try:
+        from src.agents.runtime import AgentRuntime
+
+        runtime = AgentRuntime.get_instance()
+        stats = runtime.get_stats()
+        services["agent_runtime"] = "healthy"
+        services["agents_active"] = str(stats["active_count"])
+    except Exception:
+        services["agent_runtime"] = "unhealthy"
+
+    # Verificar compliance manager (Phase 3)
+    try:
+        from src.compliance import ComplianceManager
+
+        manager = ComplianceManager.get_instance()
+        score = manager.calculate_compliance_score()
+        services["compliance"] = "healthy"
+        services["compliance_score"] = f"{score['overall_score']:.0f}%"
+    except Exception:
+        services["compliance"] = "unhealthy"
+
+    # Verificar BPMN engine (Phase 3)
+    try:
+        from src.bpmn import BPMNParser
+
+        services["bpmn_engine"] = "healthy"
+    except Exception:
+        services["bpmn_engine"] = "unhealthy"
+
     # Determinar estado general
-    all_healthy = all(v in ("healthy", "unavailable") for v in services.values() if not v.isdigit())
+    all_healthy = all(v in ("healthy", "unavailable") for v in services.values() if not v.replace(".", "").replace("%", "").isdigit())
     overall_status = "healthy" if all_healthy else "degraded"
 
     return HealthResponse(
         status=overall_status,
-        version="2.0.0",
+        version="2.1.0",
         uptime_seconds=time.time() - _start_time if _start_time else 0,
         services=services,
     )

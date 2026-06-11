@@ -1,0 +1,114 @@
+{
+  "name": "Zenic-Flijo",
+  "short_name": "Zenic",
+  "description": "Plataforma de automatización empresarial con IA orbital",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "lang": "es",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/screenshots/dashboard-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard principal"
+    },
+    {
+      "src": "/static/screenshots/workflow-editor.png",
+      "sizes": "1194x834",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Editor de workflows"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo Workflow",
+      "short_name": "Nuevo",
+      "url": "/workflows/new",
+      "icons": [{"src": "/static/icons/shortcut-new.png", "sizes": "96x96", "type": "image/png"}]
+    },
+    {
+      "name": "Comando de Voz",
+      "short_name": "Voz",
+      "url": "/voice",
+      "icons": [{"src": "/static/icons/shortcut-voice.png", "sizes": "96x96", "type": "image/png"}]
+    },
+    {
+      "name": "Agentes IA",
+      "short_name": "Agentes",
+      "url": "/agents",
+      "icons": [{"src": "/static/icons/shortcut-agents.png", "sizes": "96x96", "type": "image/png"}]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["application/pdf", "image/*", "text/csv", "application/json"]
+        }
+      ]
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+zenic",
+      "url": "/handle?url=%s"
+    }
+  ]
+}
