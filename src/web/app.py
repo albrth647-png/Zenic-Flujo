@@ -2,6 +2,7 @@
 Workflow Determinista — Web App (Flask)
 Servidor web con todas las rutas de la API REST.
 """
+
 import html as _html
 import re as _re
 import urllib.parse as _urlparse
@@ -9,21 +10,29 @@ from functools import wraps
 from pathlib import Path
 
 from flask import (
-    Flask, render_template, request, jsonify, session,
-    redirect, url_for,
+    Flask,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 
 from src.config import (
-    SESSION_SECRET, SESSION_EXPIRY_HOURS,
-    LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MINUTES,
-    FREE_TIER_MAX_WORKFLOWS, FREE_TIER_ALLOWED_TOOLS,
+    FREE_TIER_ALLOWED_TOOLS,
+    FREE_TIER_MAX_WORKFLOWS,
+    LOGIN_MAX_ATTEMPTS,
+    LOGIN_WINDOW_MINUTES,
     SESSION_COOKIE_SECURE,
+    SESSION_EXPIRY_HOURS,
+    SESSION_SECRET,
 )
 from src.data.database_manager import DatabaseManager
-from src.utils.logger import setup_logging
-from src.license.validator import LicenseValidator
-from src.workflow.repository import WorkflowRepository, WorkflowDefinition
 from src.events.bus import EventBus
+from src.license.validator import LicenseValidator
+from src.utils.logger import setup_logging
+from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
 logger = setup_logging(__name__)
 
@@ -59,6 +68,7 @@ def _sanitize(s: str) -> str:
 def _check_rate_limit(ip: str) -> bool:
     """Verifica rate limiting: 10 intentos cada 15 minutos por IP."""
     import time
+
     now = time.time()
     window = LOGIN_WINDOW_MINUTES * 60
     if ip not in _login_attempts:
@@ -72,11 +82,13 @@ def _check_rate_limit(ip: str) -> bool:
 
 def login_required(f):
     """Decorador: requiere sesión iniciada."""
+
     @wraps(f)
     def decorated(*args, **kwargs):
         if "user" not in session:
             return redirect(url_for("login_page"))
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -95,6 +107,7 @@ def check_free_tier():
     - Solo herramientas en FREE_TIER_ALLOWED_TOOLS en los pasos del workflow
     Retorna 403 con mensaje descriptivo si se viola algún límite.
     """
+
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -106,10 +119,9 @@ def check_free_tier():
                 # ── Límite de workflows ─────────────────────────
                 current_count = len(repo.list_all())
                 if current_count >= FREE_TIER_MAX_WORKFLOWS:
-                    return jsonify({
-                        "error": "Free tier limitado a 3 workflows. "
-                                 "Activa tu licencia para workflows ilimitados."
-                    }), 403
+                    return jsonify(
+                        {"error": "Free tier limitado a 3 workflows. Activa tu licencia para workflows ilimitados."}
+                    ), 403
 
                 # ── Solo herramientas permitidas ─────────────────
                 data = request.get_json() or {}
@@ -117,13 +129,17 @@ def check_free_tier():
                 for step in steps:
                     tool = step.get("tool", "")
                     if tool and tool not in FREE_TIER_ALLOWED_TOOLS:
-                        return jsonify({
-                            "error": "Free tier solo permite CRM. "
-                                     "Activa tu licencia para usar todas las herramientas."
-                        }), 403
+                        return jsonify(
+                            {
+                                "error": "Free tier solo permite CRM. "
+                                "Activa tu licencia para usar todas las herramientas."
+                            }
+                        ), 403
 
             return f(*args, **kwargs)
+
         return decorated
+
     return decorator
 
 
@@ -142,6 +158,7 @@ def create_app() -> Flask:
 
     def require_role(role: str):
         """Decorador: requiere un rol específico para acceder a la ruta."""
+
         def decorator(f):
             @wraps(f)
             def decorated(*args, **kwargs):
@@ -152,7 +169,9 @@ def create_app() -> Flask:
                 if roles_hierarchy.get(user_role, 0) < roles_hierarchy.get(role, 0):
                     return jsonify({"error": f"Se requiere rol '{role}'"}), 403
                 return f(*args, **kwargs)
+
             return decorated
+
         return decorator
 
     # ── Rutas de páginas ──────────────────────────────────
@@ -324,10 +343,12 @@ def create_app() -> Flask:
                 daily[day]["failed"] += count
             daily[day]["total"] += count
 
-        return jsonify({
-            "daily": sorted(daily.values(), key=lambda x: x["day"]),
-            "tools": tools_raw,
-        })
+        return jsonify(
+            {
+                "daily": sorted(daily.values(), key=lambda x: x["day"]),
+                "tools": tools_raw,
+            }
+        )
 
     # ── API: Workflows ─────────────────────────────────────
 
@@ -391,6 +412,7 @@ def create_app() -> Flask:
     @require_role("editor")
     def api_delete_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
+
         engine = WorkflowEngine()
         engine.pause(wf_id)
         repo.delete(wf_id)
@@ -401,6 +423,7 @@ def create_app() -> Flask:
     @require_role("editor")
     def api_activate_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
+
         engine = WorkflowEngine()
         result = engine.resume(wf_id)
         return jsonify({"status": "active" if result else "error"})
@@ -410,6 +433,7 @@ def create_app() -> Flask:
     @require_role("editor")
     def api_pause_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
+
         engine = WorkflowEngine()
         result = engine.pause(wf_id)
         return jsonify({"status": "paused" if result else "error"})
@@ -453,6 +477,7 @@ def create_app() -> Flask:
     @require_role("editor")
     def api_retry_workflow(wf_id):
         from src.workflow.engine import WorkflowEngine
+
         engine = WorkflowEngine()
         try:
             result = engine.execute(wf_id)
@@ -476,55 +501,58 @@ def create_app() -> Flask:
             return jsonify({"error": "text es requerido"}), 400
 
         from src.nlu.pipeline import Pipeline
+
         pipeline = Pipeline()
 
         if mode == "analyze":
             result = pipeline.process(text, lang)
-            return jsonify({
-                "status": "analyzed",
-                "lang": result.lang,
-                "confidence": result.confidence,
-                "intents": [
-                    {"intent": i.intent, "score": i.score, "evidence": i.evidence}
-                    for i in result.intents[:5]
-                ],
-                "entities": [
-                    {"type": e.type, "value": str(e.value), "raw": e.raw}
-                    for e in result.entities
-                ],
-                "slots": [
-                    {"name": s.name, "required": s.required, "filled": s.filled, "value": s.value}
-                    for s in result.slots
-                ],
-                "trace": list(result.trace),
-            })
+            return jsonify(
+                {
+                    "status": "analyzed",
+                    "lang": result.lang,
+                    "confidence": result.confidence,
+                    "intents": [
+                        {"intent": i.intent, "score": i.score, "evidence": i.evidence} for i in result.intents[:5]
+                    ],
+                    "entities": [{"type": e.type, "value": str(e.value), "raw": e.raw} for e in result.entities],
+                    "slots": [
+                        {"name": s.name, "required": s.required, "filled": s.filled, "value": s.value}
+                        for s in result.slots
+                    ],
+                    "trace": list(result.trace),
+                }
+            )
 
         elif mode == "simulate":
             result = pipeline.simulate(text, lang, context)
-            return jsonify({
-                "status": "simulated",
-                "workflow_name": result.workflow_name,
-                "trigger_type": result.trigger_type,
-                "total_steps": result.total_steps,
-                "would_succeed": result.steps_that_would_succeed,
-                "would_fail": result.steps_that_would_fail,
-                "feasible": result.overall_feasible,
-                "warnings": list(result.warnings),
-                "summary": result.summary,
-                "steps": [
-                    {"id": s.step_id, "tool": s.tool, "action": s.action, "ok": s.would_succeed}
-                    for s in result.steps
-                ],
-            })
+            return jsonify(
+                {
+                    "status": "simulated",
+                    "workflow_name": result.workflow_name,
+                    "trigger_type": result.trigger_type,
+                    "total_steps": result.total_steps,
+                    "would_succeed": result.steps_that_would_succeed,
+                    "would_fail": result.steps_that_would_fail,
+                    "feasible": result.overall_feasible,
+                    "warnings": list(result.warnings),
+                    "summary": result.summary,
+                    "steps": [
+                        {"id": s.step_id, "tool": s.tool, "action": s.action, "ok": s.would_succeed}
+                        for s in result.steps
+                    ],
+                }
+            )
 
         else:  # compile (default)
             result = pipeline.compile(text, lang)
-            return jsonify({
-                "status": result.status,
-                "explanation": result.explanation,
-                "workflow": result.workflow,
-                "missing_slots": list(result.missing_slots),
-            })
+            return jsonify(
+                {
+                    "status": result.status,
+                    "explanation": result.explanation,
+                    "workflow": result.workflow,
+                    "missing_slots": list(result.missing_slots),
+                }
+            )
 
     @app.route("/api/workflows/chat", methods=["POST"])
     @login_required
@@ -539,7 +567,9 @@ def create_app() -> Flask:
         intent_matches = classifier.classify_text(text)
 
         if not intent_matches:
-            return jsonify({"suggestions": [], "message": "No entendí tu solicitud. Intenta describir qué quieres automatizar."})
+            return jsonify(
+                {"suggestions": [], "message": "No entendí tu solicitud. Intenta describir qué quieres automatizar."}
+            )
 
         # Mantener compatibilidad con el formato de respuesta legacy
         suggestions = []
@@ -549,20 +579,24 @@ def create_app() -> Flask:
                 None,
             )
             if template:
-                suggestions.append({
-                    "template_name": im.intent,
-                    "confidence": im.score,
-                    "description": template.get("description_es", ""),
-                    "trigger": template["trigger"],
-                    "steps": template["steps"],
-                    "score": im.score,
-                    "evidence": im.evidence,
-                })
+                suggestions.append(
+                    {
+                        "template_name": im.intent,
+                        "confidence": im.score,
+                        "description": template.get("description_es", ""),
+                        "trigger": template["trigger"],
+                        "steps": template["steps"],
+                        "score": im.score,
+                        "evidence": im.evidence,
+                    }
+                )
 
-        return jsonify({
-            "suggestions": suggestions,
-            "message": f"Encontré {len(suggestions)} sugerencias para tu solicitud.",
-        })
+        return jsonify(
+            {
+                "suggestions": suggestions,
+                "message": f"Encontré {len(suggestions)} sugerencias para tu solicitud.",
+            }
+        )
 
     @app.route("/api/nlu/ai-generate", methods=["POST"])
     @login_required
@@ -582,8 +616,8 @@ def create_app() -> Flask:
         if not text:
             return jsonify({"error": "text es requerido"}), 400
 
-        from src.nlu.pipeline import Pipeline
         from src.nlu.ai_config import get_ai_config
+        from src.nlu.pipeline import Pipeline
 
         pipeline = Pipeline()
         ai_config = get_ai_config()
@@ -591,73 +625,85 @@ def create_app() -> Flask:
         # ── Modo deterministic: solo compilador NLU ────────
         if mode == "deterministic":
             result = pipeline.compile(text, lang)
-            return jsonify({
-                "status": result.status,
-                "source": "deterministic",
-                "explanation": result.explanation,
-                "workflow": result.workflow,
-                "missing_slots": list(result.missing_slots),
-                "ai_provider": "none",
-            })
+            return jsonify(
+                {
+                    "status": result.status,
+                    "source": "deterministic",
+                    "explanation": result.explanation,
+                    "workflow": result.workflow,
+                    "missing_slots": list(result.missing_slots),
+                    "ai_provider": "none",
+                }
+            )
 
         # ── Modo ai: solo LLM (requiere proveedor) ───────
         if mode == "ai":
             if not ai_config.is_ai_available():
-                return jsonify({
-                    "error": "No hay proveedor de IA configurado. "
-                             "Activa Ollama, OpenAI o Anthropic en Configuración.",
-                    "status": "no_provider",
-                    "available_providers": ai_config.get_status(),
-                }), 400
+                return jsonify(
+                    {
+                        "error": "No hay proveedor de IA configurado. "
+                        "Activa Ollama, OpenAI o Anthropic en Configuración.",
+                        "status": "no_provider",
+                        "available_providers": ai_config.get_status(),
+                    }
+                ), 400
 
             ai_result = pipeline.ai_generate(text, lang)
-            return jsonify({
-                "status": "ready" if ai_result.validated else "validation_error",
-                "source": "ai",
-                "explanation": ai_result.explanation,
-                "workflow": ai_result.workflow,
-                "ai_provider": ai_result.provider,
-                "ai_model": ai_result.model,
-                "validated": ai_result.validated,
-                "validation_errors": ai_result.validation_errors,
-            })
+            return jsonify(
+                {
+                    "status": "ready" if ai_result.validated else "validation_error",
+                    "source": "ai",
+                    "explanation": ai_result.explanation,
+                    "workflow": ai_result.workflow,
+                    "ai_provider": ai_result.provider,
+                    "ai_model": ai_result.model,
+                    "validated": ai_result.validated,
+                    "validation_errors": ai_result.validation_errors,
+                }
+            )
 
         # ── Modo hybrid: determinista primero, fallback IA ──
         # Paso 1: Intentar compilador determinista
         det_result = pipeline.compile(text, lang)
         if det_result.status == "ready" and det_result.workflow:
-            return jsonify({
-                "status": det_result.status,
-                "source": "deterministic",
-                "explanation": det_result.explanation,
-                "workflow": det_result.workflow,
-                "missing_slots": list(det_result.missing_slots),
-                "ai_provider": "none",
-            })
+            return jsonify(
+                {
+                    "status": det_result.status,
+                    "source": "deterministic",
+                    "explanation": det_result.explanation,
+                    "workflow": det_result.workflow,
+                    "missing_slots": list(det_result.missing_slots),
+                    "ai_provider": "none",
+                }
+            )
 
         # Paso 2: Si determinista falló e IA está disponible, intentar IA
         if ai_config.is_ai_available():
             ai_result = pipeline.ai_generate(text, lang)
             if ai_result.validated and ai_result.workflow:
-                return jsonify({
-                    "status": "ready",
-                    "source": "ai_fallback",
-                    "explanation": ai_result.explanation,
-                    "workflow": ai_result.workflow,
-                    "ai_provider": ai_result.provider,
-                    "ai_model": ai_result.model,
-                    "validated": True,
-                })
+                return jsonify(
+                    {
+                        "status": "ready",
+                        "source": "ai_fallback",
+                        "explanation": ai_result.explanation,
+                        "workflow": ai_result.workflow,
+                        "ai_provider": ai_result.provider,
+                        "ai_model": ai_result.model,
+                        "validated": True,
+                    }
+                )
 
         # Paso 3: Ambos fallaron — retornar el resultado determinista con el error
-        return jsonify({
-            "status": det_result.status,
-            "source": "deterministic",
-            "explanation": det_result.explanation or "No pude generar un workflow para tu solicitud.",
-            "workflow": {},
-            "missing_slots": list(det_result.missing_slots),
-            "ai_provider": ai_config.active_provider.value if ai_config.is_ai_available() else "none",
-        })
+        return jsonify(
+            {
+                "status": det_result.status,
+                "source": "deterministic",
+                "explanation": det_result.explanation or "No pude generar un workflow para tu solicitud.",
+                "workflow": {},
+                "missing_slots": list(det_result.missing_slots),
+                "ai_provider": ai_config.active_provider.value if ai_config.is_ai_available() else "none",
+            }
+        )
 
     # ── API: Tools ──────────────────────────────────────────
 
@@ -665,6 +711,7 @@ def create_app() -> Flask:
     @login_required
     def api_list_leads():
         from src.tools.crm.service import CRMService
+
         crm = CRMService()
         stage = request.args.get("stage")
         leads = crm.list_leads(stage)
@@ -675,6 +722,7 @@ def create_app() -> Flask:
     @require_role("editor")
     def api_create_lead():
         from src.tools.crm.service import CRMService
+
         crm = CRMService()
         data = request.get_json() or {}
         lead = crm.create_lead(
@@ -692,6 +740,7 @@ def create_app() -> Flask:
     @login_required
     def api_list_products():
         from src.tools.inventory.service import InventoryService
+
         inv = InventoryService()
         low_stock = request.args.get("low_stock", "false").lower() == "true"
         products = inv.list_products(low_stock_only=low_stock)
@@ -703,6 +752,7 @@ def create_app() -> Flask:
     def api_create_product():
         """Crear un nuevo producto en inventario."""
         from src.tools.inventory.service import InventoryService
+
         inv = InventoryService()
         data = request.get_json() or {}
         product = inv.add_product(
@@ -723,6 +773,7 @@ def create_app() -> Flask:
     def api_stock_movement():
         """Registrar un movimiento de stock (entrada/salida/ajuste)."""
         from src.tools.inventory.service import InventoryService
+
         inv = InventoryService()
         data = request.get_json() or {}
         product_id = data.get("product_id")
@@ -740,6 +791,7 @@ def create_app() -> Flask:
     @login_required
     def api_low_stock():
         from src.tools.inventory.service import InventoryService
+
         inv = InventoryService()
         return jsonify(inv.get_low_stock_products())
 
@@ -749,6 +801,7 @@ def create_app() -> Flask:
     def api_create_invoice():
         """Crear una nueva factura."""
         from src.tools.invoice.service import InvoiceService
+
         inv = InvoiceService()
         data = request.get_json() or {}
         client_name = data.get("client_name", "")
@@ -770,6 +823,7 @@ def create_app() -> Flask:
     @login_required
     def api_list_invoices():
         from src.tools.invoice.service import InvoiceService
+
         inv = InvoiceService()
         status = request.args.get("status")
         invoices = inv.list_invoices(status)
@@ -780,20 +834,29 @@ def create_app() -> Flask:
     @app.route("/api/settings", methods=["GET"])
     @login_required
     def api_get_settings():
-        return jsonify({
-            "smtp_server": db.get_setting("smtp_server", ""),
-            "smtp_port": db.get_setting("smtp_port", "587"),
-            "email_user": db.get_setting("email_user", ""),
-            "webhook_api_key": db.get_setting("webhook_api_key", ""),
-        })
+        return jsonify(
+            {
+                "smtp_server": db.get_setting("smtp_server", ""),
+                "smtp_port": db.get_setting("smtp_port", "587"),
+                "email_user": db.get_setting("email_user", ""),
+                "webhook_api_key": db.get_setting("webhook_api_key", ""),
+            }
+        )
 
     @app.route("/api/settings", methods=["PUT"])
     @login_required
     @require_role("admin")
     def api_update_settings():
         data = request.get_json() or {}
-        for key in ["smtp_server", "smtp_port", "email_user", "email_password",
-                     "webhook_api_key", "imap_server", "imap_port"]:
+        for key in [
+            "smtp_server",
+            "smtp_port",
+            "email_user",
+            "email_password",
+            "webhook_api_key",
+            "imap_server",
+            "imap_port",
+        ]:
             if key in data:
                 db.set_setting(key, str(data[key]))
         return jsonify({"status": "saved"})
@@ -802,6 +865,7 @@ def create_app() -> Flask:
     @login_required
     def api_change_password():
         import bcrypt
+
         data = request.get_json() or {}
         current = data.get("current_password", "")
         new_pass = data.get("new_password", "")
@@ -831,13 +895,12 @@ def create_app() -> Flask:
 
         # Fallback legacy: admin_password_hash
         stored_hash = db.get_setting("admin_password_hash")
-        if stored_hash:
-            if isinstance(stored_hash, str):
-                try:
-                    if not bcrypt.checkpw(current.encode(), stored_hash.encode()):
-                        return jsonify({"error": "Contraseña actual incorrecta"}), 400
-                except (ValueError, TypeError):
-                    return jsonify({"error": "Error verificando contraseña"}), 400
+        if stored_hash and isinstance(stored_hash, str):
+            try:
+                if not bcrypt.checkpw(current.encode(), stored_hash.encode()):
+                    return jsonify({"error": "Contraseña actual incorrecta"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "Error verificando contraseña"}), 400
 
         new_hash = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt(rounds=12)).decode()
         db.set_setting("admin_password_hash", new_hash)
@@ -848,6 +911,7 @@ def create_app() -> Flask:
     @login_required
     def api_test_email():
         from src.tools.notification.service import NotificationService
+
         ns = NotificationService()
         result = ns.test_connection()
         return jsonify(result)
@@ -861,8 +925,7 @@ def create_app() -> Flask:
         validator = LicenseValidator()
         result = validator.validate(key)
         if result["valid"]:
-            validator.activate_key(key, result.get("type", "individual"),
-                                    result.get("client_name", ""))
+            validator.activate_key(key, result.get("type", "individual"), result.get("client_name", ""))
         return jsonify(result)
 
     @app.route("/api/license/info")
@@ -883,6 +946,7 @@ def create_app() -> Flask:
     @require_role("admin")
     def api_system_backup():
         from src.data.backup_engine import BackupEngine
+
         be = BackupEngine()
         path = be.backup_now()
         return jsonify({"path": path, "status": "completed"})
@@ -904,6 +968,7 @@ def create_app() -> Flask:
     @login_required
     def api_report_workflows(fmt):
         from src.web.reports import ReportGenerator
+
         gen = ReportGenerator()
         if fmt == "csv":
             content = gen.workflows_csv()
@@ -921,6 +986,7 @@ def create_app() -> Flask:
     @login_required
     def api_report_crm(fmt):
         from src.web.reports import ReportGenerator
+
         gen = ReportGenerator()
         if fmt == "csv":
             content = gen.crm_leads_csv()
@@ -938,6 +1004,7 @@ def create_app() -> Flask:
     @login_required
     def api_report_inventory(fmt):
         from src.web.reports import ReportGenerator
+
         gen = ReportGenerator()
         if fmt == "csv":
             content = gen.inventory_csv()
@@ -955,6 +1022,7 @@ def create_app() -> Flask:
     @login_required
     def api_report_invoices(fmt):
         from src.web.reports import ReportGenerator
+
         gen = ReportGenerator()
         if fmt == "csv":
             content = gen.invoices_csv()
@@ -1032,6 +1100,7 @@ def create_app() -> Flask:
     @login_required
     def api_get_whatsapp():
         from src.tools.notification.service import NotificationService
+
         ns = NotificationService()
         return jsonify(ns.get_whatsapp_status())
 
@@ -1044,6 +1113,7 @@ def create_app() -> Flask:
         if not token or not phone_number_id:
             return jsonify({"error": "token y phone_number_id son requeridos"}), 400
         from src.tools.notification.service import NotificationService
+
         ns = NotificationService()
         ns.configure_whatsapp(token, phone_number_id)
         return jsonify({"status": "saved"})
@@ -1056,6 +1126,7 @@ def create_app() -> Flask:
         if not test_number:
             return jsonify({"error": "Número de prueba requerido"}), 400
         from src.tools.notification.service import NotificationService
+
         ns = NotificationService()
         result = ns.send_whatsapp(
             to=test_number,
@@ -1070,23 +1141,26 @@ def create_app() -> Flask:
     def api_dead_letter_list():
         """Lista entradas de la Dead Letter Queue."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         status = request.args.get("status")
         workflow_id = request.args.get("workflow_id", type=int)
         limit = int(request.args.get("limit", 50))
         offset = int(request.args.get("offset", 0))
-        entries = dl.list(status=status, workflow_id=workflow_id,
-                          limit=limit, offset=offset)
-        return jsonify({
-            "entries": [e.to_dict() for e in entries],
-            "stats": dl.get_stats(),
-        })
+        entries = dl.list(status=status, workflow_id=workflow_id, limit=limit, offset=offset)
+        return jsonify(
+            {
+                "entries": [e.to_dict() for e in entries],
+                "stats": dl.get_stats(),
+            }
+        )
 
     @app.route("/api/dead-letter/stats", methods=["GET"])
     @login_required
     def api_dead_letter_stats():
         """Estadísticas de la Dead Letter Queue."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         return jsonify(dl.get_stats())
 
@@ -1096,6 +1170,7 @@ def create_app() -> Flask:
     def api_dead_letter_retry(entry_id):
         """Reintenta una entrada de dead letter."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         result = dl.retry(entry_id)
         return jsonify(result)
@@ -1106,6 +1181,7 @@ def create_app() -> Flask:
     def api_dead_letter_discard(entry_id):
         """Descarta una entrada de dead letter."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         success = dl.discard(entry_id)
         return jsonify({"status": "discarded" if success else "not_found"})
@@ -1116,6 +1192,7 @@ def create_app() -> Flask:
     def api_dead_letter_retry_all():
         """Reintenta todas las entradas pendientes."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         results = dl.retry_all()
         return jsonify(results)
@@ -1126,6 +1203,7 @@ def create_app() -> Flask:
     def api_dead_letter_discard_all():
         """Descarta todas las entradas pendientes."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         count = dl.discard_all()
         return jsonify({"discarded": count})
@@ -1136,6 +1214,7 @@ def create_app() -> Flask:
     def api_dead_letter_notify(entry_id):
         """Dispara notificación para una entrada."""
         from src.workflow.dead_letter import DeadLetterManager
+
         dl = DeadLetterManager()
         result = dl.notify_dead_letter(entry_id)
         return jsonify({"notified": result})
@@ -1147,19 +1226,23 @@ def create_app() -> Flask:
     def api_queue_status():
         """Estado de la cola de ejecución."""
         from src.events.work_queue import WorkQueue
+
         queue = WorkQueue()
         metrics = queue.get_metrics()
         peek = queue.peek(limit=10)
-        return jsonify({
-            "metrics": metrics,
-            "next_items": [item.to_dict() for item in peek],
-        })
+        return jsonify(
+            {
+                "metrics": metrics,
+                "next_items": [item.to_dict() for item in peek],
+            }
+        )
 
     @app.route("/api/queue/workers")
     @login_required
     def api_queue_workers():
         """Estado de los workers activos."""
         from src.events.worker_manager import WorkerManager
+
         mgr = WorkerManager()
         return jsonify(mgr.get_metrics())
 
@@ -1173,6 +1256,7 @@ def create_app() -> Flask:
         if not workflow_id:
             return jsonify({"error": "workflow_id es requerido"}), 400
         from src.workflow.engine import WorkflowEngine
+
         engine = WorkflowEngine()
         try:
             result = engine.execute_async(
@@ -1190,6 +1274,7 @@ def create_app() -> Flask:
     def api_queue_retry(item_id):
         """Re-intenta un item fallido."""
         from src.events.work_queue import WorkQueue
+
         queue = WorkQueue()
         result = queue.retry_failed(max_items=1)
         return jsonify({"retried": result})
@@ -1202,16 +1287,19 @@ def create_app() -> Flask:
         data = request.get_json() or {}
         max_age = int(data.get("max_age_hours", 24))
         from src.events.work_queue import WorkQueue
+
         queue = WorkQueue()
         deleted = queue.cleanup(max_age_hours=max_age)
         return jsonify({"deleted": deleted})
 
     @app.route("/api/system/status")
     def api_system_status():
-        return jsonify({
-            "version": "1.0.0",
-            "status": "running",
-            "db_path": str(db._db_path),
-        })
+        return jsonify(
+            {
+                "version": "1.0.0",
+                "status": "running",
+                "db_path": str(db._db_path),
+            }
+        )
 
     return app

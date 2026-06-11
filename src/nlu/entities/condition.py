@@ -7,29 +7,51 @@ Soporta: "si el total es mayor a 500", "if stock < 10", "when amount >= 1000"
 CRÍTICO: NO usa eval(). Construye un AST (dict) con tokens seguros.
 Determinista. Sin IA.
 """
-from __future__ import annotations
-import re
-from src.nlu.entities.base import Entity
 
+from __future__ import annotations
+
+import re
+
+from src.nlu.entities.base import Entity
 
 # Operadores permitidos (whitelist)
 SAFE_OPS = {">=", "<=", "!=", "==", ">", "<", "="}
 
 # Mapeo de palabras a operadores
 WORD_TO_OP: dict[str, str] = {
-    "mayor o igual que": ">=", "mayor o igual a": ">=",
-    "menor o igual que": "<=", "menor o igual a": "<=",
-    "mayor que": ">", "mayor a": ">", "mayor": ">",
-    "menor que": "<", "menor a": "<", "menor": "<",
-    "diferente de": "!=", "distinto de": "!=",
-    "igual a": "==", "igual que": "==", "igual": "==",
-    "es exactamente": "==", "exactamente": "==",
-    "greater or equal to": ">=", "greater than or equal to": ">=",
-    "less or equal to": "<=", "less than or equal to": "<=",
-    "greater than": ">", "more than": ">", "greater": ">",
-    "less than": "<", "fewer than": "<", "less": "<",
-    "different from": "!=", "not equal to": "!=",
-    "equal to": "==", "equals": "==", "equal": "==", "is exactly": "==",
+    "mayor o igual que": ">=",
+    "mayor o igual a": ">=",
+    "menor o igual que": "<=",
+    "menor o igual a": "<=",
+    "mayor que": ">",
+    "mayor a": ">",
+    "mayor": ">",
+    "menor que": "<",
+    "menor a": "<",
+    "menor": "<",
+    "diferente de": "!=",
+    "distinto de": "!=",
+    "igual a": "==",
+    "igual que": "==",
+    "igual": "==",
+    "es exactamente": "==",
+    "exactamente": "==",
+    "greater or equal to": ">=",
+    "greater than or equal to": ">=",
+    "less or equal to": "<=",
+    "less than or equal to": "<=",
+    "greater than": ">",
+    "more than": ">",
+    "greater": ">",
+    "less than": "<",
+    "fewer than": "<",
+    "less": "<",
+    "different from": "!=",
+    "not equal to": "!=",
+    "equal to": "==",
+    "equals": "==",
+    "equal": "==",
+    "is exactly": "==",
 }
 
 # Patrones de condición: "si [variable] [op] [valor]"
@@ -38,35 +60,32 @@ WORD_TO_OP: dict[str, str] = {
 
 # Patrón A: si/if/when X (símbolo) Y  → grupos: (match_ando?, var, op_símbolo, val)
 PAT_SYMBOL_WITH_IF = re.compile(
-    r'(?:si|if|when|c(uando|ando))\s+'
-    r'(?:\b(?:el|la|the|un|una|an)\b\s*)?'  # artículo opcional con word boundary
-    r'(\w[\w.]*)\s*'  # variable
-    r'(>=|<=|!=|==|>|<|=)\s*'  # operador símbolo
-    r'(\d+[\.,]?\d*)',  # valor
-    re.IGNORECASE
+    r"(?:si|if|when|c(uando|ando))\s+"
+    r"(?:\b(?:el|la|the|un|una|an)\b\s*)?"  # artículo opcional con word boundary
+    r"(\w[\w.]*)\s*"  # variable
+    r"(>=|<=|!=|==|>|<|=)\s*"  # operador símbolo
+    r"(\d+[\.,]?\d*)",  # valor
+    re.IGNORECASE,
 )
 
 # Patrón B: X (palabra) Y  → grupos: (var, word_op, val)
 # Ej: "total mayor que 500", "si el total es mayor a 500", "stock less than 10"
 PAT_WORD_OP = re.compile(
-    r'(?:cuando|when|si|if)?\s*'  # prefijo (sin artículos)
-    r'(?:\b(?:el|la|the|un|una|an)\b\s*)?'  # artículo opcional con word boundary
-    r'(\w[\w.]*)\s+(?:es\s+|is\s+)?'
-    r'(mayor|menor|igual|distinto|diferente|greater|less|equal|different'
-    r'|mayor o igual|menor o igual|greater or equal|less or equal'
-    r'|greater than|less than|more than|fewer than)'
-    r'(?:\s+o\s+igual)?'
-    r'(?:\s+que|\s+a|\s+than|\s+to)?\s*'
-    r'(\d+[\.,]?\d*)',
-    re.IGNORECASE
+    r"(?:cuando|when|si|if)?\s*"  # prefijo (sin artículos)
+    r"(?:\b(?:el|la|the|un|una|an)\b\s*)?"  # artículo opcional con word boundary
+    r"(\w[\w.]*)\s+(?:es\s+|is\s+)?"
+    r"(mayor|menor|igual|distinto|diferente|greater|less|equal|different"
+    r"|mayor o igual|menor o igual|greater or equal|less or equal"
+    r"|greater than|less than|more than|fewer than)"
+    r"(?:\s+o\s+igual)?"
+    r"(?:\s+que|\s+a|\s+than|\s+to)?\s*"
+    r"(\d+[\.,]?\d*)",
+    re.IGNORECASE,
 )
 
 # Patrón C: X (símbolo) Y  → grupos: (var, op_símbolo, val)
 # Ej: "stock < 10", "total > 500"
-PAT_SYMBOL = re.compile(
-    r'(\w[\w.]+)\s+(>=|<=|!=|==|>|<|=)\s+(\d+[\.,]?\d*)',
-    re.IGNORECASE
-)
+PAT_SYMBOL = re.compile(r"(\w[\w.]+)\s+(>=|<=|!=|==|>|<|=)\s+(\d+[\.,]?\d*)", re.IGNORECASE)
 
 COND_PATTERNS = [PAT_SYMBOL_WITH_IF, PAT_WORD_OP, PAT_SYMBOL]
 
@@ -138,13 +157,15 @@ class ConditionExtractor:
                     "right": val,
                 }
 
-                entities.append(Entity(
-                    type="condition",
-                    value=entity_value,
-                    raw=match.group(),
-                    span=(match.start(), match.end()),
-                    score=0.95,
-                ))
+                entities.append(
+                    Entity(
+                        type="condition",
+                        value=entity_value,
+                        raw=match.group(),
+                        span=(match.start(), match.end()),
+                        score=0.95,
+                    )
+                )
 
         return entities
 
@@ -189,17 +210,15 @@ class ConditionExtractor:
         except (ValueError, TypeError):
             return False
 
-        if op == ">":
-            return left_float > right_float
-        elif op == "<":
-            return left_float < right_float
-        elif op == ">=":
-            return left_float >= right_float
-        elif op == "<=":
-            return left_float <= right_float
-        elif op == "==":
-            return left_float == right_float
-        elif op == "!=":
-            return left_float != right_float
+        ops = {
+            ">": lambda a, b: a > b,
+            "<": lambda a, b: a < b,
+            ">=": lambda a, b: a >= b,
+            "<=": lambda a, b: a <= b,
+            "==": lambda a, b: a == b,
+            "!=": lambda a, b: a != b,
+        }
+        if op in ops:
+            return ops[op](left_float, right_float)
         else:
             return False

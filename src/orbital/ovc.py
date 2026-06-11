@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.orbital.models import VariableOrbital, DEFAULT_AMPLITUDE, DEFAULT_VELOCITY
+from src.orbital.models import DEFAULT_AMPLITUDE, DEFAULT_VELOCITY, VariableOrbital
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -255,5 +255,9 @@ class OVC:
         """Retorna un resumen legible del estado OVC."""
         lines = [f"OVC — Tick: {self._tick} | Variables: {self.variable_count}"]
         for name, var in self._variables.items():
-            lines.append(f"  {name}: θ={var.phase_degrees:6.1f}° A={var.amplitude:6.2f} val={var.value:7.3f} ω={var.velocity:.3f}")
+            lines.append(
+                f"  {name}: θ={var.phase_degrees:6.1f}° "
+                f"A={var.amplitude:6.2f} val={var.value:7.3f} "
+                f"ω={var.velocity:.3f}"
+            )
         return "\n".join(lines)

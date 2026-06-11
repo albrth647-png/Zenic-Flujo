@@ -7,9 +7,10 @@ Determinista: mismo intent + mismas entidades → mismos slots.
 Cada intención define sus slots (nombre, tipo, required, default).
 El SlotFiller mapea entidades → slots por tipo y por palabra-ancla.
 """
-from __future__ import annotations
-from src.nlu.entities.base import Entity, IntentMatch, Slot
 
+from __future__ import annotations
+
+from src.nlu.entities.base import Entity, IntentMatch, Slot
 
 # ── Definición de slots por intención ───────────────────
 # Cada intención tiene su lista de slots (nombre, tipo, required, default)
@@ -129,29 +130,35 @@ class SlotFiller:
             matched_entity = self._find_entity(entities, name, entity_type)
 
             if matched_entity is not None:
-                result.append(Slot(
-                    name=name,
-                    required=required,
-                    filled=True,
-                    value=matched_entity,
-                    source="entity",
-                ))
+                result.append(
+                    Slot(
+                        name=name,
+                        required=required,
+                        filled=True,
+                        value=matched_entity,
+                        source="entity",
+                    )
+                )
             elif default_val:
-                result.append(Slot(
-                    name=name,
-                    required=required,
-                    filled=True,
-                    value=default_val,
-                    source="default",
-                ))
+                result.append(
+                    Slot(
+                        name=name,
+                        required=required,
+                        filled=True,
+                        value=default_val,
+                        source="default",
+                    )
+                )
             else:
-                result.append(Slot(
-                    name=name,
-                    required=required,
-                    filled=False,
-                    value=None,
-                    source="entity",
-                ))
+                result.append(
+                    Slot(
+                        name=name,
+                        required=required,
+                        filled=False,
+                        value=None,
+                        source="entity",
+                    )
+                )
 
         return tuple(result)
 
@@ -194,6 +201,4 @@ class SlotFiller:
 
     def missing_slots(self, slots: tuple[Slot, ...]) -> tuple[str, ...]:
         """Retorna los nombres de slots obligatorios que faltan."""
-        return tuple(
-            s.name for s in slots if s.required and not s.filled
-        )
+        return tuple(s.name for s in slots if s.required and not s.filled)

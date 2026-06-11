@@ -9,7 +9,7 @@ Conector para bases de datos PostgreSQL usando psycopg2.
 from __future__ import annotations
 
 import time
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -51,22 +51,18 @@ class PostgreSQLService:
         """Obtiene una conexión PostgreSQL."""
         try:
             import psycopg2
+
             self._psycopg2 = psycopg2
         except ImportError:
-            raise ImportError(
-                "psycopg2 no está instalado. "
-                "Instálalo con: pip install psycopg2-binary"
-            )
+            raise ImportError("psycopg2 no está instalado. Instálalo con: pip install psycopg2-binary") from None
 
         try:
             conn = self._psycopg2.connect(connection_string, connect_timeout=10)
             return conn
         except self._psycopg2.OperationalError as e:
-            raise ConnectionError(f"Error conectando a PostgreSQL: {e}")
+            raise ConnectionError(f"Error conectando a PostgreSQL: {e}") from e
 
-    def query(self, sql: str, params: list | None = None,
-              connection_string: str = "",
-              limit: int = 100) -> dict:
+    def query(self, sql: str, params: list | None = None, connection_string: str = "", limit: int = 100) -> dict:
         """
         Ejecuta una consulta SELECT.
 
@@ -102,7 +98,7 @@ class PostgreSQLService:
             # Convertir a lista de dicts
             result_rows = []
             for row in rows:
-                result_rows.append(dict(zip(columns, [self._serialize(v) for v in row])))
+                result_rows.append(dict(zip(columns, [self._serialize(v) for v in row], strict=False)))
 
             cursor.close()
             conn.close()
@@ -122,8 +118,7 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL query error: {e}")
             return self._error(f"Error en consulta: {e}")
 
-    def insert(self, table: str, data: dict,
-               connection_string: str = "") -> dict:
+    def insert(self, table: str, data: dict, connection_string: str = "") -> dict:
         """
         Inserta un registro en una tabla.
 
@@ -158,7 +153,7 @@ class PostgreSQLService:
             # Obtener fila insertada
             columns_desc = [desc[0] for desc in cursor.description] if cursor.description else []
             row = cursor.fetchone()
-            inserted = dict(zip(columns_desc, [self._serialize(v) for v in row])) if row else {}
+            inserted = dict(zip(columns_desc, [self._serialize(v) for v in row], strict=False)) if row else {}
 
             cursor.close()
             conn.close()
@@ -175,9 +170,9 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL insert error: {e}")
             return self._error(f"Error insertando: {e}")
 
-    def update(self, table: str, data: dict,
-               where: str, where_params: list | None = None,
-               connection_string: str = "") -> dict:
+    def update(
+        self, table: str, data: dict, where: str, where_params: list | None = None, connection_string: str = ""
+    ) -> dict:
         """
         Actualiza registros en una tabla.
 
@@ -198,8 +193,8 @@ class PostgreSQLService:
 
         start_time = time.time()
 
-        set_clauses = [f"{col} = %s" for col in data.keys()]
-        values = [data[col] for col in data.keys()]
+        set_clauses = [f"{col} = %s" for col in data]
+        values = [data[col] for col in data]
         if where_params:
             values.extend(where_params)
 
@@ -226,8 +221,7 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL update error: {e}")
             return self._error(f"Error actualizando: {e}")
 
-    def execute(self, sql: str, params: list | None = None,
-                connection_string: str = "") -> dict:
+    def execute(self, sql: str, params: list | None = None, connection_string: str = "") -> dict:
         """
         Ejecuta SQL arbitrario (INSERT, UPDATE, DELETE, CREATE, etc.).
 
@@ -265,8 +259,7 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL execute error: {e}")
             return self._error(f"Error ejecutando SQL: {e}")
 
-    def list_tables(self, connection_string: str = "",
-                    schema: str = "public") -> dict:
+    def list_tables(self, connection_string: str = "", schema: str = "public") -> dict:
         """
         Lista tablas en un schema.
 
@@ -278,16 +271,13 @@ class PostgreSQLService:
             dict con {tables: [{name, type}], count}
         """
         return self.query(
-            "SELECT table_name, table_type FROM information_schema.tables "
-            "WHERE table_schema = %s ORDER BY table_name",
+            "SELECT table_name, table_type FROM information_schema.tables WHERE table_schema = %s ORDER BY table_name",
             [schema],
             connection_string,
             limit=500,
         )
 
-    def get_schema(self, table: str,
-                   connection_string: str = "",
-                   schema: str = "public") -> dict:
+    def get_schema(self, table: str, connection_string: str = "", schema: str = "public") -> dict:
         """
         Obtiene schema de una tabla.
 
@@ -342,38 +332,27 @@ class PostgreSQLService:
                     "name": "Consulta SQL",
                     "description": "Ejecuta SELECT",
                     "params": [
-                        {"name": "sql", "type": "string", "required": True,
-                         "label": "SQL"},
-                        {"name": "connection_string", "type": "string",
-                         "required": True, "label": "Connection String"},
+                        {"name": "sql", "type": "string", "required": True, "label": "SQL"},
+                        {"name": "connection_string", "type": "string", "required": True, "label": "Connection String"},
                     ],
                 },
                 "insert": {
                     "name": "Insertar",
                     "description": "Inserta un registro",
                     "params": [
-                        {"name": "table", "type": "string", "required": True,
-                         "label": "Tabla"},
-                        {"name": "data", "type": "dict", "required": True,
-                         "label": "Datos"},
-                        {"name": "connection_string", "type": "string",
-                         "required": True, "label": "Connection String"},
+                        {"name": "table", "type": "string", "required": True, "label": "Tabla"},
+                        {"name": "data", "type": "dict", "required": True, "label": "Datos"},
+                        {"name": "connection_string", "type": "string", "required": True, "label": "Connection String"},
                     ],
                 },
                 "update": {
                     "name": "Actualizar",
                     "description": "Actualiza registros",
                     "params": [
-                        {"name": "table", "type": "string", "required": True,
-                         "label": "Tabla"},
-                        {"name": "data", "type": "dict", "required": True,
-                         "label": "Datos"},
-                        {"name": "where", "type": "string", "required": True,
-                         "label": "WHERE"},
+                        {"name": "table", "type": "string", "required": True, "label": "Tabla"},
+                        {"name": "data", "type": "dict", "required": True, "label": "Datos"},
+                        {"name": "where", "type": "string", "required": True, "label": "WHERE"},
                     ],
                 },
             },
         }
-
-
-

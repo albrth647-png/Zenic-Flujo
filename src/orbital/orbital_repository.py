@@ -26,13 +26,13 @@ Esto permite la coexistencia durante la migracion:
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 
+from src.orbital.db import OrbitalDB
 from src.orbital.models import (
     TWO_PI,
 )
-from src.orbital.db import OrbitalDB
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -144,20 +144,22 @@ class OrbitalRepository:
             amplitude = self._step_amplitude(step)
             velocity = self._step_velocity(step)
 
-            variables.append({
-                "name": var_name,
-                "theta": theta,
-                "amplitude": amplitude,
-                "velocity": velocity,
-                "orbit_group": "workflow_steps",
-                "metadata": {
-                    "step_id": step_id,
-                    "tool": tool,
-                    "action": action,
-                    "params": step.get("params", {}),
-                    "condition": step.get("condition"),
-                },
-            })
+            variables.append(
+                {
+                    "name": var_name,
+                    "theta": theta,
+                    "amplitude": amplitude,
+                    "velocity": velocity,
+                    "orbit_group": "workflow_steps",
+                    "metadata": {
+                        "step_id": step_id,
+                        "tool": tool,
+                        "action": action,
+                        "params": step.get("params", {}),
+                        "condition": step.get("condition"),
+                    },
+                }
+            )
 
         # 2. Convertir variables del trigger a orbitales
         trigger_data = linear_workflow.get("trigger_config", {})
@@ -166,24 +168,28 @@ class OrbitalRepository:
 
         trigger_event = trigger_data.get("event", "")
         if trigger_event:
-            variables.append({
-                "name": f"trigger_{trigger_event}",
-                "theta": self._deterministic_theta(trigger_event),
-                "amplitude": 2.0,  # Triggers tienen amplitud mayor
-                "velocity": 0.05,
-                "orbit_group": "triggers",
-                "metadata": {"source": "trigger", "event": trigger_event},
-            })
+            variables.append(
+                {
+                    "name": f"trigger_{trigger_event}",
+                    "theta": self._deterministic_theta(trigger_event),
+                    "amplitude": 2.0,  # Triggers tienen amplitud mayor
+                    "velocity": 0.05,
+                    "orbit_group": "triggers",
+                    "metadata": {"source": "trigger", "event": trigger_event},
+                }
+            )
 
         # 3. Crear ciclo orbital con todos los pasos + trigger
         var_names = [v["name"] for v in variables]
         cycles = []
         if len(var_names) >= 2:
-            cycles.append({
-                "name": f"cycle_{linear_workflow.get('name', 'workflow')}",
-                "variable_ids": var_names,
-                "threshold": 0.3,
-            })
+            cycles.append(
+                {
+                    "name": f"cycle_{linear_workflow.get('name', 'workflow')}",
+                    "variable_ids": var_names,
+                    "threshold": 0.3,
+                }
+            )
 
         # 4. Crear definicion orbital
         orbital_def = OrbitalWorkflowDef(
@@ -197,10 +203,7 @@ class OrbitalRepository:
             retrofeed_damping=0.3,
         )
 
-        logger.info(
-            f"OrbitalRepository: Workflow lineal → orbital — "
-            f"{len(variables)} variables, {len(cycles)} ciclos"
-        )
+        logger.info(f"OrbitalRepository: Workflow lineal → orbital — {len(variables)} variables, {len(cycles)} ciclos")
 
         return orbital_def
 

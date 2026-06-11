@@ -10,6 +10,7 @@ Usa openai Python SDK si está disponible, fallback a requests.
 from __future__ import annotations
 
 import time
+from typing import ClassVar
 
 from src.utils.logger import setup_logging
 
@@ -42,20 +43,22 @@ class OpenAIService:
     """
 
     DEFAULT_MODEL = "gpt-4o-mini"
-    ALLOWED_MODELS = {"gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo",
-                      "o1-mini", "o1-preview"}
+    ALLOWED_MODELS: ClassVar[set[str]] = {"gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo", "o1-mini", "o1-preview"}
     EMBEDDING_MODEL = "text-embedding-3-small"
 
     def __init__(self, api_key: str | None = None):
         self._api_key = api_key or ""
         self._base_url = "https://api.openai.com/v1"
 
-    def chat_completion(self, messages: list[dict],
-                        model: str = DEFAULT_MODEL,
-                        temperature: float = 0.7,
-                        max_tokens: int | None = None,
-                        top_p: float = 1.0,
-                        timeout: int = 30) -> dict:
+    def chat_completion(
+        self,
+        messages: list[dict],
+        model: str = DEFAULT_MODEL,
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        top_p: float = 1.0,
+        timeout: int = 30,
+    ) -> dict:
         """
         Chat completion con modelos OpenAI.
 
@@ -89,6 +92,7 @@ class OpenAIService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self._base_url}/chat/completions",
                 headers={
@@ -126,9 +130,7 @@ class OpenAIService:
             logger.error(f"OpenAI chat error: {e}")
             return self._error(str(e))
 
-    def embeddings(self, input_text: str | list[str],
-                   model: str = EMBEDDING_MODEL,
-                   timeout: int = 30) -> dict:
+    def embeddings(self, input_text: str | list[str], model: str = EMBEDDING_MODEL, timeout: int = 30) -> dict:
         """
         Genera embeddings de texto.
 
@@ -148,6 +150,7 @@ class OpenAIService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self._base_url}/embeddings",
                 headers={
@@ -194,6 +197,7 @@ class OpenAIService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self._base_url}/models",
                 headers={"Authorization": f"Bearer {self._api_key}"},
@@ -205,9 +209,10 @@ class OpenAIService:
                 return self._error(f"Error listando modelos: {data}")
 
             models = sorted(
-                [{"id": m["id"], "created": m.get("created"),
-                  "owned_by": m.get("owned_by")}
-                 for m in data.get("data", [])],
+                [
+                    {"id": m["id"], "created": m.get("created"), "owned_by": m.get("owned_by")}
+                    for m in data.get("data", [])
+                ],
                 key=lambda x: x["id"],
             )
             return {"models": models, "count": len(models)}
@@ -233,6 +238,7 @@ class OpenAIService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self._base_url}/moderations",
                 headers={
@@ -278,24 +284,23 @@ class OpenAIService:
                     "name": "Chat Completion",
                     "description": "Chat con modelos GPT",
                     "params": [
-                        {"name": "messages", "type": "list", "required": True,
-                         "label": "Mensajes"},
-                        {"name": "model", "type": "select",
-                         "options": ["gpt-4o", "gpt-4o-mini", "gpt-4",
-                                     "gpt-3.5-turbo"],
-                         "default": "gpt-4o-mini", "label": "Modelo"},
-                        {"name": "temperature", "type": "number",
-                         "default": 0.7, "label": "Temperatura"},
-                        {"name": "max_tokens", "type": "number",
-                         "default": None, "label": "Máx. tokens"},
+                        {"name": "messages", "type": "list", "required": True, "label": "Mensajes"},
+                        {
+                            "name": "model",
+                            "type": "select",
+                            "options": ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"],
+                            "default": "gpt-4o-mini",
+                            "label": "Modelo",
+                        },
+                        {"name": "temperature", "type": "number", "default": 0.7, "label": "Temperatura"},
+                        {"name": "max_tokens", "type": "number", "default": None, "label": "Máx. tokens"},
                     ],
                 },
                 "embeddings": {
                     "name": "Embeddings",
                     "description": "Genera vectores de embedding",
                     "params": [
-                        {"name": "input_text", "type": "string",
-                         "required": True, "label": "Texto"},
+                        {"name": "input_text", "type": "string", "required": True, "label": "Texto"},
                     ],
                 },
             },

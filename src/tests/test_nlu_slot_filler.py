@@ -1,6 +1,7 @@
 """
 DDE v3 — Tests del SlotFiller
 """
+
 from src.nlu.entities.base import Entity, IntentMatch
 
 
@@ -15,6 +16,7 @@ class TestSlotFiller:
 
     def test_fill_registro_cliente(self):
         from src.nlu.slot_filler import SlotFiller
+
         sf = SlotFiller()
         intents = (IntentMatch(intent="registro_cliente", score=0.9, evidence=["registr"]),)
         entities = (self.make_email_entity(), self.make_phone_entity())
@@ -29,6 +31,7 @@ class TestSlotFiller:
 
     def test_missing_email(self):
         from src.nlu.slot_filler import SlotFiller
+
         sf = SlotFiller()
         intents = (IntentMatch(intent="registro_cliente", score=0.9, evidence=["registr"]),)
         entities = ()
@@ -40,12 +43,14 @@ class TestSlotFiller:
 
     def test_no_intents(self):
         from src.nlu.slot_filler import SlotFiller
+
         sf = SlotFiller()
         slots = sf.fill((), ())
         assert len(slots) == 0
 
     def test_missing_slots(self):
         from src.nlu.slot_filler import SlotFiller
+
         sf = SlotFiller()
         intents = (IntentMatch(intent="registro_cliente", score=0.9, evidence=["registr"]),)
         entities = ()
@@ -56,6 +61,7 @@ class TestSlotFiller:
 
     def test_determinista(self):
         from src.nlu.slot_filler import SlotFiller
+
         sf = SlotFiller()
         intents = (IntentMatch(intent="registro_cliente", score=0.9, evidence=["registr"]),)
         entities = (self.make_email_entity(),)
@@ -65,6 +71,7 @@ class TestSlotFiller:
 
     def test_fill_for_intent(self):
         from src.nlu.slot_filler import SlotFiller
+
         sf = SlotFiller()
         entities = (self.make_email_entity(),)
         slots = sf.fill_for_intent("registro_cliente", entities)

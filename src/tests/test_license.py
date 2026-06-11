@@ -29,6 +29,7 @@ class TestLicenseGenerator:
     def test_generate_key_valid_chars(self, license_generator):
         """Test: la key solo contiene caracteres permitidos (consonantes + dígitos)."""
         from src.license.validator import LICENSE_CHARSET
+
         key = license_generator.generate()
         parts = key.split("-")
         # Only the last block uses LICENSE_CHARSET; the first 3 blocks are HMAC hex
@@ -62,6 +63,7 @@ class TestLicenseValidator:
     def test_trial_starts_automatically(self, license_validator):
         """Test: el trial se inicia automáticamente en la primera validación."""
         from src.config import TRIAL_DAYS
+
         status = license_validator.get_trial_status()
         assert status["is_trial"] is True
         assert status["days_left"] > 0
@@ -70,6 +72,7 @@ class TestLicenseValidator:
     def test_trial_30_days(self):
         """Test: el trial dura exactamente 30 días (spec requirement)."""
         from src.config import TRIAL_DAYS
+
         assert TRIAL_DAYS == 30
 
     def test_get_license_info(self, license_validator):
@@ -111,6 +114,7 @@ class TestLicenseValidator:
     def test_license_types(self):
         """Test: los tipos de licencia son individual, reseller, enterprise."""
         from src.license.validator import LicenseValidator
+
         assert "individual" in LicenseValidator.LICENSE_TYPES
         assert "reseller" in LicenseValidator.LICENSE_TYPES
         assert "enterprise" in LicenseValidator.LICENSE_TYPES
@@ -118,6 +122,7 @@ class TestLicenseValidator:
     def test_hmac_used_not_plain_hash(self):
         """Test: verificar que el generador usa HMAC-SHA256 (no SHA-256 simple)."""
         import inspect
+
         from src.license.generator import LicenseGenerator
 
         source = inspect.getsource(LicenseGenerator)
@@ -127,6 +132,7 @@ class TestLicenseValidator:
     def test_validator_uses_compare_digest(self):
         """Test: verificar que el validador usa hmac.compare_digest (timing-safe)."""
         import inspect
+
         from src.license.validator import LicenseValidator
 
         source = inspect.getsource(LicenseValidator)

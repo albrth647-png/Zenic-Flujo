@@ -8,15 +8,17 @@ Soporta:
 - Intervalos (cada X minutos configurado vía system steps)
 - Timezone-aware (UTC por defecto, configurable)
 """
+
 import sqlite3
 import threading
 from datetime import datetime
+
+from src.config import SCHEDULE_INTERVAL_SECONDS
 from src.data.database_manager import DatabaseManager
 from src.events.bus import EventBus
-from src.workflow.repository import WorkflowRepository
 from src.utils.helpers import parse_cron_expression, should_run_now
 from src.utils.logger import setup_logging
-from src.config import SCHEDULE_INTERVAL_SECONDS
+from src.workflow.repository import WorkflowRepository
 
 logger = setup_logging(__name__)
 
@@ -24,7 +26,7 @@ logger = setup_logging(__name__)
 class ScheduleWorker:
     """
     Worker que revisa periódicamente si hay workflows programados para ejecutar.
-    
+
     No usa APScheduler. Usa threading.Timer recursivo.
     Soporta CRON 5-field e intervalos por workflow.
     """
@@ -60,9 +62,7 @@ class ScheduleWorker:
 
     def _load_intervals(self) -> None:
         """Carga los intervalos configurados desde la DB."""
-        rows = self._db.fetchall(
-            "SELECT key, value FROM settings WHERE key LIKE 'interval_%'"
-        )
+        rows = self._db.fetchall("SELECT key, value FROM settings WHERE key LIKE 'interval_%'")
         for row in rows:
             try:
                 wf_id = int(row["key"].replace("interval_", ""))
@@ -93,12 +93,12 @@ class ScheduleWorker:
 
     def _tick(self) -> None:
         """Revisa y ejecuta workflows programados para este minuto.
-        
+
         Soporta:
         - CRON expressions (5-field)
         - Intervalos configurables (cada X minutos desde settings)
         - Timezone UTC
-        
+
         Refresca la caché de intervalos desde DB en cada tick para
         recoger nuevos intervalos creados por steps de workflow.
         """
@@ -121,11 +121,14 @@ class ScheduleWorker:
 
                     if should_run_now(cron_fields, now):
                         logger.info(f"[CRON] Ejecutando: {wf.name} (ID: {wf.id})")
-                        self._event_bus.publish("schedule.triggered", {
-                            "workflow_id": wf.id,
-                            "scheduled_time": now.isoformat(),
-                            "cron": cron_expr,
-                        })
+                        self._event_bus.publish(
+                            "schedule.triggered",
+                            {
+                                "workflow_id": wf.id,
+                                "scheduled_time": now.isoformat(),
+                                "cron": cron_expr,
+                            },
+                        )
                         executed += 1
 
                 except (ValueError, KeyError, TypeError) as wf_error:
@@ -140,11 +143,14 @@ class ScheduleWorker:
                     wf = self._repository.get(wf_id)
                     if wf and wf.status == "active":
                         logger.info(f"[INTERVAL] Ejecutando: {wf.name} (ID: {wf.id}) cada {interval_minutes}min")
-                        self._event_bus.publish("schedule.triggered", {
-                            "workflow_id": wf_id,
-                            "scheduled_time": now.isoformat(),
-                            "interval_minutes": interval_minutes,
-                        })
+                        self._event_bus.publish(
+                            "schedule.triggered",
+                            {
+                                "workflow_id": wf_id,
+                                "scheduled_time": now.isoformat(),
+                                "interval_minutes": interval_minutes,
+                            },
+                        )
                         with self._lock:
                             self._interval_cache[wf_id] = (now, interval_minutes)
                         executed += 1

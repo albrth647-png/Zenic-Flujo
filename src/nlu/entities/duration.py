@@ -7,26 +7,51 @@ Soporta: "cada día", "cada lunes", "cada 15 minutos", "a las 9am",
 
 Determinista. Sin IA.
 """
+
 from __future__ import annotations
+
 import re
+
 from src.nlu.entities.base import Entity
 
 # Días de la semana
-DAYS_ES = {"domingo": 0, "lunes": 1, "martes": 2, "miercoles": 3,
-           "miércoles": 3, "jueves": 4, "viernes": 5, "sabado": 6, "sábado": 6}
-DAYS_EN = {"sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3,
-           "thursday": 4, "friday": 5, "saturday": 6}
+DAYS_ES = {
+    "domingo": 0,
+    "lunes": 1,
+    "martes": 2,
+    "miercoles": 3,
+    "miércoles": 3,
+    "jueves": 4,
+    "viernes": 5,
+    "sabado": 6,
+    "sábado": 6,
+}
+DAYS_EN = {"sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6}
 
 # Unidades de tiempo con su valor en minutos
 TIME_UNITS: dict[str, int] = {
-    "minuto": 1, "minutos": 1, "min": 1,
-    "minute": 1, "minutes": 1, "mins": 1,
-    "hora": 60, "horas": 60, "hr": 60,
-    "hour": 60, "hours": 60, "hrs": 60,
-    "dia": 1440, "día": 1440, "dias": 1440, "días": 1440,
-    "day": 1440, "days": 1440,
-    "semana": 10080, "semanas": 10080,
-    "week": 10080, "weeks": 10080,
+    "minuto": 1,
+    "minutos": 1,
+    "min": 1,
+    "minute": 1,
+    "minutes": 1,
+    "mins": 1,
+    "hora": 60,
+    "horas": 60,
+    "hr": 60,
+    "hour": 60,
+    "hours": 60,
+    "hrs": 60,
+    "dia": 1440,
+    "día": 1440,
+    "dias": 1440,
+    "días": 1440,
+    "day": 1440,
+    "days": 1440,
+    "semana": 10080,
+    "semanas": 10080,
+    "week": 10080,
+    "weeks": 10080,
 }
 
 # Frecuencias comunes → cron
@@ -63,21 +88,23 @@ FREQ_CRON: dict[str, str] = {
 # - "am" o "pm" (sufijo)
 # Sin esto, números como "20" en "2024-01-15" o "50" en "$500" se interpretarían como hora.
 HOUR_RE = re.compile(
-    r'(?:'
-    r'(?:a\s+)?(?:las\s+|at\s+)(\d{1,2})(?::(\d{2}))?\s*(am|pm)?'  # con prefijo
-    r'|'
-    r'(\d{1,2}):(\d{2})\s*(am|pm)?'  # con minutos
-    r'|'
-    r'(\d{1,2})\s*(am|pm)'  # con am/pm
-    r')',
-    re.IGNORECASE
+    r"(?:"
+    r"(?:a\s+)?(?:las\s+|at\s+)(\d{1,2})(?::(\d{2}))?\s*(am|pm)?"  # con prefijo
+    r"|"
+    r"(\d{1,2}):(\d{2})\s*(am|pm)?"  # con minutos
+    r"|"
+    r"(\d{1,2})\s*(am|pm)"  # con am/pm
+    r")",
+    re.IGNORECASE,
 )
 
 # Cada N unidades: "cada 15 minutos", "every 2 hours"
-EVERY_N_RE = re.compile(r'(?:cada|every|each)\s+(\d+)\s*(' + '|'.join(TIME_UNITS.keys()) + r')', re.IGNORECASE)
+EVERY_N_RE = re.compile(r"(?:cada|every|each)\s+(\d+)\s*(" + "|".join(TIME_UNITS.keys()) + r")", re.IGNORECASE)
 
 # Día de semana: "cada lunes", "every monday"
-DAY_RE = re.compile(r'(?:cada|every|each)\s+(' + '|'.join(list(DAYS_ES.keys()) + list(DAYS_EN.keys())) + r')', re.IGNORECASE)
+DAY_RE = re.compile(
+    r"(?:cada|every|each)\s+(" + "|".join(list(DAYS_ES.keys()) + list(DAYS_EN.keys())) + r")", re.IGNORECASE
+)
 
 
 class DurationExtractor:
@@ -144,13 +171,15 @@ class DurationExtractor:
         # 1. Frecuencias fijas
         for phrase, cron in FREQ_CRON.items():
             if text_lower == phrase or text_lower.startswith(phrase):
-                entities.append(Entity(
-                    type="cron",
-                    value=cron,
-                    raw=text,
-                    span=(0, len(text)),
-                    score=1.0,
-                ))
+                entities.append(
+                    Entity(
+                        type="cron",
+                        value=cron,
+                        raw=text,
+                        span=(0, len(text)),
+                        score=1.0,
+                    )
+                )
                 return entities
 
         # 2. Cada N unidades: "cada X minutos/horas/días"
@@ -170,13 +199,15 @@ class DurationExtractor:
             else:
                 continue
 
-            entities.append(Entity(
-                type="cron",
-                value=cron,
-                raw=match.group(),
-                span=(match.start(), match.end()),
-                score=1.0,
-            ))
+            entities.append(
+                Entity(
+                    type="cron",
+                    value=cron,
+                    raw=match.group(),
+                    span=(match.start(), match.end()),
+                    score=1.0,
+                )
+            )
 
         # 3. Día de semana: "cada lunes"
         if not entities:
@@ -194,13 +225,15 @@ class DurationExtractor:
                 else:
                     cron = f"0 9 * * {day_num}"  # default 9am
 
-                entities.append(Entity(
-                    type="cron",
-                    value=cron,
-                    raw=match.group(),
-                    span=(match.start(), match.end()),
-                    score=1.0,
-                ))
+                entities.append(
+                    Entity(
+                        type="cron",
+                        value=cron,
+                        raw=match.group(),
+                        span=(match.start(), match.end()),
+                        score=1.0,
+                    )
+                )
 
         # 4. Hora simple: "a las 9", "9am", "9:00"
         if not entities:
@@ -214,12 +247,14 @@ class DurationExtractor:
                     hour = 0
 
                 cron = f"{minute} {hour} * * *"
-                entities.append(Entity(
-                    type="cron",
-                    value=cron,
-                    raw=hour_match.group(),
-                    span=(hour_match.start(), hour_match.end()),
-                    score=0.95,
-                ))
+                entities.append(
+                    Entity(
+                        type="cron",
+                        value=cron,
+                        raw=hour_match.group(),
+                        span=(hour_match.start(), hour_match.end()),
+                        score=0.95,
+                    )
+                )
 
         return entities

@@ -34,11 +34,10 @@ Ejemplo de uso:
 
 from __future__ import annotations
 
-
 from src.orbital.models import (
+    DEFAULT_THRESHOLD,
     CicloOrbital,
     RCCResult,
-    DEFAULT_THRESHOLD,
 )
 from src.utils.logger import setup_logging
 
@@ -132,9 +131,7 @@ class RCC:
             RCCResult con el estado de resonancia
         """
         # Calcular TOR para todas las parejas del ciclo
-        tor_results = self._tor.calculate_for_cycle(
-            cycle.variable_ids, threshold=cycle.threshold
-        )
+        tor_results = self._tor.calculate_for_cycle(cycle.variable_ids, threshold=cycle.threshold)
 
         if not tor_results:
             return RCCResult(
@@ -161,7 +158,7 @@ class RCC:
         max_possible = sum(
             self._ovc.get_variable(n_i).amplitude * self._ovc.get_variable(n_j).amplitude
             for i, n_i in enumerate(cycle.variable_ids)
-            for n_j in cycle.variable_ids[i + 1:]
+            for n_j in cycle.variable_ids[i + 1 :]
             if self._ovc.get_variable(n_i) and self._ovc.get_variable(n_j)
         )
         resonance_strength = min(total_tension / max_possible, 1.0) if max_possible > 0 else 0.0
@@ -225,10 +222,7 @@ class RCC:
             "resonant_cycles": len(resonant),
             "non_resonant_cycles": len(results) - len(resonant),
             "max_strength": max((r.resonance_strength for r in results), default=0.0),
-            "avg_strength": (
-                sum(r.resonance_strength for r in results) / len(results)
-                if results else 0.0
-            ),
+            "avg_strength": (sum(r.resonance_strength for r in results) / len(results) if results else 0.0),
         }
 
     # ── Actualizacion de ciclos ────────────────────────────

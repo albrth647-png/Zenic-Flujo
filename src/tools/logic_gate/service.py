@@ -3,12 +3,13 @@ Workflow Determinista — LogicGate Service
 Servicio de evaluación de reglas lógicas con persistencia en SQLite.
 Permite guardar, listar, evaluar y eliminar reglas.
 """
+
 import json
 
 from src.data.database_manager import DatabaseManager
 from src.events.bus import EventBus
-from src.workflow.condition_evaluator import ConditionEvaluator
 from src.utils.logger import setup_logging
+from src.workflow.condition_evaluator import ConditionEvaluator
 
 logger = setup_logging(__name__)
 
@@ -16,7 +17,7 @@ logger = setup_logging(__name__)
 class LogicGateService:
     """
     Servicio de puertas lógicas para el workflow engine.
-    
+
     Permite:
     - Evaluar expresiones condicionales en runtime (usando parser seguro)
     - Guardar reglas nombradas en la base de datos
@@ -32,11 +33,11 @@ class LogicGateService:
     def evaluate_rule(self, rule: str, context: dict) -> bool:
         """
         Evalúa una regla condicional contra un contexto dado.
-        
+
         Args:
             rule: Expresión como "stock < 10 AND precio > 100"
             context: Dict con variables disponibles, ej: {"stock": 5, "precio": 150}
-        
+
         Returns:
             bool: Resultado de la evaluación
         """
@@ -45,7 +46,7 @@ class LogicGateService:
     def validate_expression(self, expression: str) -> dict:
         """
         Valida que una expresión sea sintácticamente correcta.
-        
+
         Returns:
             dict: {"valid": True} o {"valid": False, "error": "mensaje"}
         """
@@ -54,12 +55,12 @@ class LogicGateService:
     def save_rule(self, name: str, expression: str, description: str = "") -> dict:
         """
         Guarda una regla nombrada en la base de datos.
-        
+
         Args:
             name: Nombre único de la regla
             expression: Expresión condicional válida
             description: Descripción opcional
-        
+
         Returns:
             dict: La regla guardada
         """
@@ -70,11 +71,16 @@ class LogicGateService:
 
         self._db.execute(
             """INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)""",
-            (f"logic_rule_{name}", json.dumps({
-                "name": name,
-                "expression": expression,
-                "description": description,
-            })),
+            (
+                f"logic_rule_{name}",
+                json.dumps(
+                    {
+                        "name": name,
+                        "expression": expression,
+                        "description": description,
+                    }
+                ),
+            ),
         )
         self._db.commit()
         logger.info(f"Regla lógica guardada: {name}")
@@ -92,9 +98,7 @@ class LogicGateService:
 
     def list_rules(self) -> list[dict]:
         """Lista todas las reglas guardadas."""
-        rows = self._db.fetchall(
-            "SELECT value FROM settings WHERE key LIKE 'logic_rule_%'"
-        )
+        rows = self._db.fetchall("SELECT value FROM settings WHERE key LIKE 'logic_rule_%'")
         return [json.loads(row["value"]) for row in rows]
 
     def delete_rule(self, name: str) -> bool:

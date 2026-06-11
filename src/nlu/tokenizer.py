@@ -6,41 +6,88 @@ NO usa ML. NO usa NLTK. Puro Python, cero dependencias.
 
 Determinista: misma entrada → mismos tokens siempre.
 """
-from __future__ import annotations
-from src.nlu.entities.base import Token
 
+from __future__ import annotations
+
+from src.nlu.entities.base import Token
 
 # ── Diccionario de raíces (excepciones / irregulares) ──────────
 ROOTS_ES: dict[str, str] = {
-    "haciendo": "hacer", "hace": "hacer", "hizo": "hacer",
-    "diciendo": "decir", "dice": "decir", "dijo": "decir",
-    "yendo": "ir", "va": "ir", "fue": "ir",
-    "teniendo": "tener", "tiene": "tener", "tuvo": "tener",
-    "poniendo": "poner", "pone": "poner", "puso": "poner",
-    "siendo": "ser", "es": "ser", "era": "ser",
-    "viendo": "ver", "ve": "ver", "vio": "ver",
+    "haciendo": "hacer",
+    "hace": "hacer",
+    "hizo": "hacer",
+    "diciendo": "decir",
+    "dice": "decir",
+    "dijo": "decir",
+    "yendo": "ir",
+    "va": "ir",
+    "fue": "ir",
+    "teniendo": "tener",
+    "tiene": "tener",
+    "tuvo": "tener",
+    "poniendo": "poner",
+    "pone": "poner",
+    "puso": "poner",
+    "siendo": "ser",
+    "es": "ser",
+    "era": "ser",
+    "viendo": "ver",
+    "ve": "ver",
+    "vio": "ver",
     # Verbos con cambios ortográficos (c → z, g → j, etc.)
-    "venza": "venc", "venzas": "venc", "venzo": "venc",
-    "vencer": "venc", "vencia": "venc", "vencio": "venc",
+    "venza": "venc",
+    "venzas": "venc",
+    "venzo": "venc",
+    "vencer": "venc",
+    "vencia": "venc",
+    "vencio": "venc",
     # Palabras con ñ que NFKD convierte a n + problemas de stemming agresivo
-    "cumpleaños": "cumplean", "cumpleanos": "cumplean",
+    "cumpleaños": "cumplean",
+    "cumpleanos": "cumplean",
     # Participios y conjugaciones que el stemmer por reglas no captura bien
-    "vencido": "venc", "vencida": "venc",
-    "vencidos": "venc", "vencidas": "venc",
+    "vencido": "venc",
+    "vencida": "venc",
+    "vencidos": "venc",
+    "vencidas": "venc",
 }
 
 ROOTS_EN: dict[str, str] = {
-    "doing": "do", "does": "do", "did": "do", "done": "do",
-    "saying": "say", "says": "say", "said": "say",
-    "going": "go", "goes": "go", "went": "go", "gone": "go",
-    "making": "make", "made": "make",
-    "taking": "take", "takes": "take", "took": "take", "taken": "take",
-    "having": "have", "has": "have", "had": "have",
-    "buying": "buy", "buys": "buy", "bought": "buy",
-    "sending": "send", "sends": "send", "sent": "send",
-    "writing": "write", "writes": "write", "wrote": "write", "written": "write",
-    "creating": "create", "creates": "create", "created": "create",
-    "running": "run", "runs": "run", "ran": "run",
+    "doing": "do",
+    "does": "do",
+    "did": "do",
+    "done": "do",
+    "saying": "say",
+    "says": "say",
+    "said": "say",
+    "going": "go",
+    "goes": "go",
+    "went": "go",
+    "gone": "go",
+    "making": "make",
+    "made": "make",
+    "taking": "take",
+    "takes": "take",
+    "took": "take",
+    "taken": "take",
+    "having": "have",
+    "has": "have",
+    "had": "have",
+    "buying": "buy",
+    "buys": "buy",
+    "bought": "buy",
+    "sending": "send",
+    "sends": "send",
+    "sent": "send",
+    "writing": "write",
+    "writes": "write",
+    "wrote": "write",
+    "written": "write",
+    "creating": "create",
+    "creates": "create",
+    "created": "create",
+    "running": "run",
+    "runs": "run",
+    "ran": "run",
 }
 
 
@@ -59,11 +106,29 @@ def stem_spanish(word: str) -> str:
         return word[:-2]
 
     # Verbos: conjugaciones
-    for ending in ["ando", "iendo", "ado", "ido", "aba", "ia",
-                    "aste", "iste", "o", "amos", "imos", "ais", "is",
-                    "an", "en", "as", "es", "a", "e"]:
+    for ending in [
+        "ando",
+        "iendo",
+        "ado",
+        "ido",
+        "aba",
+        "ia",
+        "aste",
+        "iste",
+        "o",
+        "amos",
+        "imos",
+        "ais",
+        "is",
+        "an",
+        "en",
+        "as",
+        "es",
+        "a",
+        "e",
+    ]:
         if word.endswith(ending):
-            stem = word[:-len(ending)]
+            stem = word[: -len(ending)]
             if len(stem) >= 2:
                 return stem
 
@@ -108,14 +173,14 @@ def stem_english(word: str) -> str:
     # -ing, -ed, -ly
     for suffix in ["ingly", "edly", "ingly", "edly", "ing", "ed", "ly"]:
         if word.endswith(suffix):
-            potential = word[:-len(suffix)]
+            potential = word[: -len(suffix)]
             if len(potential) >= 2:
                 return potential
 
     # -er, -or, -est (comparativos, agentes)
     for suffix in ["est", "ers", "ors", "er", "or"]:
         if word.endswith(suffix):
-            potential = word[:-len(suffix)]
+            potential = word[: -len(suffix)]
             if len(potential) >= 2:
                 return potential
 

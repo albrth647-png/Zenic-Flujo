@@ -14,9 +14,11 @@ Tests basados en el semgrep scan (17 findings) y el checklist OWASP:
 Skills: security-and-hardening, doubt-driven-development
 MCPs: semgrep-mcp (AST analysis), analyzer (linting)
 """
+
 import os
 import re
 import sys
+from typing import ClassVar
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -25,10 +27,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 # 3.2: Verificar eval() restante en producción
 # ══════════════════════════════════════════════════════════════
 
+
 class TestNoEvalInProduction:
     """Verificar que NO hay eval() en código de producción."""
 
-    PRODUCTION_FILES = [
+    PRODUCTION_FILES: ClassVar[list[str]] = [
         "src/config.py",
         "src/data/database_manager.py",
         "src/events/bus.py",
@@ -56,17 +59,25 @@ class TestNoEvalInProduction:
         "src/nlu/condition_evaluator.py",
     ]
 
-    EXCLUSIONS = {
-        "sandbox.py", "test_", "conftest.py", "__pycache__",
-        "docstring", "NUNCA", "blocks_eval", "test_blocks_eval",
-        "test_safe_eval", "eval_condition", "eval_ast",
+    EXCLUSIONS: ClassVar[set[str]] = {
+        "sandbox.py",
+        "test_",
+        "conftest.py",
+        "__pycache__",
+        "docstring",
+        "NUNCA",
+        "blocks_eval",
+        "test_blocks_eval",
+        "test_safe_eval",
+        "eval_condition",
+        "eval_ast",
     }
 
     def _has_real_eval(self, filepath: str) -> list[str]:
         """Detecta eval()/exec() reales en un archivo (no en strings/comments/docstrings)."""
         findings = []
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 lines = f.readlines()
         except (FileNotFoundError, UnicodeDecodeError):
             return findings
@@ -109,8 +120,8 @@ class TestNoEvalInProduction:
         # Archivos con eval en comentarios/docstrings que son falsos positivos conocidos
         known_false_positives = {
             "condition.py",  # "NO usa eval(). Construye un AST" en docstrings
-            "money.py",      # "Sin eval()" en docstrings
-            "quantity.py",   # "Sin eval()" en docstrings
+            "money.py",  # "Sin eval()" en docstrings
+            "quantity.py",  # "Sin eval()" en docstrings
         }
 
         for root, dirs, files in os.walk(src_dir):
@@ -135,22 +146,23 @@ class TestNoEvalInProduction:
 # 3.3: Secrets management
 # ══════════════════════════════════════════════════════════════
 
+
 class TestSecretsManagement:
     """Verificar que NO hay secrets hardcodeados en el código."""
 
-    HARDCODED_PATTERNS = [
+    HARDCODED_PATTERNS: ClassVar[list[str]] = [
         r'SECRET_KEY\s*=\s*["\'][^"\']{10,}["\']',
         r'password\s*=\s*["\'][^"\']{8,}["\']',
         r'api_key\s*=\s*["\'][^"\']{10,}["\']',
         r'token\s*=\s*["\'][^"\']{20,}["\']',
-        r'cambiar_esto',
+        r"cambiar_esto",
     ]
 
     def test_config_no_hardcoded_secrets(self):
         """config.py no debe tener secrets hardcodeados en código ejecutable."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         config_path = os.path.join(project_root, "src", "config.py")
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             lines = f.readlines()
 
         violations = []
@@ -159,10 +171,12 @@ class TestSecretsManagement:
             # Skip comments and strings en docstrings/mensajes de error
             if stripped.startswith("#"):
                 continue
-            if "cambiar_esto" in stripped.lower():
-                # Solo flaggear si es asignación de variable, no mensaje de warning
-                if "=" in stripped and not stripped.startswith(('"', "'", 'f"', "f'")):
-                    violations.append(f"Line {i}: {stripped[:80]}")
+            if (
+                "cambiar_esto" in stripped.lower()
+                and "=" in stripped
+                and not stripped.startswith(('"', "'", 'f"', "f'"))
+            ):
+                violations.append(f"Line {i}: {stripped[:80]}")
         # "cambiar_esto" aparece en strings de warning/error, no en asignaciones reales — OK
         # Solo verificar que no hay SECRET_KEY = "algo_duro" real
 
@@ -170,13 +184,14 @@ class TestSecretsManagement:
         """config.py debe usar secrets.token_urlsafe para generar keys."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         config_path = os.path.join(project_root, "src", "config.py")
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             content = f.read()
         assert "secrets.token_urlsafe" in content or "WFD_SESSION_SECRET" in content
 
     def test_config_validate_function_exists(self):
         """config.py debe tener una función validate() que verifique secrets."""
         from src.config import validate_config
+
         assert callable(validate_config)
 
 
@@ -184,14 +199,17 @@ class TestSecretsManagement:
 # 3.5: SQL injection prevention
 # ══════════════════════════════════════════════════════════════
 
+
 class TestSQLInjectionPrevention:
     """Verificar que todas las queries SQL usan parámetros (no string formatting)."""
 
     def test_database_manager_uses_parameters(self):
         """DatabaseManager.execute() debe usar params, no f-strings en valores."""
-        from src.data.database_manager import DatabaseManager
         # Verificar que execute() acepta params
         import inspect
+
+        from src.data.database_manager import DatabaseManager
+
         sig = inspect.signature(DatabaseManager.execute)
         assert "params" in sig.parameters
 
@@ -199,7 +217,7 @@ class TestSQLInjectionPrevention:
         """CRMRepository debe usar queries parametrizadas."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         filepath = os.path.join(project_root, "src", "tools", "crm", "repository.py")
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             content = f.read()
 
         # Verificar que las queries INSERT/UPDATE usan ? placeholders
@@ -210,8 +228,10 @@ class TestSQLInjectionPrevention:
 
     def test_database_manager_user_update_safe(self):
         """update_user() usa allowlist de columnas, no input directo."""
-        from src.data.database_manager import DatabaseManager
         import inspect
+
+        from src.data.database_manager import DatabaseManager
+
         source = inspect.getsource(DatabaseManager.update_user)
         assert "allowed" in source or "set_parts" in source
 
@@ -229,16 +249,17 @@ class TestSQLInjectionPrevention:
             filepath = os.path.join(project_root, rel_path)
             if not os.path.exists(filepath):
                 continue
-            with open(filepath, "r") as f:
+            with open(filepath) as f:
                 content = f.read()
             # Buscar patrones peligrosos: .format() o f-string en queries SQL
-            dangerous = re.findall(r'execute\([^)]*\.[^)]*format\(', content)
+            dangerous = re.findall(r"execute\([^)]*\.[^)]*format\(", content)
             assert not dangerous, f"SQL injection potencial en {rel_path}: {dangerous}"
 
 
 # ══════════════════════════════════════════════════════════════
 # 3.4: Rate limiting
 # ══════════════════════════════════════════════════════════════
+
 
 class TestRateLimiting:
     """Verificar rate limiting en endpoints críticos."""
@@ -247,13 +268,14 @@ class TestRateLimiting:
         """El endpoint de login debe tener rate limiting."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         app_path = os.path.join(project_root, "src", "web", "app.py")
-        with open(app_path, "r") as f:
+        with open(app_path) as f:
             content = f.read()
         assert "_check_rate_limit" in content or "rate_limit" in content.lower()
 
     def test_rate_limit_config_exists(self):
         """Debe haber constantes de rate limiting en config."""
         from src.config import LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MINUTES
+
         assert LOGIN_MAX_ATTEMPTS > 0
         assert LOGIN_WINDOW_MINUTES > 0
 
@@ -262,6 +284,7 @@ class TestRateLimiting:
 # 3.8: Cookie security
 # ══════════════════════════════════════════════════════════════
 
+
 class TestCookieSecurity:
     """Verificar flags de seguridad en cookies de sesión."""
 
@@ -269,7 +292,7 @@ class TestCookieSecurity:
         """Las cookies de sesión deben ser httpOnly."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         app_path = os.path.join(project_root, "src", "web", "app.py")
-        with open(app_path, "r") as f:
+        with open(app_path) as f:
             content = f.read()
         assert "SESSION_COOKIE_HTTPONLY" in content
         assert "True" in content.split("SESSION_COOKIE_HTTPONLY")[1][:50]
@@ -278,13 +301,14 @@ class TestCookieSecurity:
         """Las cookies deben tener SameSite=Lax o Strict."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         app_path = os.path.join(project_root, "src", "web", "app.py")
-        with open(app_path, "r") as f:
+        with open(app_path) as f:
             content = f.read()
         assert "SESSION_COOKIE_SAMESITE" in content
 
     def test_session_secret_from_env(self):
         """SESSION_SECRET debe venir de variable de entorno."""
         from src.config import SESSION_SECRET
+
         assert len(SESSION_SECRET) >= 32, "SESSION_SECRET demasiado corto"
 
 
@@ -292,42 +316,49 @@ class TestCookieSecurity:
 # 3.9: Sandbox code_runner
 # ══════════════════════════════════════════════════════════════
 
+
 class TestSandboxSecurity:
     """Verificar que el sandbox bloquea código peligroso."""
 
     def test_sandbox_blocks_import_os(self):
         """El sandbox debe bloquear import os."""
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("import os\nresult = os.getcwd()")
         assert not result.success
 
     def test_sandbox_blocks_import_sys(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("import sys\nresult = sys.path")
         assert not result.success
 
     def test_sandbox_blocks_eval(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
-        result = sandbox.execute_python('result = eval("__import__(\'os\').getcwd()")')
+        result = sandbox.execute_python("result = eval(\"__import__('os').getcwd()\")")
         assert not result.success
 
     def test_sandbox_blocks_exec(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python('exec("import os")')
         assert not result.success
 
     def test_sandbox_blocks_open(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python('result = open("/etc/passwd").read()')
         assert not result.success
 
     def test_sandbox_blocks_subprocess(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("import subprocess\nresult = subprocess.run(['ls'])")
         assert not result.success
@@ -335,6 +366,7 @@ class TestSandboxSecurity:
     def test_sandbox_allows_safe_modules(self):
         """El sandbox debe permitir módulos seguros (math, json, etc.)."""
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("import math\nresult = math.pi")
         assert result.success
@@ -342,6 +374,7 @@ class TestSandboxSecurity:
     def test_sandbox_timeout(self):
         """El sandbox debe respetar el timeout."""
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox(timeout=2)
         result = sandbox.execute_python("import time\ntime.sleep(10)\nresult = 1")
         assert not result.success
@@ -349,6 +382,7 @@ class TestSandboxSecurity:
     def test_sandbox_output_capture(self):
         """El sandbox debe capturar stdout."""
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("print('hello world')\nresult = 42")
         assert result.success
@@ -356,12 +390,14 @@ class TestSandboxSecurity:
 
     def test_sandbox_empty_code(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("")
         assert not result.success
 
     def test_sandbox_syntax_error(self):
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python("def (invalid")
         assert not result.success
@@ -369,6 +405,7 @@ class TestSandboxSecurity:
     def test_sandbox_input_vars(self):
         """Las variables de input deben estar disponibles en el sandbox."""
         from src.tools.code_runner.sandbox import CodeSandbox
+
         sandbox = CodeSandbox()
         result = sandbox.execute_python(
             "result = input_vars.get('x', 0) + input_vars.get('y', 0)",
@@ -382,6 +419,7 @@ class TestSandboxSecurity:
 # 3.6: XSS protection
 # ══════════════════════════════════════════════════════════════
 
+
 class TestXSSProtection:
     """Verificar protección contra XSS."""
 
@@ -389,13 +427,14 @@ class TestXSSProtection:
         """Debe existir una función de sanitización en app.py."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         app_path = os.path.join(project_root, "src", "web", "app.py")
-        with open(app_path, "r") as f:
+        with open(app_path) as f:
             content = f.read()
         assert "_sanitize" in content or "sanitize" in content.lower()
 
     def test_flask_autoescaping(self):
         """Flask auto-escapes HTML en templates por defecto."""
         from src.web.app import create_app
+
         app = create_app()
         assert app.jinja_env.autoescape is not False
 
@@ -404,6 +443,7 @@ class TestXSSProtection:
 # Auditoría semgrep simplificada
 # ══════════════════════════════════════════════════════════════
 
+
 class TestSemgrepFindingsTriaged:
     """Verificar que los findings de semgrep son conocidos y mitigados."""
 
@@ -411,7 +451,7 @@ class TestSemgrepFindingsTriaged:
         """El exec() en sandbox.py es intencional y mitigado con AST validation."""
         project_root = os.path.join(os.path.dirname(__file__), "..", "..")
         sandbox_path = os.path.join(project_root, "src", "tools", "code_runner", "sandbox.py")
-        with open(sandbox_path, "r") as f:
+        with open(sandbox_path) as f:
             content = f.read()
         # Verificar que hay validación AST antes del exec
         assert "_validate_source" in content
@@ -420,8 +460,10 @@ class TestSemgrepFindingsTriaged:
 
     def test_sql_injection_in_update_user_is_safe(self):
         """El f-string en update_user() es seguro porque usa allowlist de columnas."""
-        from src.data.database_manager import DatabaseManager
         import inspect
+
+        from src.data.database_manager import DatabaseManager
+
         source = inspect.getsource(DatabaseManager.update_user)
         assert "allowed" in source  # Solo columnas permitidas
         assert "set_parts" in source  # Construye parámetros de forma segura

@@ -21,6 +21,7 @@ Seguridad:
 - Bloqueo de eval/exec/open
 - Sin acceso a red ni filesystem
 """
+
 from src.tools.code_runner.sandbox import CodeSandbox, SandboxResult
 from src.utils.logger import setup_logging
 
@@ -75,10 +76,7 @@ class CodeRunnerTool:
             output_var=output_var,
         )
 
-        logger.info(
-            f"Code runner: {'OK' if result.success else 'FAIL'} "
-            f"({result.execution_time_ms}ms)"
-        )
+        logger.info(f"Code runner: {'OK' if result.success else 'FAIL'} ({result.execution_time_ms}ms)")
 
         return {
             "success": result.success,
@@ -118,6 +116,7 @@ class CodeRunnerTool:
         # Verificar sintaxis
         try:
             import ast
+
             ast.parse(code)
         except SyntaxError as e:
             return {
@@ -131,8 +130,6 @@ class CodeRunnerTool:
             "errors": [],
             "warnings": [],
         }
-
-
 
     @staticmethod
     def get_tool_definition() -> dict:

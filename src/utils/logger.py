@@ -1,11 +1,12 @@
 """
 Workflow Determinista — Logging Estructurado
 """
+
 import logging
 import sys
 from pathlib import Path
 
-from src.config import DATA_DIR, LOG_LEVEL, LOG_FORMAT, LOG_DATE_FORMAT
+from src.config import DATA_DIR, LOG_DATE_FORMAT, LOG_FORMAT, LOG_LEVEL
 
 
 class AuditLogger:
@@ -38,10 +39,7 @@ def setup_logging(name: str = "workflow_determinista") -> logging.Logger:
         # File handler
         log_dir = DATA_DIR
         log_dir.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(
-            log_dir / "workflow_determinista.log",
-            encoding="utf-8"
-        )
+        file_handler = logging.FileHandler(log_dir / "workflow_determinista.log", encoding="utf-8")
         file_handler.setFormatter(logging.Formatter(LOG_FORMAT, LOG_DATE_FORMAT))
         logger.addHandler(file_handler)
 

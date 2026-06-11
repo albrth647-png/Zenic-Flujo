@@ -18,9 +18,11 @@ Merge strategies:
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 from typing import Any
+
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -29,10 +31,14 @@ logger = setup_logging(__name__)
 class ForkResult:
     """Resultado de la ejecución de un fork/parallel."""
 
-    def __init__(self, status: str, branches: list[dict],
-                 merge_strategy: str = "all",
-                 duration_ms: int = 0,
-                 error_message: str | None = None):
+    def __init__(
+        self,
+        status: str,
+        branches: list[dict],
+        merge_strategy: str = "all",
+        duration_ms: int = 0,
+        error_message: str | None = None,
+    ):
         self.status = status  # 'completed' | 'partial' | 'failed'
         self.branches = branches
         self.merge_strategy = merge_strategy
@@ -43,9 +49,14 @@ class ForkResult:
 class JoinResult:
     """Resultado de la unión de ramas paralelas."""
 
-    def __init__(self, status: str, merged_output: dict,
-                 branch_count: int, duration_ms: int = 0,
-                 error_message: str | None = None):
+    def __init__(
+        self,
+        status: str,
+        merged_output: dict,
+        branch_count: int,
+        duration_ms: int = 0,
+        error_message: str | None = None,
+    ):
         self.status = status
         self.merged_output = merged_output
         self.branch_count = branch_count
@@ -108,14 +119,16 @@ class ForkHandler:
 
         if len(branches) > self.MAX_BRANCHES:
             logger.warning(f"Parallel: truncado de {len(branches)} a {self.MAX_BRANCHES} ramas")
-            branches = branches[:self.MAX_BRANCHES]
+            branches = branches[: self.MAX_BRANCHES]
 
         merge_strategy = step.get("merge_strategy", "all")
         timeout = step.get("timeout", self.DEFAULT_TIMEOUT)
         step_id = step.get("id", 0)
 
-        logger.info(f"ForkHandler: Ejecutando {len(branches)} ramas en paralelo "
-                    f"(strategy={merge_strategy}, timeout={timeout}s)")
+        logger.info(
+            f"ForkHandler: Ejecutando {len(branches)} ramas en paralelo "
+            f"(id={step_id}, strategy={merge_strategy}, timeout={timeout}s)"
+        )
 
         start_time = time.time()
         results: list[dict | None] = [None] * len(branches)
@@ -126,7 +139,7 @@ class ForkHandler:
 
         def _run_branch(branch: dict, idx: int):
             """Ejecuta una rama completa con sus pasos internos.
-            
+
             Cada rama recibe su PROPIA copia del context para evitar
             condiciones de carrera (ej: _last_step_id).
             """
@@ -141,24 +154,28 @@ class ForkHandler:
             for inner_step in branch_steps:
                 # Verificar early exit (strategy 'race' o 'any')
                 if early_exit.is_set():
-                    branch_results.append({
-                        "step_id": inner_step.get("id"),
-                        "status": "cancelled",
-                        "reason": "early_exit",
-                    })
+                    branch_results.append(
+                        {
+                            "step_id": inner_step.get("id"),
+                            "status": "cancelled",
+                            "reason": "early_exit",
+                        }
+                    )
                     continue
 
                 try:
                     result = self._step_executor.execute(inner_step, branch_context)
-                    branch_results.append({
-                        "step_id": inner_step.get("id"),
-                        "tool": inner_step.get("tool"),
-                        "action": inner_step.get("action"),
-                        "status": result.status,
-                        "output": result.output_data,
-                        "duration_ms": result.duration_ms,
-                        "error": result.error_message,
-                    })
+                    branch_results.append(
+                        {
+                            "step_id": inner_step.get("id"),
+                            "tool": inner_step.get("tool"),
+                            "action": inner_step.get("action"),
+                            "status": result.status,
+                            "output": result.output_data,
+                            "duration_ms": result.duration_ms,
+                            "error": result.error_message,
+                        }
+                    )
                     if result.status == "failed":
                         branch_status = "failed"
                         branch_error = result.error_message
@@ -166,11 +183,13 @@ class ForkHandler:
                             early_exit.set()
                         break
                 except Exception as e:
-                    branch_results.append({
-                        "step_id": inner_step.get("id"),
-                        "status": "failed",
-                        "error": str(e),
-                    })
+                    branch_results.append(
+                        {
+                            "step_id": inner_step.get("id"),
+                            "status": "failed",
+                            "error": str(e),
+                        }
+                    )
                     branch_status = "failed"
                     branch_error = str(e)
                     if merge_strategy == "race":
@@ -230,18 +249,13 @@ class ForkHandler:
             global_status = "partial"
         elif merge_strategy == "all" and failed_count > 0:
             global_status = "failed"
-        elif merge_strategy in ("any", "race") and completed_count > 0:
-            global_status = "completed"
-        elif completed_count == len(branches):
+        elif (merge_strategy in ("any", "race") and completed_count > 0) or completed_count == len(branches):
             global_status = "completed"
         else:
             global_status = "partial"
 
         # Recolectar primer error de ramas fallidas para el StepResult
-        error_msg = next(
-            (b.get("error") for b in results if b and b.get("error")),
-            None
-        )
+        error_msg = next((b.get("error") for b in results if b and b.get("error")), None)
 
         return ForkResult(
             status=global_status,
@@ -281,8 +295,9 @@ class ForkHandler:
         max_concurrency = step.get("max_concurrency", 10)
         timeout = step.get("timeout", self.DEFAULT_TIMEOUT)
 
-        from src.utils.helpers import resolve_variables, safe_get
         import json
+
+        from src.utils.helpers import resolve_variables, safe_get
 
         # Resolver la colección desde el contexto
         collection = None
@@ -293,12 +308,12 @@ class ForkHandler:
             path = collection_ref.lstrip("$")
             collection = safe_get(context, path)
         else:
-            collection_str = resolve_variables(collection_ref, context) if isinstance(collection_ref, str) else collection_ref
+            collection_str = (
+                resolve_variables(collection_ref, context) if isinstance(collection_ref, str) else collection_ref
+            )
             if isinstance(collection_str, str):
-                try:
+                with contextlib.suppress(json.JSONDecodeError, TypeError):
                     collection = json.loads(collection_str)
-                except (json.JSONDecodeError, TypeError):
-                    pass
             else:
                 collection = collection_str
 
@@ -335,35 +350,41 @@ class ForkHandler:
                 for inner_step in inner_steps:
                     try:
                         result = self._step_executor.execute(inner_step, iter_context)
-                        item_results.append({
-                            "step_id": inner_step.get("id"),
-                            "status": result.status,
-                            "output": result.output_data,
-                            "error": result.error_message,
-                        })
+                        item_results.append(
+                            {
+                                "step_id": inner_step.get("id"),
+                                "status": result.status,
+                                "output": result.output_data,
+                                "error": result.error_message,
+                            }
+                        )
                         if result.status == "failed":
                             if merge_strategy == "race":
                                 early_exit.set()
                             break
                     except Exception as e:
-                        item_results.append({
-                            "step_id": inner_step.get("id"),
-                            "status": "failed",
-                            "error": str(e),
-                        })
+                        item_results.append(
+                            {
+                                "step_id": inner_step.get("id"),
+                                "status": "failed",
+                                "error": str(e),
+                            }
+                        )
                         if merge_strategy == "race":
                             early_exit.set()
                         break
 
                 with lock:
-                    results.append({
-                        "index": idx,
-                        item_var: item,
-                        "status": "completed" if not any(
-                            r["status"] == "failed" for r in item_results
-                        ) else "failed",
-                        "steps": item_results,
-                    })
+                    results.append(
+                        {
+                            "index": idx,
+                            item_var: item,
+                            "status": "completed"
+                            if not any(r["status"] == "failed" for r in item_results)
+                            else "failed",
+                            "steps": item_results,
+                        }
+                    )
                     if merge_strategy == "any" and item_results and item_results[-1]["status"] == "completed":
                         early_exit.set()
 
@@ -489,8 +510,7 @@ class JoinHandler:
                 if key not in merged["branches"]:
                     merged["branches"][key] = {
                         "status": branch.get("status", "unknown"),
-                        "output": branch.get("steps", [{}])[-1].get("output", {})
-                        if branch.get("steps") else {},
+                        "output": branch.get("steps", [{}])[-1].get("output", {}) if branch.get("steps") else {},
                     }
 
         return merged
@@ -545,26 +565,40 @@ class JoinHandler:
                     "name": "Parallel",
                     "description": "Ramas diferentes en paralelo",
                     "params": [
-                        {"name": "branches", "type": "list", "required": True,
-                         "label": "Ramas (cada una con sus steps)"},
-                        {"name": "merge_strategy", "type": "select",
-                         "options": ["all", "any", "race"],
-                         "default": "all", "label": "Estrategia de merge"},
-                        {"name": "timeout", "type": "number",
-                         "default": 120, "label": "Timeout (segundos)"},
+                        {
+                            "name": "branches",
+                            "type": "list",
+                            "required": True,
+                            "label": "Ramas (cada una con sus steps)",
+                        },
+                        {
+                            "name": "merge_strategy",
+                            "type": "select",
+                            "options": ["all", "any", "race"],
+                            "default": "all",
+                            "label": "Estrategia de merge",
+                        },
+                        {"name": "timeout", "type": "number", "default": 120, "label": "Timeout (segundos)"},
                     ],
                 },
                 "fork": {
                     "name": "Fork",
                     "description": "Mismos steps para cada item de una colección",
                     "params": [
-                        {"name": "collection", "type": "string", "required": True,
-                         "label": "Colección (referencia $input.items)"},
-                        {"name": "merge_strategy", "type": "select",
-                         "options": ["all", "any", "race"],
-                         "default": "all", "label": "Estrategia de merge"},
-                        {"name": "max_concurrency", "type": "number",
-                         "default": 10, "label": "Máx. concurrencia"},
+                        {
+                            "name": "collection",
+                            "type": "string",
+                            "required": True,
+                            "label": "Colección (referencia $input.items)",
+                        },
+                        {
+                            "name": "merge_strategy",
+                            "type": "select",
+                            "options": ["all", "any", "race"],
+                            "default": "all",
+                            "label": "Estrategia de merge",
+                        },
+                        {"name": "max_concurrency", "type": "number", "default": 10, "label": "Máx. concurrencia"},
                     ],
                 },
             },

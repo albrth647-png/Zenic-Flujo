@@ -1,12 +1,14 @@
 """Test UI completo con Playwright - Navega todo el proyecto en tiempo real"""
+
 import asyncio
+
 from playwright.async_api import async_playwright
+
 
 async def run_ui_test():
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True,
-            args=['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+            headless=True, args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
         )
         page = await browser.new_page()
         results = []
@@ -124,5 +126,6 @@ async def run_ui_test():
             if status == "FAIL":
                 all_pass = False
         print(f"\n  {'✅ TODAS LAS PRUEBAS PASARON' if all_pass else '❌ ALGUNAS PRUEBAS FALLARON'}")
+
 
 asyncio.run(run_ui_test())

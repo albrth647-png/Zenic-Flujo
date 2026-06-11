@@ -15,11 +15,11 @@ Mejoras sobre el APIConnectorService original:
 
 from __future__ import annotations
 
-import json
-import time
-import threading
 import hashlib
-from typing import Any
+import json
+import threading
+import time
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 from src.utils.logger import setup_logging
@@ -30,6 +30,7 @@ logger = setup_logging(__name__)
 # ===================================================================
 # 5.1 — Rate Limiting (Token Bucket por dominio)
 # ===================================================================
+
 
 class RateLimiter:
     """
@@ -75,8 +76,7 @@ class RateLimiter:
         now = time.time()
         elapsed = now - bucket["last_refill"]
         tokens_to_add = (elapsed / self._window_seconds) * bucket["max_tokens"]
-        bucket["tokens"] = min(bucket["max_tokens"],
-                               bucket["tokens"] + tokens_to_add)
+        bucket["tokens"] = min(bucket["max_tokens"], bucket["tokens"] + tokens_to_add)
         bucket["last_refill"] = now
 
     def acquire(self, url: str, cost: int = 1) -> bool:
@@ -102,8 +102,7 @@ class RateLimiter:
             else:
                 bucket["blocked_requests"] += 1
                 logger.warning(
-                    f"Rate limit excedido para {domain}: "
-                    f"{bucket['tokens']:.1f}/{bucket['max_tokens']} tokens"
+                    f"Rate limit excedido para {domain}: {bucket['tokens']:.1f}/{bucket['max_tokens']} tokens"
                 )
                 return False
 
@@ -154,6 +153,7 @@ class RateLimiter:
 # 5.3 — Response Cache
 # ===================================================================
 
+
 class ResponseCache:
     """
     Cache de respuestas HTTP en memoria.
@@ -171,16 +171,14 @@ class ResponseCache:
         self._cache: dict[str, dict] = {}
         self._lock = threading.RLock()
 
-    def _make_key(self, method: str, url: str,
-                  body: dict | None = None) -> str:
+    def _make_key(self, method: str, url: str, body: dict | None = None) -> str:
         """Genera una key única para cache."""
         raw = f"{method.upper()}:{url}"
         if body:
             raw += f":{hashlib.md5(json.dumps(body, sort_keys=True).encode()).hexdigest()}"
         return hashlib.md5(raw.encode()).hexdigest()
 
-    def get(self, method: str, url: str,
-            body: dict | None = None) -> dict | None:
+    def get(self, method: str, url: str, body: dict | None = None) -> dict | None:
         """
         Obtiene una respuesta del cache si no ha expirado.
 
@@ -207,9 +205,9 @@ class ResponseCache:
             logger.debug(f"Cache HIT: {method} {url}")
             return entry["response"]
 
-    def set(self, method: str, url: str, response: dict,
-            body: dict | None = None,
-            ttl_seconds: int | None = None) -> None:
+    def set(
+        self, method: str, url: str, response: dict, body: dict | None = None, ttl_seconds: int | None = None
+    ) -> None:
         """
         Almacena una respuesta en cache.
 
@@ -257,8 +255,7 @@ class ResponseCache:
                 return count
 
             keys_to_delete = [
-                k for k, v in self._cache.items()
-                if url_pattern.lower() in str(v.get("response", {})).lower()
+                k for k, v in self._cache.items() if url_pattern.lower() in str(v.get("response", {})).lower()
             ]
             for k in keys_to_delete:
                 del self._cache[k]
@@ -279,13 +276,8 @@ class ResponseCache:
         """Estadísticas del cache."""
         with self._lock:
             total = len(self._cache)
-            active = sum(
-                1 for e in self._cache.values()
-                if time.time() <= e["expires_at"]
-            )
-            total_hits = sum(
-                e.get("hits", 0) for e in self._cache.values()
-            )
+            active = sum(1 for e in self._cache.values() if time.time() <= e["expires_at"])
+            total_hits = sum(e.get("hits", 0) for e in self._cache.values())
             return {
                 "total_entries": total,
                 "active_entries": active,
@@ -299,6 +291,7 @@ class ResponseCache:
 # ===================================================================
 # 5.2 — Paginación Automática
 # ===================================================================
+
 
 class PaginationCollector:
     """
@@ -314,18 +307,16 @@ class PaginationCollector:
     """
 
     # Patrones comunes para detectar paginación en respuestas JSON
-    NEXT_PAGE_KEYS = {"next_page", "nextPage", "next", "next_url", "nextUrl"}
-    CURSOR_KEYS = {"cursor", "next_cursor", "nextCursor", "after", "page_token", "pageToken"}
-    HAS_MORE_KEYS = {"has_more", "hasMore", "more"}
-    TOTAL_KEYS = {"total", "total_count", "totalCount", "count", "total_items", "totalItems"}
+    NEXT_PAGE_KEYS: ClassVar[set[str]] = {"next_page", "nextPage", "next", "next_url", "nextUrl"}
+    CURSOR_KEYS: ClassVar[set[str]] = {"cursor", "next_cursor", "nextCursor", "after", "page_token", "pageToken"}
+    HAS_MORE_KEYS: ClassVar[set[str]] = {"has_more", "hasMore", "more"}
+    TOTAL_KEYS: ClassVar[set[str]] = {"total", "total_count", "totalCount", "count", "total_items", "totalItems"}
 
-    def __init__(self, max_pages: int = 10,
-                 max_total_items: int = 1000):
+    def __init__(self, max_pages: int = 10, max_total_items: int = 1000):
         self.max_pages = max_pages
         self.max_total_items = max_total_items
 
-    def collect_page_based(self, url: str, params: dict,
-                           response: dict, pages_left: int) -> dict:
+    def collect_page_based(self, url: str, params: dict, response: dict, pages_left: int) -> dict:
         """
         Navega paginación page-based.
 
@@ -377,8 +368,7 @@ class PaginationCollector:
         new_params["page"] = next_page
         return {"next_url": url, "next_params": new_params, "stop": False}
 
-    def collect_cursor_based(self, url: str, params: dict,
-                             response: dict, pages_left: int) -> dict:
+    def collect_cursor_based(self, url: str, params: dict, response: dict, pages_left: int) -> dict:
         """
         Navega paginación cursor-based.
 
@@ -427,8 +417,7 @@ class PaginationCollector:
 
         return {"next_url": url, "next_params": new_params, "stop": False}
 
-    def collect_offset_based(self, url: str, params: dict,
-                             response: dict, pages_left: int) -> dict:
+    def collect_offset_based(self, url: str, params: dict, response: dict, pages_left: int) -> dict:
         """
         Navega paginación offset-based.
 
@@ -482,6 +471,7 @@ class PaginationCollector:
 # 5.4 — Webhook Callback Receiver
 # ===================================================================
 
+
 class WebhookCallbackRegistry:
     """
     Registro de callbacks asíncronos para webhooks.
@@ -500,8 +490,7 @@ class WebhookCallbackRegistry:
         self._callbacks: dict[str, dict] = {}
         self._lock = threading.RLock()
 
-    def register(self, callback_url: str, original_request: dict,
-                 timeout_seconds: int = 3600) -> str:
+    def register(self, callback_url: str, original_request: dict, timeout_seconds: int = 3600) -> str:
         """
         Registra un callback webhook.
 
@@ -514,6 +503,7 @@ class WebhookCallbackRegistry:
             ID único del callback
         """
         import secrets
+
         callback_id = secrets.token_hex(16)
 
         with self._lock:
@@ -545,11 +535,13 @@ class WebhookCallbackRegistry:
         with self._lock:
             if callback_id not in self._callbacks:
                 return False
-            self._callbacks[callback_id].update({
-                "status": "completed",
-                "response": response,
-                "completed_at": time.time(),
-            })
+            self._callbacks[callback_id].update(
+                {
+                    "status": "completed",
+                    "response": response,
+                    "completed_at": time.time(),
+                }
+            )
         logger.info(f"WebhookCallback completado: {callback_id}")
         return True
 
@@ -567,11 +559,13 @@ class WebhookCallbackRegistry:
         with self._lock:
             if callback_id not in self._callbacks:
                 return False
-            self._callbacks[callback_id].update({
-                "status": "failed",
-                "error": error,
-                "completed_at": time.time(),
-            })
+            self._callbacks[callback_id].update(
+                {
+                    "status": "failed",
+                    "error": error,
+                    "completed_at": time.time(),
+                }
+            )
         logger.warning(f"WebhookCallback fallido: {callback_id}: {error}")
         return True
 
@@ -587,17 +581,13 @@ class WebhookCallbackRegistry:
         """Lista callbacks pendientes."""
         with self._lock:
             now = time.time()
-            return [
-                dict(c) for c in self._callbacks.values()
-                if c["status"] == "pending" and now <= c["expires_at"]
-            ]
+            return [dict(c) for c in self._callbacks.values() if c["status"] == "pending" and now <= c["expires_at"]]
 
     def cleanup_expired(self) -> int:
         """Limpia callbacks expirados."""
         with self._lock:
             now = time.time()
-            expired = [k for k, v in self._callbacks.items()
-                       if now > v["expires_at"]]
+            expired = [k for k, v in self._callbacks.items() if now > v["expires_at"]]
             for k in expired:
                 del self._callbacks[k]
             return len(expired)
@@ -606,6 +596,7 @@ class WebhookCallbackRegistry:
 # ===================================================================
 # 5.6 — XML Support
 # ===================================================================
+
 
 class XMLProcessor:
     """
@@ -627,6 +618,7 @@ class XMLProcessor:
         """
         try:
             import xmltodict
+
             result = xmltodict.parse(xml_string)
             return {"parsed": result, "format": "xml", "parser": "xmltodict"}
         except ImportError:
@@ -649,6 +641,7 @@ class XMLProcessor:
         """
         try:
             import xmltodict
+
             result = xmltodict.unparse({root_name: data}, pretty=True)
             return result
         except ImportError:
@@ -664,9 +657,10 @@ class XMLProcessor:
         Extrae tags y contenido de forma simple.
         """
         import re
+
         result = {}
         # Extraer tags con contenido
-        pattern = r'<(\w+)>([^<]+)</\1>'
+        pattern = r"<(\w+)>([^<]+)</\1>"
         for match in re.finditer(pattern, xml_string):
             tag = match.group(1)
             content = match.group(2).strip()
@@ -679,8 +673,7 @@ class XMLProcessor:
         return {"parsed": result, "format": "xml", "parser": "basic"}
 
     @staticmethod
-    def _basic_generate(data: dict, root_name: str = "root",
-                        indent: int = 0) -> str:
+    def _basic_generate(data: dict, root_name: str = "root", indent: int = 0) -> str:
         """Generación XML básica sin xmltodict."""
         indent_str = "  " * indent
         lines = [f"{indent_str}<{root_name}>"]
@@ -690,13 +683,9 @@ class XMLProcessor:
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, dict):
-                        lines.append(
-                            XMLProcessor._basic_generate(item, key, indent + 1)
-                        )
+                        lines.append(XMLProcessor._basic_generate(item, key, indent + 1))
                     else:
-                        lines.append(
-                            f"{indent_str}  <{key}>{item}</{key}>"
-                        )
+                        lines.append(f"{indent_str}  <{key}>{item}</{key}>")
             else:
                 lines.append(f"{indent_str}  <{key}>{value}</{key}>")
         lines.append(f"{indent_str}</{root_name}>")
@@ -706,6 +695,7 @@ class XMLProcessor:
 # ===================================================================
 # APIConnectorService Mejorado
 # ===================================================================
+
 
 class APIConnectorService:
     """
@@ -720,7 +710,7 @@ class APIConnectorService:
     - Auto-detección de formato de respuesta
     """
 
-    ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    ALLOWED_METHODS: ClassVar[list[str]] = ["GET", "POST", "PUT", "DELETE", "PATCH"]
 
     def __init__(self):
         self._rate_limiter = RateLimiter(max_tokens=60, window_seconds=60)
@@ -745,23 +735,26 @@ class APIConnectorService:
 
     # ── Request principal ───────────────────────────────────
 
-    def request(self, method: str = "GET", url: str = "",
-                headers: dict | None = None,
-                body: dict | None = None,
-                params: dict | None = None,
-                auth_type: str = "none",
-                auth_credentials: dict | None = None,
-                timeout: int = 30,
-                # Sprint 5: Nuevos parámetros
-                cache_ttl: int | None = None,
-                use_cache: bool = True,
-                pagination: str | None = None,
-                max_pages: int = 5,
-                pagination_params: dict | None = None,
-                response_format: str = "auto",
-                async_callback_url: str | None = None,
-                rate_limit_cost: int = 1,
-                ) -> dict:
+    def request(
+        self,
+        method: str = "GET",
+        url: str = "",
+        headers: dict | None = None,
+        body: dict | None = None,
+        params: dict | None = None,
+        auth_type: str = "none",
+        auth_credentials: dict | None = None,
+        timeout: int = 30,
+        # Sprint 5: Nuevos parámetros
+        cache_ttl: int | None = None,
+        use_cache: bool = True,
+        pagination: str | None = None,
+        max_pages: int = 5,
+        pagination_params: dict | None = None,
+        response_format: str = "auto",
+        async_callback_url: str | None = None,
+        rate_limit_cost: int = 1,
+    ) -> dict:
         """
         Realiza una petición HTTP con todas las mejoras Sprint 5.
 
@@ -796,9 +789,7 @@ class APIConnectorService:
         # ── 2. Normalizar método ──────────────────────────
         method = method.upper()
         if method not in self.ALLOWED_METHODS:
-            return self._error(
-                f"Método no soportado: {method}", start_time
-            )
+            return self._error(f"Método no soportado: {method}", start_time)
 
         # ── 3. Rate limiting ──────────────────────────────
         if rate_limit_cost > 0 and not self._rate_limiter.acquire(url, rate_limit_cost):
@@ -863,9 +854,7 @@ class APIConnectorService:
             result = self._transform_response(result, response_format)
 
         # ── 8. Cachear resultado (solo GET exitoso) ──────
-        if (use_cache and method == "GET"
-                and result.get("status_code", 0) < 400
-                and not pagination):
+        if use_cache and method == "GET" and result.get("status_code", 0) < 400 and not pagination:
             self._cache.set(method, url, result, body, cache_ttl)
 
         # ── 9. Si es async, incluir callback_id ──────────
@@ -878,16 +867,20 @@ class APIConnectorService:
 
     # ── Request con paginación ─────────────────────────────
 
-    def _request_with_pagination(self, method: str, url: str,
-                                  headers: dict | None,
-                                  params: dict | None,
-                                  auth_type: str,
-                                  auth_credentials: dict | None,
-                                  timeout: int,
-                                  pagination: str,
-                                  max_pages: int,
-                                  pagination_params: dict | None,
-                                  start_time: float) -> dict:
+    def _request_with_pagination(
+        self,
+        method: str,
+        url: str,
+        headers: dict | None,
+        params: dict | None,
+        auth_type: str,
+        auth_credentials: dict | None,
+        timeout: int,
+        pagination: str,
+        max_pages: int,
+        pagination_params: dict | None,
+        start_time: float,
+    ) -> dict:
         """
         Realiza requests paginados y recolecta todos los resultados.
 
@@ -929,8 +922,10 @@ class APIConnectorService:
         while pages < max_pages:
             try:
                 response = self._execute_request(
-                    method=method, url=current_url,
-                    headers=headers, body=None,
+                    method=method,
+                    url=current_url,
+                    headers=headers,
+                    body=None,
                     params=current_params,
                     auth_type=auth_type,
                     auth_credentials=auth_credentials,
@@ -942,9 +937,7 @@ class APIConnectorService:
                 break
 
             if response.get("status_code", 0) >= 400:
-                errors.append(
-                    f"HTTP {response['status_code']}: {response.get('body', response.get('error', ''))}"
-                )
+                errors.append(f"HTTP {response['status_code']}: {response.get('body', response.get('error', ''))}")
                 if response.get("body"):
                     all_items.append(response["body"])
                 break
@@ -962,17 +955,23 @@ class APIConnectorService:
 
             if pagination == "page":
                 nav = collector.collect_page_based(
-                    current_url, current_params, response,
+                    current_url,
+                    current_params,
+                    response,
                     max_pages - pages,
                 )
             elif pagination == "cursor":
                 nav = collector.collect_cursor_based(
-                    current_url, current_params, response,
+                    current_url,
+                    current_params,
+                    response,
                     max_pages - pages,
                 )
             elif pagination == "offset":
                 nav = collector.collect_offset_based(
-                    current_url, current_params, response,
+                    current_url,
+                    current_params,
+                    response,
                     max_pages - pages,
                 )
             else:
@@ -1009,14 +1008,18 @@ class APIConnectorService:
 
     # ── Ejecución HTTP base ───────────────────────────────
 
-    def _execute_request(self, method: str, url: str,
-                          headers: dict | None,
-                          body: dict | None,
-                          params: dict | None,
-                          auth_type: str,
-                          auth_credentials: dict | None,
-                          timeout: int,
-                          start_time: float) -> dict:
+    def _execute_request(
+        self,
+        method: str,
+        url: str,
+        headers: dict | None,
+        body: dict | None,
+        params: dict | None,
+        auth_type: str,
+        auth_credentials: dict | None,
+        timeout: int,
+        start_time: float,
+    ) -> dict:
         """Ejecuta una request HTTP individual (sin paginación)."""
         import requests
 
@@ -1038,7 +1041,8 @@ class APIConnectorService:
 
         try:
             response = requests.request(
-                method=method, url=url,
+                method=method,
+                url=url,
                 headers=request_headers or None,
                 json=body,
                 params=params,
@@ -1050,9 +1054,7 @@ class APIConnectorService:
 
             # Auto-detectar formato de respuesta
             content_type = response.headers.get("Content-Type", "")
-            response_body = self._parse_response_body(
-                response, content_type
-            )
+            response_body = self._parse_response_body(response, content_type)
 
             return {
                 "status_code": response.status_code,
@@ -1067,9 +1069,7 @@ class APIConnectorService:
             return self._error(f"Error de conexión: {e}", start_time)
         except requests.exceptions.Timeout as e:
             logger.error(f"Timeout en {url}: {e}")
-            return self._error(
-                f"Timeout después de {timeout}s", start_time
-            )
+            return self._error(f"Timeout después de {timeout}s", start_time)
         except requests.exceptions.RequestException as e:
             logger.error(f"Error en petición a {url}: {e}")
             return self._error(f"Error en petición: {e}", start_time)
@@ -1100,6 +1100,7 @@ class APIConnectorService:
         if "xml" in content_type_lower:
             try:
                 import xmltodict
+
                 return {"xml_parsed": xmltodict.parse(response.text)}
             except ImportError:
                 return {"xml_raw": response.text}
@@ -1110,8 +1111,7 @@ class APIConnectorService:
         return response.text
 
     @staticmethod
-    def _transform_response(result: dict,
-                            response_format: str) -> dict:
+    def _transform_response(result: dict, response_format: str) -> dict:
         """
         Transforma la respuesta según el formato solicitado.
 
@@ -1130,9 +1130,8 @@ class APIConnectorService:
         if response_format == "xml" and isinstance(body, str):
             try:
                 import xmltodict
-                result["body"] = {
-                    "xml_parsed": xmltodict.parse(body)
-                }
+
+                result["body"] = {"xml_parsed": xmltodict.parse(body)}
                 result["format"] = "xml"
             except ImportError:
                 result["body"] = {"xml_raw": body}
@@ -1177,9 +1176,18 @@ class APIConnectorService:
         if isinstance(body, list):
             return body
         if isinstance(body, dict):
-            for key in ["data", "items", "results", "records",
-                        "results_list", "products", "leads",
-                        "invoices", "users", "contacts"]:
+            for key in [
+                "data",
+                "items",
+                "results",
+                "records",
+                "results_list",
+                "products",
+                "leads",
+                "invoices",
+                "users",
+                "contacts",
+            ]:
                 val = body.get(key)
                 if isinstance(val, list):
                     return val
@@ -1198,9 +1206,7 @@ class APIConnectorService:
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"}:
             return False
-        if not parsed.netloc:
-            return False
-        return True
+        return parsed.netloc
 
     @staticmethod
     def _error(message: str, start_time: float) -> dict:
@@ -1226,71 +1232,111 @@ class APIConnectorService:
                     "name": "Petición HTTP",
                     "description": "Realiza una petición HTTP con soporte avanzado",
                     "params": [
-                        {"name": "method", "type": "select",
-                         "options": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-                         "required": True, "default": "GET",
-                         "label": "Método HTTP"},
-                        {"name": "url", "type": "string", "required": True,
-                         "label": "URL",
-                         "placeholder": "https://api.example.com/endpoint"},
-                        {"name": "headers", "type": "dict",
-                         "required": False, "default": {},
-                         "label": "Headers"},
-                        {"name": "body", "type": "dict",
-                         "required": False, "default": {},
-                         "label": "Body (JSON)"},
-                        {"name": "params", "type": "dict",
-                         "required": False, "default": {},
-                         "label": "Query Params"},
-                        {"name": "auth_type", "type": "select",
-                         "options": ["none", "bearer", "basic", "api-key"],
-                         "required": False, "default": "none",
-                         "label": "Autenticación"},
-                        {"name": "auth_credentials", "type": "dict",
-                         "required": False, "default": {},
-                         "label": "Credenciales"},
-                        {"name": "timeout", "type": "number",
-                         "required": False, "default": 30,
-                         "label": "Timeout (segundos)"},
-                        {"name": "pagination", "type": "select",
-                         "options": [None, "page", "cursor", "offset"],
-                         "required": False, "default": None,
-                         "label": "Paginación automática"},
-                        {"name": "max_pages", "type": "number",
-                         "required": False, "default": 5,
-                         "label": "Máx. páginas a recolectar"},
-                        {"name": "use_cache", "type": "boolean",
-                         "required": False, "default": True,
-                         "label": "Usar cache"},
-                        {"name": "cache_ttl", "type": "number",
-                         "required": False, "default": 300,
-                         "label": "TTL de cache (segundos)"},
-                        {"name": "response_format", "type": "select",
-                         "options": ["auto", "json", "xml", "text"],
-                         "required": False, "default": "auto",
-                         "label": "Formato de respuesta"},
-                        {"name": "async_callback_url", "type": "string",
-                         "required": False, "default": "",
-                         "label": "URL de callback (async)"},
+                        {
+                            "name": "method",
+                            "type": "select",
+                            "options": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+                            "required": True,
+                            "default": "GET",
+                            "label": "Método HTTP",
+                        },
+                        {
+                            "name": "url",
+                            "type": "string",
+                            "required": True,
+                            "label": "URL",
+                            "placeholder": "https://api.example.com/endpoint",
+                        },
+                        {"name": "headers", "type": "dict", "required": False, "default": {}, "label": "Headers"},
+                        {"name": "body", "type": "dict", "required": False, "default": {}, "label": "Body (JSON)"},
+                        {"name": "params", "type": "dict", "required": False, "default": {}, "label": "Query Params"},
+                        {
+                            "name": "auth_type",
+                            "type": "select",
+                            "options": ["none", "bearer", "basic", "api-key"],
+                            "required": False,
+                            "default": "none",
+                            "label": "Autenticación",
+                        },
+                        {
+                            "name": "auth_credentials",
+                            "type": "dict",
+                            "required": False,
+                            "default": {},
+                            "label": "Credenciales",
+                        },
+                        {
+                            "name": "timeout",
+                            "type": "number",
+                            "required": False,
+                            "default": 30,
+                            "label": "Timeout (segundos)",
+                        },
+                        {
+                            "name": "pagination",
+                            "type": "select",
+                            "options": [None, "page", "cursor", "offset"],
+                            "required": False,
+                            "default": None,
+                            "label": "Paginación automática",
+                        },
+                        {
+                            "name": "max_pages",
+                            "type": "number",
+                            "required": False,
+                            "default": 5,
+                            "label": "Máx. páginas a recolectar",
+                        },
+                        {
+                            "name": "use_cache",
+                            "type": "boolean",
+                            "required": False,
+                            "default": True,
+                            "label": "Usar cache",
+                        },
+                        {
+                            "name": "cache_ttl",
+                            "type": "number",
+                            "required": False,
+                            "default": 300,
+                            "label": "TTL de cache (segundos)",
+                        },
+                        {
+                            "name": "response_format",
+                            "type": "select",
+                            "options": ["auto", "json", "xml", "text"],
+                            "required": False,
+                            "default": "auto",
+                            "label": "Formato de respuesta",
+                        },
+                        {
+                            "name": "async_callback_url",
+                            "type": "string",
+                            "required": False,
+                            "default": "",
+                            "label": "URL de callback (async)",
+                        },
                     ],
                 },
                 "xml_parse": {
                     "name": "Parsear XML",
                     "description": "Convierte XML a dict",
                     "params": [
-                        {"name": "xml_string", "type": "string",
-                         "required": True, "label": "String XML"},
+                        {"name": "xml_string", "type": "string", "required": True, "label": "String XML"},
                     ],
                 },
                 "xml_generate": {
                     "name": "Generar XML",
                     "description": "Convierte dict a XML",
                     "params": [
-                        {"name": "data", "type": "dict",
-                         "required": True, "label": "Datos"},
-                        {"name": "root_name", "type": "string",
-                         "required": False, "default": "root",
-                         "label": "Elemento raíz"},
+                        {"name": "data", "type": "dict", "required": True, "label": "Datos"},
+                        {
+                            "name": "root_name",
+                            "type": "string",
+                            "required": False,
+                            "default": "root",
+                            "label": "Elemento raíz",
+                        },
                     ],
                 },
                 "cache_stats": {

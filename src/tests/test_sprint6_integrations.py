@@ -5,17 +5,18 @@ Todos los tests usan mocks para no hacer llamadas reales a APIs.
 """
 
 from unittest.mock import MagicMock, patch
-from src.tools.integrations.openai_service import OpenAIService
-from src.tools.integrations.ollama_service import OllamaService
-from src.tools.integrations.postgresql_service import PostgreSQLService
-from src.tools.integrations.drive_service import DriveService
-from src.tools.integrations.stripe_service import StripeService
-from src.tools.integrations.mercadopago_service import MercadoPagoService
 
+from src.tools.integrations.drive_service import DriveService
+from src.tools.integrations.mercadopago_service import MercadoPagoService
+from src.tools.integrations.ollama_service import OllamaService
+from src.tools.integrations.openai_service import OpenAIService
+from src.tools.integrations.postgresql_service import PostgreSQLService
+from src.tools.integrations.stripe_service import StripeService
 
 # ===================================================================
 # OpenAI
 # ===================================================================
+
 
 class TestOpenAIService:
     """Tests para OpenAI connector."""
@@ -27,14 +28,13 @@ class TestOpenAIService:
         assert result["status"] == "failed"
         assert "no configurada" in result.get("error", "")
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_chat_completion(self, mock_post):
         """Chat completion exitosa."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "choices": [{"message": {"content": "Hello!", "role": "assistant"},
-                         "finish_reason": "stop"}],
+            "choices": [{"message": {"content": "Hello!", "role": "assistant"}, "finish_reason": "stop"}],
             "model": "gpt-4o-mini",
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
         }
@@ -46,7 +46,7 @@ class TestOpenAIService:
         assert result["model"] == "gpt-4o-mini"
         assert result["usage"]["total_tokens"] == 15
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_chat_api_error(self, mock_post):
         """Chat con error de API."""
         mock_response = MagicMock()
@@ -58,7 +58,7 @@ class TestOpenAIService:
         result = svc.chat_completion(messages=[{"role": "user", "content": "hi"}])
         assert result["status"] == "failed"
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_embeddings(self, mock_post):
         """Embeddings exitoso."""
         mock_response = MagicMock()
@@ -75,7 +75,7 @@ class TestOpenAIService:
         assert len(result["embeddings"]) == 1
         assert result["dimension"] == 3
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_list_models(self, mock_get):
         """Listar modelos."""
         mock_response = MagicMock()
@@ -104,10 +104,11 @@ class TestOpenAIService:
 # Ollama
 # ===================================================================
 
+
 class TestOllamaService:
     """Tests para Ollama connector."""
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_chat(self, mock_post):
         """Chat con Ollama."""
         mock_response = MagicMock()
@@ -126,7 +127,7 @@ class TestOllamaService:
         assert result["content"] == "Hello from local LLM!"
         assert result["model"] == "llama3.2"
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_generate(self, mock_post):
         """Generate texto."""
         mock_response = MagicMock()
@@ -144,7 +145,7 @@ class TestOllamaService:
         result = svc.generate(prompt="Write something")
         assert result["response"] == "Generated text"
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_embeddings(self, mock_post):
         """Embeddings Ollama."""
         mock_response = MagicMock()
@@ -157,7 +158,7 @@ class TestOllamaService:
         assert result["count"] == 1
         assert result["dimension"] == 3
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_list_models(self, mock_get):
         """Listar modelos instalados."""
         mock_response = MagicMock()
@@ -174,10 +175,11 @@ class TestOllamaService:
         result = svc.list_models()
         assert result["count"] == 2
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_connection_error(self, mock_post):
         """Error de conexión."""
         import requests
+
         mock_post.side_effect = requests.exceptions.ConnectionError()
 
         svc = OllamaService(base_url="http://localhost:11434")
@@ -185,7 +187,7 @@ class TestOllamaService:
         assert result["status"] == "failed"
         assert "conectar" in result.get("error", "")
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_pull_model(self, mock_post):
         """Descargar modelo."""
         mock_response = MagicMock()
@@ -205,6 +207,7 @@ class TestOllamaService:
 # ===================================================================
 # PostgreSQL
 # ===================================================================
+
 
 class TestPostgreSQLService:
     """Tests para PostgreSQL connector."""
@@ -230,13 +233,13 @@ class TestPostgreSQLService:
     def test_update_no_data(self):
         """Update sin datos."""
         svc = PostgreSQLService()
-        result = svc.update("users", {}, where="1=1",
-                            connection_string="pg://localhost")
+        result = svc.update("users", {}, where="1=1", connection_string="pg://localhost")
         assert result["status"] == "failed"
 
     def test_serialize_datetime(self):
         """Serialización de datetime."""
         from datetime import datetime
+
         result = PostgreSQLService._serialize(datetime(2024, 1, 1, 12, 0))
         assert "2024" in result
 
@@ -257,6 +260,7 @@ class TestPostgreSQLService:
 # Google Drive
 # ===================================================================
 
+
 class TestDriveService:
     """Tests para Google Drive connector."""
 
@@ -275,8 +279,7 @@ class TestDriveService:
     def test_upload_no_filename(self):
         """Upload sin nombre."""
         svc = DriveService()
-        result = svc.upload(access_token="tok", file_name="",
-                            content_base64="aGVsbG8=")
+        result = svc.upload(access_token="tok", file_name="", content_base64="aGVsbG8=")
         assert result["status"] == "failed"
 
     def test_download_no_token(self):
@@ -303,16 +306,22 @@ class TestDriveService:
         result = svc.create_folder(folder_name="test")
         assert result["status"] == "failed"
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_list_files_success(self, mock_get):
         """Listar archivos exitoso."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "files": [
-                {"id": "1", "name": "doc.txt", "mimeType": "text/plain",
-                 "size": "100", "createdTime": "2024-01-01",
-                 "modifiedTime": "2024-01-02", "webViewLink": "https://drive.google.com/file/d/1"}
+                {
+                    "id": "1",
+                    "name": "doc.txt",
+                    "mimeType": "text/plain",
+                    "size": "100",
+                    "createdTime": "2024-01-01",
+                    "modifiedTime": "2024-01-02",
+                    "webViewLink": "https://drive.google.com/file/d/1",
+                }
             ]
         }
         mock_get.return_value = mock_response
@@ -326,6 +335,7 @@ class TestDriveService:
 # ===================================================================
 # Stripe
 # ===================================================================
+
 
 class TestStripeService:
     """Tests para Stripe connector."""
@@ -342,13 +352,15 @@ class TestStripeService:
         result = svc.create_payment_intent(secret_key="sk_test", amount=0)
         assert result["status"] == "failed"
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_create_payment_intent(self, mock_post):
         """Crear PI exitoso."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "id": "pi_123", "amount": 5000, "currency": "usd",
+            "id": "pi_123",
+            "amount": 5000,
+            "currency": "usd",
             "status": "requires_payment_method",
             "client_secret": "secret_abc",
         }
@@ -359,14 +371,16 @@ class TestStripeService:
         assert result["id"] == "pi_123"
         assert result["status"] == "requires_payment_method"
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_create_customer(self, mock_post):
         """Crear customer."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "id": "cus_123", "email": "test@test.com",
-            "name": "Test", "created": 1700000000,
+            "id": "cus_123",
+            "email": "test@test.com",
+            "name": "Test",
+            "created": 1700000000,
         }
         mock_post.return_value = mock_response
 
@@ -374,49 +388,53 @@ class TestStripeService:
         result = svc.create_customer(secret_key="sk_test", email="test@test.com")
         assert result["id"] == "cus_123"
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_list_customers(self, mock_get):
         """Listar customers."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "data": [{"id": "cus_1", "email": "a@a.com", "name": "A",
-                      "created": 100}]
-        }
+        mock_response.json.return_value = {"data": [{"id": "cus_1", "email": "a@a.com", "name": "A", "created": 100}]}
         mock_get.return_value = mock_response
 
         svc = StripeService()
         result = svc.list_customers(secret_key="sk_test")
         assert result["count"] == 1
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_create_subscription(self, mock_post):
         """Crear suscripción."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "id": "sub_123", "status": "active",
+            "id": "sub_123",
+            "status": "active",
             "customer": "cus_123",
-            "current_period_start": 100, "current_period_end": 200,
+            "current_period_start": 100,
+            "current_period_end": 200,
         }
         mock_post.return_value = mock_response
 
         svc = StripeService()
-        result = svc.create_subscription(secret_key="sk_test",
-                                          customer_id="cus_123",
-                                          price_id="price_123")
+        result = svc.create_subscription(secret_key="sk_test", customer_id="cus_123", price_id="price_123")
         assert result["id"] == "sub_123"
         assert result["status"] == "active"
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_list_invoices(self, mock_get):
         """Listar facturas."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "data": [{"id": "in_1", "number": "INV-001",
-                      "amount_due": 5000, "currency": "usd",
-                      "status": "paid", "paid": True}]
+            "data": [
+                {
+                    "id": "in_1",
+                    "number": "INV-001",
+                    "amount_due": 5000,
+                    "currency": "usd",
+                    "status": "paid",
+                    "paid": True,
+                }
+            ]
         }
         mock_get.return_value = mock_response
 
@@ -424,17 +442,16 @@ class TestStripeService:
         result = svc.list_invoices(secret_key="sk_test")
         assert result["count"] == 1
 
-    @patch('requests.post')
-    @patch('requests.post')
-    @patch('requests.post')
+    @patch("requests.post")
+    @patch("requests.post")
+    @patch("requests.post")
     def test_create_payment_link(self, mock_pl, mock_price, mock_product):
         """Crear payment link."""
-        mock_product.return_value = MagicMock(status_code=200,
-            json=lambda: {"id": "prod_123"})
-        mock_price.return_value = MagicMock(status_code=200,
-            json=lambda: {"id": "price_123"})
-        mock_pl.return_value = MagicMock(status_code=200,
-            json=lambda: {"id": "pl_123", "url": "https://buy.stripe.com/test"})
+        mock_product.return_value = MagicMock(status_code=200, json=lambda: {"id": "prod_123"})
+        mock_price.return_value = MagicMock(status_code=200, json=lambda: {"id": "price_123"})
+        mock_pl.return_value = MagicMock(
+            status_code=200, json=lambda: {"id": "pl_123", "url": "https://buy.stripe.com/test"}
+        )
 
         svc = StripeService()
         result = svc.create_payment_link(secret_key="sk_test", amount=1000)
@@ -444,6 +461,7 @@ class TestStripeService:
 # ===================================================================
 # MercadoPago
 # ===================================================================
+
 
 class TestMercadoPagoService:
     """Tests para MercadoPago connector."""
@@ -460,7 +478,7 @@ class TestMercadoPagoService:
         result = svc.create_preference(access_token="tok")
         assert result["status"] == "failed"
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_create_preference_success(self, mock_post):
         """Crear preferencia exitosa."""
         mock_response = MagicMock()
@@ -484,13 +502,14 @@ class TestMercadoPagoService:
         assert result["id"] == "12345"
         assert "init_point" in result
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_get_payment(self, mock_get):
         """Consultar pago."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "id": 12345, "status": "approved",
+            "id": 12345,
+            "status": "approved",
             "status_detail": "accredited",
             "transaction_amount": 100.0,
             "payer": {"email": "test@test.com", "first_name": "Juan"},
@@ -504,18 +523,21 @@ class TestMercadoPagoService:
         assert result["status"] == "approved"
         assert result["amount"] == 100.0
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_search_payments(self, mock_get):
         """Buscar pagos."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "results": [
-                {"id": 1, "status": "approved",
-                 "transaction_amount": 100.0,
-                 "payer": {"email": "a@a.com"},
-                 "external_reference": "ref1",
-                 "date_created": "2024-01-01"}
+                {
+                    "id": 1,
+                    "status": "approved",
+                    "transaction_amount": 100.0,
+                    "payer": {"email": "a@a.com"},
+                    "external_reference": "ref1",
+                    "date_created": "2024-01-01",
+                }
             ],
             "paging": {"total": 1},
         }
@@ -525,13 +547,14 @@ class TestMercadoPagoService:
         result = svc.search_payments(access_token="tok")
         assert result["count"] == 1
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_create_customer(self, mock_post):
         """Crear customer."""
         mock_response = MagicMock()
         mock_response.status_code = 201
         mock_response.json.return_value = {
-            "id": "12345", "email": "test@test.com",
+            "id": "12345",
+            "email": "test@test.com",
             "first_name": "Juan",
         }
         mock_post.return_value = mock_response
@@ -563,6 +586,7 @@ class TestMercadoPagoService:
 # ===================================================================
 # Tool definitions
 # ===================================================================
+
 
 class TestToolDefinitions:
     """Tests para definiciones de herramientas."""

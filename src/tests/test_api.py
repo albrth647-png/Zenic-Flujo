@@ -2,8 +2,9 @@
 Workflow Determinista — Tests de la API Web (Flask)
 Tests de integración usando Flask test client: auth, workflows, settings, license.
 """
-import pytest
+
 import bcrypt
+import pytest
 
 
 @pytest.fixture
@@ -12,10 +13,10 @@ def app_client(db_manager, monkeypatch):
     Provee un Flask test client configurado con base de datos temporal.
     Monkey-patches module-level db, repo, event_bus in app.py to use the test DB.
     """
+    from src import config
+    from src.events.bus import EventBus
     from src.web import app as app_module
     from src.workflow.repository import WorkflowRepository
-    from src.events.bus import EventBus
-    from src import config
 
     # Reset EventBus singleton so a fresh one is created
     EventBus._instance = None
@@ -149,8 +150,7 @@ class TestWorkflowAPI:
                 "trigger_type": "manual",
                 "trigger_config": {},
                 "steps": [
-                    {"id": 1, "tool": "crm", "action": "create_lead",
-                     "params": {"name": "API Test"}},
+                    {"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "API Test"}},
                 ],
             },
         )
@@ -364,8 +364,7 @@ class TestDashboardAPI:
         # Crear workflow con ejecuciones para tener datos en el timeline
         create_resp = client.post(
             "/api/workflows",
-            json={"name": "Timeline Test WF", "trigger_type": "manual",
-                  "trigger_config": {}, "steps": []},
+            json={"name": "Timeline Test WF", "trigger_type": "manual", "trigger_config": {}, "steps": []},
         )
         assert create_resp.status_code == 201
         wf_id = create_resp.get_json()["id"]
@@ -473,8 +472,7 @@ class TestPageRoutes:
         # Create a workflow first
         create_resp = client.post(
             "/api/workflows",
-            json={"name": "Detail Page Test", "trigger_type": "manual",
-                  "trigger_config": {}, "steps": []},
+            json={"name": "Detail Page Test", "trigger_type": "manual", "trigger_config": {}, "steps": []},
         )
         wf_id = create_resp.get_json()["id"]
         response = client.get(f"/workflows/{wf_id}")
@@ -497,8 +495,7 @@ class TestWorkflowHistoryAPI:
         _login(client, password)
         create_resp = client.post(
             "/api/workflows",
-            json={"name": "History Test WF", "trigger_type": "manual",
-                  "trigger_config": {}, "steps": []},
+            json={"name": "History Test WF", "trigger_type": "manual", "trigger_config": {}, "steps": []},
         )
         wf_id = create_resp.get_json()["id"]
         response = client.get(f"/api/workflows/{wf_id}/history")
@@ -722,8 +719,9 @@ class TestAuthStatusAPI:
         """Test: POST /api/auth/login sin hash configurado retorna 401."""
         client, _ = app_client
         # Remove the password hash temporarily
-        from src.web import app as app_module
         from src.data.database_manager import DatabaseManager
+        from src.web import app as app_module
+
         # Delete the setting from DB directly
         db_inst = DatabaseManager()
         db_inst.execute("DELETE FROM settings WHERE key = ?", ("admin_password_hash",))

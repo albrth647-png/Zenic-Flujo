@@ -1,6 +1,7 @@
 """
 Workflow Determinista — Inventory Repository
 """
+
 from src.data.database_manager import DatabaseManager
 
 
@@ -8,10 +9,17 @@ class InventoryRepository:
     def __init__(self):
         self._db = DatabaseManager()
 
-    def create_product(self, sku: str, name: str, description: str = "",
-                       category: str = "", stock: int = 0,
-                       min_stock: int = 10, price: float = 0.0,
-                       user_id: int | None = None) -> dict:
+    def create_product(
+        self,
+        sku: str,
+        name: str,
+        description: str = "",
+        category: str = "",
+        stock: int = 0,
+        min_stock: int = 10,
+        price: float = 0.0,
+        user_id: int | None = None,
+    ) -> dict:
         cursor = self._db.execute(
             """INSERT INTO products (sku, name, description, category, stock, min_stock, price, user_id)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -26,26 +34,20 @@ class InventoryRepository:
     def get_product_by_sku(self, sku: str) -> dict | None:
         return self._db.fetchone("SELECT * FROM products WHERE sku = ?", (sku,))
 
-    def list_products(self, category: str | None = None,
-                      low_stock_only: bool = False,
-                      user_id: int | None = None) -> list[dict]:
+    def list_products(
+        self, category: str | None = None, low_stock_only: bool = False, user_id: int | None = None
+    ) -> list[dict]:
         if low_stock_only and user_id:
             return self._db.fetchall(
                 "SELECT * FROM products WHERE stock <= min_stock AND user_id = ? ORDER BY name",
                 (user_id,),
             )
         elif low_stock_only:
-            return self._db.fetchall(
-                "SELECT * FROM products WHERE stock <= min_stock ORDER BY name"
-            )
+            return self._db.fetchall("SELECT * FROM products WHERE stock <= min_stock ORDER BY name")
         if category:
-            return self._db.fetchall(
-                "SELECT * FROM products WHERE category = ? ORDER BY name", (category,)
-            )
+            return self._db.fetchall("SELECT * FROM products WHERE category = ? ORDER BY name", (category,))
         if user_id:
-            return self._db.fetchall(
-                "SELECT * FROM products WHERE user_id = ? ORDER BY name", (user_id,)
-            )
+            return self._db.fetchall("SELECT * FROM products WHERE user_id = ? ORDER BY name", (user_id,))
         return self._db.fetchall("SELECT * FROM products ORDER BY name")
 
     def update_product(self, product_id: int, **fields) -> dict | None:
@@ -59,9 +61,7 @@ class InventoryRepository:
         if not set_parts:
             return self.get_product(product_id)
         params.append(product_id)
-        self._db.execute(
-            f"UPDATE products SET {', '.join(set_parts)} WHERE id = ?", tuple(params)
-        )
+        self._db.execute(f"UPDATE products SET {', '.join(set_parts)} WHERE id = ?", tuple(params))
         self._db.commit()
         return self.get_product(product_id)
 
@@ -71,8 +71,7 @@ class InventoryRepository:
         self._db.commit()
         return True
 
-    def add_movement(self, product_id: int, movement_type: str,
-                     quantity: int, reason: str = "") -> dict:
+    def add_movement(self, product_id: int, movement_type: str, quantity: int, reason: str = "") -> dict:
         cursor = self._db.execute(
             "INSERT INTO stock_movements (product_id, type, quantity, reason) VALUES (?, ?, ?, ?)",
             (product_id, movement_type, quantity, reason),
@@ -87,9 +86,7 @@ class InventoryRepository:
         )
 
     def get_low_stock(self) -> list[dict]:
-        return self._db.fetchall(
-            "SELECT * FROM products WHERE stock <= min_stock ORDER BY stock ASC"
-        )
+        return self._db.fetchall("SELECT * FROM products WHERE stock <= min_stock ORDER BY stock ASC")
 
     def get_stats(self) -> dict:
         stats = self._db.fetchone(

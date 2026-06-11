@@ -18,9 +18,10 @@ Compatibilidad: mantiene la misma API que ConditionEvaluator.
 from __future__ import annotations
 
 import hashlib
+from typing import ClassVar
 
-from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
+from src.orbital.models import TWO_PI
 from src.utils.helpers import safe_get
 from src.utils.logger import setup_logging
 
@@ -46,7 +47,7 @@ class ConditionEvaluator:
     """
 
     # Operadores soportados (para fallback textual)
-    SUPPORTED_OPERATORS = ["==", "!=", ">=", "<=", ">", "<", "in", "contains"]
+    SUPPORTED_OPERATORS: ClassVar[list[str]] = ["==", "!=", ">=", "<=", ">", "<", "in", "contains"]
 
     def __init__(self):
         self._ctx = OrbitalContext()
@@ -223,7 +224,7 @@ class ConditionEvaluator:
                 continue
 
             for op in self.SUPPORTED_OPERATORS:
-                if text[i:i + len(op)] == op:
+                if text[i : i + len(op)] == op:
                     tokens.append({"type": "operator", "value": op})
                     i += len(op)
                     break
@@ -235,19 +236,21 @@ class ConditionEvaluator:
                         j += 1
                     if j >= len(text):
                         raise ValueError(f"String sin cerrar: {text[i:]}")
-                    tokens.append({"type": "string", "value": text[i + 1:j]})
+                    tokens.append({"type": "string", "value": text[i + 1 : j]})
                     i = j + 1
                     continue
 
-                if char.isdigit() or (char == '-' and i + 1 < len(text) and text[i + 1].isdigit()):
+                if char.isdigit() or (char == "-" and i + 1 < len(text) and text[i + 1].isdigit()):
                     j = i + 1
-                    while j < len(text) and (text[j].isdigit() or text[j] == '.'):
+                    while j < len(text) and (text[j].isdigit() or text[j] == "."):
                         j += 1
                     num_str = text[i:j]
-                    tokens.append({
-                        "type": "number",
-                        "value": float(num_str) if '.' in num_str else int(num_str),
-                    })
+                    tokens.append(
+                        {
+                            "type": "number",
+                            "value": float(num_str) if "." in num_str else int(num_str),
+                        }
+                    )
                     i = j
                     continue
 
@@ -340,11 +343,7 @@ class ConditionEvaluator:
         raise ValueError(f"Nodo AST desconocido: {ast}")
 
     def _resolve_value(self, node: dict, context: dict) -> bool | str | int | float | list | None:
-        if node["type"] == "string":
-            return node["value"]
-        elif node["type"] == "number":
-            return node["value"]
-        elif node["type"] == "value":
+        if node["type"] == "string" or node["type"] == "number" or node["type"] == "value":
             return node["value"]
         elif node["type"] == "variable":
             var_path = node["value"][1:] if node["value"].startswith("$") else node["value"]

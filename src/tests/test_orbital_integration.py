@@ -8,21 +8,22 @@ Usa mocks para las herramientas de negocio.
 Ejecutar con: pytest src/tests/test_orbital_integration.py -v
 """
 
+import math
 import os
 import sys
-import math
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from src.orbital.context import OrbitalContext
 from src.orbital.engine import OrbitalEngine
 
-
 # ══════════════════════════════════════════════════════════════
 # FIXTURES
 # ══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture(autouse=True)
 def reset_singletons():
@@ -57,6 +58,7 @@ def orbital_engine():
 # ══════════════════════════════════════════════════════════════
 # TESTS: OrbitalContext ↔ OrbitalEngine
 # ══════════════════════════════════════════════════════════════
+
 
 class TestOrbitalContextEngineIntegration:
     """Verifica la integración entre OrbitalContext y OrbitalEngine."""
@@ -133,6 +135,7 @@ class TestOrbitalContextEngineIntegration:
 # TESTS: OrbitalEngine con herramientas mockeadas
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalEngineWithTools:
     """Verifica que el motor ORBITAL funciona con herramientas de negocio."""
 
@@ -169,12 +172,13 @@ class TestOrbitalEngineWithTools:
 
     def test_engine_collapse_deterministic(self):
         """El colapso es determinista: mismo input → mismo output."""
+
         def run_from_scratch():
             e = OrbitalEngine()
             e.create_variable("X", theta=0.0, amplitude=5.0, velocity=0.01)
             e.create_variable("Y", theta=0.3, amplitude=5.0, velocity=0.01)
             e.create_cycle("C", ["X", "Y"], threshold=0.01)
-            result = e.run_tick()
+            _result = e.run_tick()
             return e.get_value_snapshot()
 
         val1 = run_from_scratch()
@@ -191,7 +195,7 @@ class TestOrbitalEngineWithTools:
 
         # Ejecutar varios ticks
         for _ in range(5):
-            result = engine.run_tick(retrofeed_damping=0.3)
+            _result = engine.run_tick(retrofeed_damping=0.3)
 
         # El espectro debe haber retroalimentado
         assert engine.espectro.history_length >= 5
@@ -214,12 +218,14 @@ class TestOrbitalEngineWithTools:
 # TESTS: OrbitalCompiler integration
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalCompilerIntegration:
     """Verifica que el compiler orbital produce resultados válidos."""
 
     def test_compiler_produces_valid_workflow(self):
         """El compiler produce un workflow válido."""
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         result = compiler.compile("Quiero registrar un cliente nuevo")
         assert result.status == "ready"
@@ -229,6 +235,7 @@ class TestOrbitalCompilerIntegration:
     def test_compiler_deterministic(self):
         """El compiler es determinista: mismo texto → mismo resultado."""
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         OrbitalContext._reset()
         c1 = OrbitalCompiler()
         r1 = c1.compile("Enviar email de notificación")
@@ -243,6 +250,7 @@ class TestOrbitalCompilerIntegration:
     def test_compiler_multiple_intents(self):
         """El compiler distingue diferentes intenciones."""
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         OrbitalContext._reset()
         compiler = OrbitalCompiler()
 
@@ -258,6 +266,7 @@ class TestOrbitalCompilerIntegration:
     def test_compiler_empty_text(self):
         """El compiler maneja texto vacío."""
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         OrbitalContext._reset()
         compiler = OrbitalCompiler()
         result = compiler.compile("")
@@ -266,6 +275,7 @@ class TestOrbitalCompilerIntegration:
     def test_compiler_with_entities(self):
         """El compiler extrae entidades simples."""
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         OrbitalContext._reset()
         compiler = OrbitalCompiler()
         result = compiler.compile("Enviar email a test@example.com con 5 productos")

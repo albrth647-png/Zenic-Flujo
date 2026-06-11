@@ -7,17 +7,16 @@ workflows complejos, en vez de usar plantillas monolíticas.
 
 Determinista. Sin IA.
 """
-from __future__ import annotations
-from src.nlu.entities.base import StepFragment
 
+from __future__ import annotations
+
+from src.nlu.entities.base import StepFragment
 
 FRAGMENTS: tuple[StepFragment, ...] = (
     # ── TRIGGERS ────────────────────────────────────────
     StepFragment(
         kind="trigger",
-        intent_tags=("registro_cliente", "lead_avanzar_etapa",
-                     "factura_vencida", "producto_agotado",
-                     "archivo_nuevo"),
+        intent_tags=("registro_cliente", "lead_avanzar_etapa", "factura_vencida", "producto_agotado", "archivo_nuevo"),
         produces={
             "type": "event",
             "config": {"event": "$intent_event"},
@@ -26,8 +25,7 @@ FRAGMENTS: tuple[StepFragment, ...] = (
     ),
     StepFragment(
         kind="trigger",
-        intent_tags=("alerta_stock_bajo", "factura_automatica",
-                     "backup_automatico", "email_cumpleanos"),
+        intent_tags=("alerta_stock_bajo", "factura_automatica", "backup_automatico", "email_cumpleanos"),
         produces={
             "type": "schedule",
             "config": {"cron": "$slot.frecuencia"},
@@ -43,7 +41,6 @@ FRAGMENTS: tuple[StepFragment, ...] = (
         },
         requires_slots=("url_webhook",),
     ),
-
     # ── STEPS ───────────────────────────────────────────
     StepFragment(
         kind="step",
@@ -85,9 +82,14 @@ FRAGMENTS: tuple[StepFragment, ...] = (
     ),
     StepFragment(
         kind="step",
-        intent_tags=("alerta_stock_bajo", "factura_automatica",
-                     "backup_automatico", "email_cumpleanos",
-                     "lead_avanzar_etapa", "producto_agotado"),
+        intent_tags=(
+            "alerta_stock_bajo",
+            "factura_automatica",
+            "backup_automatico",
+            "email_cumpleanos",
+            "lead_avanzar_etapa",
+            "producto_agotado",
+        ),
         produces={
             "tool": "notification",
             "action": "send_email",
@@ -193,10 +195,7 @@ def get_fragments_by_intent(intent_name: str) -> list[StepFragment]:
     Returns:
         Lista de fragmentos relevantes
     """
-    return [
-        f for f in FRAGMENTS
-        if intent_name in f.intent_tags
-    ]
+    return [f for f in FRAGMENTS if intent_name in f.intent_tags]
 
 
 def get_fragments_by_kind(kind: str) -> list[StepFragment]:
@@ -208,7 +207,4 @@ def get_fragments_by_kind(kind: str) -> list[StepFragment]:
     Returns:
         Lista de fragmentos del tipo solicitado
     """
-    return [
-        f for f in FRAGMENTS
-        if f.kind == kind
-    ]
+    return [f for f in FRAGMENTS if f.kind == kind]

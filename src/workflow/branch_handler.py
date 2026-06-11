@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import hashlib
 
-from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
-from src.workflow.condition_evaluator import ConditionEvaluator
+from src.orbital.models import TWO_PI
 from src.utils.logger import setup_logging
+from src.workflow.condition_evaluator import ConditionEvaluator
 
 logger = setup_logging(__name__)
 
@@ -72,12 +72,14 @@ class BranchHandler:
             except KeyError:
                 pass
 
-            branch_scores.append({
-                "branch": branch,
-                "name": branch_name,
-                "tor_value": tor_value,
-                "condition": condition,
-            })
+            branch_scores.append(
+                {
+                    "branch": branch,
+                    "name": branch_name,
+                    "tor_value": tor_value,
+                    "condition": condition,
+                }
+            )
 
         branch_scores.sort(key=lambda x: x["tor_value"], reverse=True)
         best = branch_scores[0] if branch_scores else None
@@ -93,10 +95,7 @@ class BranchHandler:
             try:
                 result = self._evaluator.evaluate(condition, context)
                 if result:
-                    logger.info(
-                        f"OrbitalDivergence: Rama '{branch_name}' seleccionada "
-                        f"(condicion: {condition})"
-                    )
+                    logger.info(f"OrbitalDivergence: Rama '{branch_name}' seleccionada (condicion: {condition})")
                     branch_var = self._ctx.ovc.get_variable(f"branch_{step.get('id', 0)}_{branch_name}")
                     if branch_var:
                         branch_var.advance(dt=1.0)
@@ -111,8 +110,7 @@ class BranchHandler:
         # 4. Fallback orbital: seleccionar por TOR
         if best["tor_value"] > 0.1:
             logger.info(
-                f"OrbitalDivergence: Rama '{best['name']}' seleccionada por resonancia "
-                f"(TOR={best['tor_value']:.4f})"
+                f"OrbitalDivergence: Rama '{best['name']}' seleccionada por resonancia (TOR={best['tor_value']:.4f})"
             )
             selected_var = self._ctx.ovc.get_variable(f"branch_{step.get('id', 0)}_{best['name']}")
             if selected_var:
@@ -154,6 +152,7 @@ class BranchHandler:
     def evaluate_switch(self, expression: str, cases: list[dict], context: dict) -> BranchResult:
         """Evalua una expresion switch con divergencia orbital."""
         from src.utils.helpers import resolve_variables
+
         resolved_expr = resolve_variables(expression, context)
 
         logger.info(f"OrbitalDivergence: Evaluando switch: {expression} = {resolved_expr}")
@@ -166,7 +165,7 @@ class BranchHandler:
         best_tor = -float("inf")
 
         for case in cases:
-            if "default" in case and case["default"]:
+            if case.get("default"):
                 default_case = case
                 continue
 

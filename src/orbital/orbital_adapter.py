@@ -27,8 +27,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
+from src.orbital.models import TWO_PI
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -37,8 +37,9 @@ logger = setup_logging(__name__)
 class OrbitalToolResult:
     """Resultado de una herramienta adaptada orbitalmente."""
 
-    def __init__(self, status: str, data: dict | None = None,
-                 orbital_theta: float = 0.0, orbital_amplitude: float = 1.0):
+    def __init__(
+        self, status: str, data: dict | None = None, orbital_theta: float = 0.0, orbital_amplitude: float = 1.0
+    ):
         self.status = status
         self.data = data or {}
         self.orbital_theta = orbital_theta
@@ -114,8 +115,7 @@ class OrbitalAdapter:
 
     # ── Ejecucion orbital ──────────────────────────────────
 
-    def execute_action(self, tool_name: str, action: str,
-                       params: dict | None = None) -> OrbitalToolResult:
+    def execute_action(self, tool_name: str, action: str, params: dict | None = None) -> OrbitalToolResult:
         """
         Ejecuta una accion de herramienta en modo orbital.
 
@@ -255,6 +255,7 @@ class OrbitalAdapter:
         """Crea una variable orbital para una herramienta si no existe."""
         if self._ovc.get_variable(tool_name) is None:
             import hashlib
+
             hash_val = int(hashlib.md5(tool_name.encode()).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ovc.create_variable(

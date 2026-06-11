@@ -1,0 +1,60 @@
+# Ruff Configuration — Zenic-Flijo
+# https://docs.astral.sh/ruff/configuration/
+
+# Target Python version
+target-version = "py312"
+
+# Line length
+line-length = 120
+
+# Files to exclude
+extend-exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "node_modules",
+    "build",
+    "dist",
+]
+
+[lint]
+# Enable rule categories
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "T20",  # flake8-print
+    "RUF",  # ruff-specific rules
+]
+
+# Ignore rules that are too noisy or conflict with project style
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "T201",   # print statements (used in CLI)
+    "N802",   # function name should be lowercase (test methods use camelCase)
+    "N803",   # argument name should be lowercase
+    "N806",   # variable in function should be lowercase
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+[lint.isort]
+known-first-party = ["src"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports in __init__.py are intentional
+"tests/**/*.py" = ["F841", "E741"]  # Relaxed rules for test files
+"src/api_v2/**/*.py" = ["B008", "E402", "I001"]  # FastAPI Depends() in args is standard; E402 for post-middleware imports; I001 for import sorting
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false

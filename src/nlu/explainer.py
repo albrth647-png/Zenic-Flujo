@@ -6,7 +6,9 @@ Usa los templates de descripción + descripciones de acciones.
 
 Determinista: mismo workflow → misma explicación.
 """
+
 from __future__ import annotations
+
 from src.nlu.entities.base import CompileResult
 from src.nlu.templates import TEMPLATES
 
@@ -71,24 +73,14 @@ class Explainer:
                 }
                 labels = [slot_names_es.get(s, s) for s in missing]
                 return (
-                    f"Falta información obligatoria: {', '.join(labels)}. "
-                    "Por favor, proporciona los datos faltantes."
+                    f"Falta información obligatoria: {', '.join(labels)}. Por favor, proporciona los datos faltantes."
                 )
-            return (
-                f"Missing required information: {', '.join(missing)}. "
-                "Please provide the missing data."
-            )
+            return f"Missing required information: {', '.join(missing)}. Please provide the missing data."
 
         if compile_result.status == "ambiguous":
             if lang == "es":
-                return (
-                    "Hay varias posibles interpretaciones. "
-                    "Por favor, sé más específico."
-                )
-            return (
-                "There are several possible interpretations. "
-                "Please be more specific."
-            )
+                return "Hay varias posibles interpretaciones. Por favor, sé más específico."
+            return "There are several possible interpretations. Please be more specific."
 
         # Status: ready — explicar el workflow
         if compile_result.explanation:

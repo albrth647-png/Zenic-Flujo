@@ -1,0 +1,140 @@
+# ═══════════════════════════════════════════════════════════
+# Zenic-Flijo — Docker Compose (Production-like Stack)
+# Task IDs: 0-4, 0-7, 0-8
+#
+# Usage:
+#   docker compose up -d           # Start all services
+#   docker compose logs -f zenic   # Follow app logs
+#   docker compose down -v         # Stop and remove volumes
+# ═══════════════════════════════════════════════════════════
+
+services:
+  # ── Application ─────────────────────────────────────────
+  zenic-flijo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zenic-flijo-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${WFD_WEB_PORT:-8080}:8080"
+      - "${WFD_WEBHOOK_PORT:-8081}:8081"
+    env_file:
+      - .env
+    environment:
+      WFD_PRODUCTION: ${WFD_PRODUCTION:-false}
+      WFD_DATA_DIR: /app/data
+      WFD_WEB_HOST: 0.0.0.0
+      WFD_WEB_PORT: 8080
+      WFD_WEBHOOK_PORT: 8081
+      WFD_SESSION_SECRET: ${WFD_SESSION_SECRET:-}
+      WFD_LICENSE_SECRET: ${WFD_LICENSE_SECRET:-}
+      WFD_POSTGRES_URL: postgresql://${POSTGRES_USER:-zenic}:${POSTGRES_PASSWORD:-zenic_dev}@postgres:5432/${POSTGRES_DB:-zenic_flijo}
+      WFD_REDIS_URL: redis://redis:6379/0
+      WFD_MONGODB_URI: ${WFD_MONGODB_URI:-}
+    volumes:
+      - zenic-app-data:/app/data
+    networks:
+      - zenic-internal
+      - zenic-frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/auth/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── PostgreSQL 16 ───────────────────────────────────────
+  # Future multi-tenant database for organizations, RBAC,
+  # audit logs, and workflow definitions
+  postgres:
+    image: postgres:16-alpine
+    container_name: zenic-flijo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zenic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zenic_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-zenic_flijo}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - zenic-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - zenic-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zenic} -d ${POSTGRES_DB:-zenic_flijo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis 7 ─────────────────────────────────────────────
+  # Cache, session storage, Pub/Sub for event bus,
+  # and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: zenic-flijo-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - zenic-redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - zenic-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Nginx Reverse Proxy ─────────────────────────────────
+  # SSL termination, static file serving, rate limiting
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: zenic-flijo-nginx
+    restart: unless-stopped
+    depends_on:
+      zenic-flijo:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - zenic-nginx-logs:/var/log/nginx
+    networks:
+      - zenic-frontend
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Networks ──────────────────────────────────────────────
+networks:
+  zenic-internal:
+    driver: bridge
+    name: zenic-internal
+  zenic-frontend:
+    driver: bridge
+    name: zenic-frontend
+
+# ── Volumes ───────────────────────────────────────────────
+volumes:
+  zenic-app-data:
+    name: zenic-app-data
+  zenic-postgres-data:
+    name: zenic-postgres-data
+  zenic-redis-data:
+    name: zenic-redis-data
+  zenic-nginx-logs:
+    name: zenic-nginx-logs

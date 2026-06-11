@@ -9,9 +9,9 @@ Requiere token de acceso OAuth 2.0 configurado en Settings.
 
 from __future__ import annotations
 
+import base64
 import json
 import time
-import base64
 
 from src.utils.logger import setup_logging
 
@@ -46,10 +46,7 @@ class DriveService:
     API_BASE = "https://www.googleapis.com/drive/v3"
     UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3"
 
-    def list_files(self, access_token: str = "",
-                   folder_id: str = "root",
-                   page_size: int = 20,
-                   query: str = "") -> dict:
+    def list_files(self, access_token: str = "", folder_id: str = "root", page_size: int = 20, query: str = "") -> dict:
         """
         Lista archivos en Google Drive.
 
@@ -73,6 +70,7 @@ class DriveService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self.API_BASE}/files",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -80,8 +78,8 @@ class DriveService:
                     "q": q,
                     "pageSize": min(page_size, 100),
                     "fields": "files(id, name, mimeType, size, createdTime, "
-                              "modifiedTime, webViewLink, iconLink, owners)"
-                              ", nextPageToken",
+                    "modifiedTime, webViewLink, iconLink, owners)"
+                    ", nextPageToken",
                 },
                 timeout=30,
             )
@@ -116,9 +114,7 @@ class DriveService:
             logger.error(f"Drive list error: {e}")
             return self._error(str(e))
 
-    def search(self, access_token: str = "",
-               query: str = "",
-               page_size: int = 20) -> dict:
+    def search(self, access_token: str = "", query: str = "", page_size: int = 20) -> dict:
         """
         Busca archivos en Google Drive.
 
@@ -142,11 +138,14 @@ class DriveService:
             query=f"name contains '{query}'",
         )
 
-    def upload(self, access_token: str = "",
-               file_name: str = "",
-               content_base64: str = "",
-               mime_type: str = "application/octet-stream",
-               parent_folder_id: str = "root") -> dict:
+    def upload(
+        self,
+        access_token: str = "",
+        file_name: str = "",
+        content_base64: str = "",
+        mime_type: str = "application/octet-stream",
+        parent_folder_id: str = "root",
+    ) -> dict:
         """
         Sube un archivo a Google Drive.
 
@@ -171,6 +170,7 @@ class DriveService:
 
         try:
             import requests
+
             file_content = base64.b64decode(content_base64)
 
             # Metadata
@@ -182,8 +182,7 @@ class DriveService:
 
             # Subir con uploadType=multipart
             files = {
-                "metadata": ("metadata", json.dumps(metadata),
-                             "application/json"),
+                "metadata": ("metadata", json.dumps(metadata), "application/json"),
                 "file": (file_name, file_content, mime_type),
             }
 
@@ -215,8 +214,7 @@ class DriveService:
             logger.error(f"Drive upload error: {e}")
             return self._error(str(e))
 
-    def download(self, access_token: str = "",
-                 file_id: str = "") -> dict:
+    def download(self, access_token: str = "", file_id: str = "") -> dict:
         """
         Descarga un archivo de Google Drive como base64.
 
@@ -246,9 +244,7 @@ class DriveService:
             )
 
             if meta_resp.status_code != 200:
-                return self._error(
-                    f"Error obteniendo metadata: {meta_resp.text}"
-                )
+                return self._error(f"Error obteniendo metadata: {meta_resp.text}")
 
             meta = meta_resp.json()
             file_name = meta.get("name", "unknown")
@@ -262,9 +258,7 @@ class DriveService:
             )
 
             if content_resp.status_code != 200:
-                return self._error(
-                    f"Error descargando: {content_resp.text}"
-                )
+                return self._error(f"Error descargando: {content_resp.text}")
 
             content_bytes = content_resp.content
             content_b64 = base64.b64encode(content_bytes).decode()
@@ -283,8 +277,7 @@ class DriveService:
             logger.error(f"Drive download error: {e}")
             return self._error(str(e))
 
-    def delete(self, access_token: str = "",
-               file_id: str = "") -> dict:
+    def delete(self, access_token: str = "", file_id: str = "") -> dict:
         """
         Elimina un archivo de Google Drive.
 
@@ -302,6 +295,7 @@ class DriveService:
 
         try:
             import requests
+
             resp = requests.delete(
                 f"{self.API_BASE}/files/{file_id}",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -319,9 +313,7 @@ class DriveService:
             logger.error(f"Drive delete error: {e}")
             return self._error(str(e))
 
-    def create_folder(self, access_token: str = "",
-                      folder_name: str = "",
-                      parent_folder_id: str = "root") -> dict:
+    def create_folder(self, access_token: str = "", folder_name: str = "", parent_folder_id: str = "root") -> dict:
         """
         Crea una carpeta en Google Drive.
 
@@ -340,6 +332,7 @@ class DriveService:
 
         try:
             import requests
+
             metadata = {
                 "name": folder_name,
                 "parents": [parent_folder_id],
@@ -391,26 +384,22 @@ class DriveService:
                     "name": "Listar archivos",
                     "description": "Lista archivos en una carpeta",
                     "params": [
-                        {"name": "folder_id", "type": "string",
-                         "default": "root", "label": "Carpeta ID"},
+                        {"name": "folder_id", "type": "string", "default": "root", "label": "Carpeta ID"},
                     ],
                 },
                 "upload": {
                     "name": "Subir archivo",
                     "description": "Sube archivo a Drive (base64)",
                     "params": [
-                        {"name": "file_name", "type": "string",
-                         "required": True, "label": "Nombre"},
-                        {"name": "content_base64", "type": "string",
-                         "required": True, "label": "Contenido (base64)"},
+                        {"name": "file_name", "type": "string", "required": True, "label": "Nombre"},
+                        {"name": "content_base64", "type": "string", "required": True, "label": "Contenido (base64)"},
                     ],
                 },
                 "search": {
                     "name": "Buscar",
                     "description": "Busca archivos por nombre",
                     "params": [
-                        {"name": "query", "type": "string", "required": True,
-                         "label": "Búsqueda"},
+                        {"name": "query", "type": "string", "required": True, "label": "Búsqueda"},
                     ],
                 },
             },

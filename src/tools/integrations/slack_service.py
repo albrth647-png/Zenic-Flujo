@@ -9,6 +9,7 @@ Integra con Slack Web API para:
 
 Autenticación: Bot Token (guardado cifrado en DB)
 """
+
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 
@@ -102,17 +103,15 @@ class SlackService:
             url = f"{SLACK_API}/conversations.list"
             headers = {"Authorization": f"Bearer {token}"}
             resp = requests.get(
-                url, headers=headers,
+                url,
+                headers=headers,
                 params={"types": "public_channel,private_channel", "limit": limit},
                 timeout=15,
             )
             data = resp.json()
 
             if data.get("ok"):
-                channels = [
-                    {"id": ch["id"], "name": ch["name"]}
-                    for ch in data.get("channels", [])
-                ]
+                channels = [{"id": ch["id"], "name": ch["name"]} for ch in data.get("channels", [])]
                 return {"status": "ok", "channels": channels, "count": len(channels)}
             else:
                 return {"status": "failed", "error": data.get("error", "Error")}
@@ -160,12 +159,22 @@ class SlackService:
             if content:
                 form_data["content"] = content
 
-            resp = requests.post(
-                url, headers=headers,
-                data=form_data if content else None,
-                files={"file": open(file_path, "rb")} if file_path else None,
-                timeout=30,
-            )
+            if file_path:
+                with open(file_path, "rb") as fh:
+                    resp = requests.post(
+                        url,
+                        headers=headers,
+                        data=form_data if content else None,
+                        files={"file": fh},
+                        timeout=30,
+                    )
+            else:
+                resp = requests.post(
+                    url,
+                    headers=headers,
+                    data=form_data if content else None,
+                    timeout=30,
+                )
             data = resp.json()
 
             if data.get("ok"):
@@ -271,40 +280,67 @@ class SlackService:
                     "name": "Enviar mensaje",
                     "description": "Envía un mensaje a un canal de Slack",
                     "params": [
-                        {"name": "channel", "type": "string", "required": True,
-                         "label": "Canal", "placeholder": "#general"},
-                        {"name": "text", "type": "string", "required": True,
-                         "label": "Mensaje", "placeholder": "Hola desde un workflow"},
-                        {"name": "thread_ts", "type": "string", "required": False,
-                         "label": "Thread (responder en hilo)"},
+                        {
+                            "name": "channel",
+                            "type": "string",
+                            "required": True,
+                            "label": "Canal",
+                            "placeholder": "#general",
+                        },
+                        {
+                            "name": "text",
+                            "type": "string",
+                            "required": True,
+                            "label": "Mensaje",
+                            "placeholder": "Hola desde un workflow",
+                        },
+                        {
+                            "name": "thread_ts",
+                            "type": "string",
+                            "required": False,
+                            "label": "Thread (responder en hilo)",
+                        },
                     ],
                 },
                 "list_channels": {
                     "name": "Listar canales",
                     "description": "Lista los canales del workspace",
                     "params": [
-                        {"name": "limit", "type": "number", "required": False,
-                         "default": 100, "label": "Límite"},
+                        {"name": "limit", "type": "number", "required": False, "default": 100, "label": "Límite"},
                     ],
                 },
                 "upload_file": {
                     "name": "Subir archivo",
                     "description": "Sube un archivo a un canal",
                     "params": [
-                        {"name": "channels", "type": "string", "required": True,
-                         "label": "Canal destino", "placeholder": "#general"},
-                        {"name": "content", "type": "string", "required": False,
-                         "label": "Contenido del archivo"},
-                        {"name": "filename", "type": "string", "required": False,
-                         "default": "file.txt", "label": "Nombre del archivo"},
+                        {
+                            "name": "channels",
+                            "type": "string",
+                            "required": True,
+                            "label": "Canal destino",
+                            "placeholder": "#general",
+                        },
+                        {"name": "content", "type": "string", "required": False, "label": "Contenido del archivo"},
+                        {
+                            "name": "filename",
+                            "type": "string",
+                            "required": False,
+                            "default": "file.txt",
+                            "label": "Nombre del archivo",
+                        },
                     ],
                 },
                 "get_user_info": {
                     "name": "Info de usuario",
                     "description": "Obtiene información de un usuario",
                     "params": [
-                        {"name": "user_id", "type": "string", "required": True,
-                         "label": "User ID", "placeholder": "U0123ABC"},
+                        {
+                            "name": "user_id",
+                            "type": "string",
+                            "required": True,
+                            "label": "User ID",
+                            "placeholder": "U0123ABC",
+                        },
                     ],
                 },
             },

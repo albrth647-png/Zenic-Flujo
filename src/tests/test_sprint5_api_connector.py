@@ -4,22 +4,23 @@ Cubre: Rate Limiting, Caching, Paginación Automática,
 Webhook Callbacks, XML Support, y APIConnectorService mejorado.
 """
 
-import time
 import threading
+import time
 from unittest.mock import MagicMock, patch
+
 from src.tools.api_connector.service import (
     APIConnectorService,
+    PaginationCollector,
     RateLimiter,
     ResponseCache,
-    PaginationCollector,
     WebhookCallbackRegistry,
     XMLProcessor,
 )
 
-
 # ===================================================================
 # 5.1 — Rate Limiting
 # ===================================================================
+
 
 class TestRateLimiter:
     """Tests para RateLimiter (token bucket)."""
@@ -100,6 +101,7 @@ class TestRateLimiter:
 # 5.3 — Response Cache
 # ===================================================================
 
+
 class TestResponseCache:
     """Tests para ResponseCache."""
 
@@ -121,10 +123,8 @@ class TestResponseCache:
     def test_different_methods_different_cache(self):
         """Diferentes métodos HTTP tienen diferentes keys."""
         cache = ResponseCache()
-        cache.set("GET", "https://api.example.com/users",
-                   {"status_code": 200, "body": "get"})
-        cache.set("POST", "https://api.example.com/users",
-                   {"status_code": 201, "body": "post"})
+        cache.set("GET", "https://api.example.com/users", {"status_code": 200, "body": "get"})
+        cache.set("POST", "https://api.example.com/users", {"status_code": 201, "body": "post"})
 
         get_result = cache.get("GET", "https://api.example.com/users")
         post_result = cache.get("POST", "https://api.example.com/users")
@@ -151,10 +151,8 @@ class TestResponseCache:
     def test_invalidate_all(self):
         """Invalidate all limpia todo el cache."""
         cache = ResponseCache()
-        cache.set("GET", "https://api.example.com/a",
-                   {"status_code": 200, "body": "a"})
-        cache.set("GET", "https://api.example.com/b",
-                   {"status_code": 200, "body": "b"})
+        cache.set("GET", "https://api.example.com/a", {"status_code": 200, "body": "a"})
+        cache.set("GET", "https://api.example.com/b", {"status_code": 200, "body": "b"})
         count = cache.invalidate()
         assert count == 2
         assert cache.get("GET", "https://api.example.com/a") is None
@@ -162,8 +160,7 @@ class TestResponseCache:
     def test_get_stats(self):
         """Estadísticas del cache."""
         cache = ResponseCache(default_ttl_seconds=300)
-        cache.set("GET", "https://api.example.com/data",
-                   {"status_code": 200, "body": "data"})
+        cache.set("GET", "https://api.example.com/data", {"status_code": 200, "body": "data"})
         stats = cache.get_stats()
         assert stats["total_entries"] >= 1
         assert stats["default_ttl_seconds"] == 300
@@ -171,22 +168,19 @@ class TestResponseCache:
     def test_cache_key_with_body(self):
         """Cache key incluye body hash."""
         cache = ResponseCache()
-        cache.set("POST", "https://api.example.com/search",
-                   {"status_code": 200, "body": "results"},
-                   body={"q": "test"})
+        cache.set("POST", "https://api.example.com/search", {"status_code": 200, "body": "results"}, body={"q": "test"})
         # Misma URL, mismo body → cache hit
-        result = cache.get("POST", "https://api.example.com/search",
-                            body={"q": "test"})
+        result = cache.get("POST", "https://api.example.com/search", body={"q": "test"})
         assert result is not None
         # Diferente body → cache miss
-        result2 = cache.get("POST", "https://api.example.com/search",
-                             body={"q": "other"})
+        result2 = cache.get("POST", "https://api.example.com/search", body={"q": "other"})
         assert result2 is None
 
 
 # ===================================================================
 # 5.2 — Paginación
 # ===================================================================
+
 
 class TestPaginationCollector:
     """Tests para PaginationCollector."""
@@ -201,7 +195,8 @@ class TestPaginationCollector:
         nav = collector.collect_page_based(
             "https://api.example.com/users",
             {"page": 1, "limit": 20},
-            response, pages_left=5,
+            response,
+            pages_left=5,
         )
         assert nav["stop"] is False
         assert nav["next_params"]["page"] == 2
@@ -216,7 +211,8 @@ class TestPaginationCollector:
         nav = collector.collect_page_based(
             "https://api.example.com/users",
             {"page": 1, "limit": 20},
-            response, pages_left=5,
+            response,
+            pages_left=5,
         )
         assert nav["stop"] is True
 
@@ -225,8 +221,10 @@ class TestPaginationCollector:
         collector = PaginationCollector()
         response = {"status_code": 200, "body": {"data": [1, 2, 3]}}
         nav = collector.collect_page_based(
-            "/users", {"page": 10, "limit": 20},
-            response, pages_left=0,
+            "/users",
+            {"page": 10, "limit": 20},
+            response,
+            pages_left=0,
         )
         assert nav["stop"] is True
 
@@ -240,7 +238,8 @@ class TestPaginationCollector:
         nav = collector.collect_cursor_based(
             "https://api.example.com/users",
             {"cursor": "initial"},
-            response, pages_left=5,
+            response,
+            pages_left=5,
         )
         assert nav["stop"] is False
         assert nav["next_params"]["cursor"] == "abc123"
@@ -253,8 +252,10 @@ class TestPaginationCollector:
             "body": {"data": [1, 2], "has_more": False},
         }
         nav = collector.collect_cursor_based(
-            "/users", {"cursor": "xyz"},
-            response, pages_left=5,
+            "/users",
+            {"cursor": "xyz"},
+            response,
+            pages_left=5,
         )
         assert nav["stop"] is True
 
@@ -268,7 +269,8 @@ class TestPaginationCollector:
         nav = collector.collect_offset_based(
             "https://api.example.com/users",
             {"offset": 0, "limit": 5},
-            response, pages_left=5,
+            response,
+            pages_left=5,
         )
         assert nav["stop"] is False
         assert nav["next_params"]["offset"] == 5
@@ -277,6 +279,7 @@ class TestPaginationCollector:
 # ===================================================================
 # 5.4 — Webhook Callbacks
 # ===================================================================
+
 
 class TestWebhookCallbackRegistry:
     """Tests para WebhookCallbackRegistry."""
@@ -330,8 +333,7 @@ class TestWebhookCallbackRegistry:
     def test_cleanup_expired(self):
         """Limpiar callbacks expirados."""
         registry = WebhookCallbackRegistry()
-        registry.register("https://hooks.example.com/cb",
-                          {}, timeout_seconds=0)
+        registry.register("https://hooks.example.com/cb", {}, timeout_seconds=0)
         time.sleep(0.01)
         count = registry.cleanup_expired()
         assert count >= 0  # Puede haber expirado
@@ -340,6 +342,7 @@ class TestWebhookCallbackRegistry:
 # ===================================================================
 # 5.6 — XML Support
 # ===================================================================
+
 
 class TestXMLProcessor:
     """Tests para XMLProcessor."""
@@ -389,6 +392,7 @@ class TestXMLProcessor:
 # 5.5 — APIConnectorService Integration
 # ===================================================================
 
+
 class TestAPIConnectorServiceIntegration:
     """Tests de integración para APIConnectorService mejorado."""
 
@@ -429,8 +433,7 @@ class TestAPIConnectorServiceIntegration:
     def test_error_on_invalid_method(self):
         """Request con método inválido retorna error."""
         api = APIConnectorService()
-        result = api.request(method="OPTIONS",
-                              url="https://api.example.com")
+        result = api.request(method="OPTIONS", url="https://api.example.com")
         assert result["status_code"] == 0
         assert "no soportado" in result.get("error", "")
 
@@ -473,7 +476,7 @@ class TestAPIConnectorServiceIntegration:
         items = APIConnectorService._extract_items({"message": "ok"})
         assert items == []
 
-    @patch('requests.request')
+    @patch("requests.request")
     def test_request_execution(self, mock_request):
         """Request real (mockeada) fluye correctamente."""
         mock_response = MagicMock()
@@ -492,7 +495,7 @@ class TestAPIConnectorServiceIntegration:
         assert result["status_code"] == 200
         assert result["body"] == {"result": "ok"}
 
-    @patch('requests.request')
+    @patch("requests.request")
     def test_request_with_rate_limiting(self, mock_request):
         """Rate limiting se aplica a requests."""
         mock_response = MagicMock()

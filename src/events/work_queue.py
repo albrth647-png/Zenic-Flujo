@@ -20,8 +20,8 @@ La cola soporta:
 from __future__ import annotations
 
 import json
-import time
 import threading
+import time
 from datetime import datetime
 
 from src.data.database_manager import DatabaseManager
@@ -38,17 +38,20 @@ MAX_QUEUE_SIZE = 10000
 class WorkQueueItem:
     """Un item en la cola de trabajo."""
 
-    def __init__(self, id: int | None = None,
-                 workflow_id: int = 0,
-                 trigger_data: dict | None = None,
-                 priority: int = 0,
-                 status: str = "queued",
-                 retry_count: int = 0,
-                 max_retries: int = DEFAULT_MAX_RETRIES,
-                 claimed_at: float | None = None,
-                 created_at: str | None = None,
-                 scheduled_at: str | None = None,
-                 error_message: str | None = None):
+    def __init__(
+        self,
+        id: int | None = None,
+        workflow_id: int = 0,
+        trigger_data: dict | None = None,
+        priority: int = 0,
+        status: str = "queued",
+        retry_count: int = 0,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        claimed_at: float | None = None,
+        created_at: str | None = None,
+        scheduled_at: str | None = None,
+        error_message: str | None = None,
+    ):
         self.id = id
         self.workflow_id = workflow_id
         self.trigger_data = trigger_data or {}
@@ -87,10 +90,9 @@ class WorkQueue:
     Thread-safe mediante RLock para operaciones críticas.
     """
 
-    def __init__(self, use_redis: bool = False,
-                 redis_host: str = "localhost",
-                 redis_port: int = 6379,
-                 redis_db: int = 0):
+    def __init__(
+        self, use_redis: bool = False, redis_host: str = "localhost", redis_port: int = 6379, redis_db: int = 0
+    ):
         self._db = DatabaseManager()
         self._use_redis = use_redis
         self._redis = None
@@ -118,8 +120,11 @@ class WorkQueue:
         """Intenta inicializar Redis."""
         try:
             import redis as redis_module
+
             self._redis = redis_module.Redis(
-                host=host, port=port, db=db,
+                host=host,
+                port=port,
+                db=db,
                 socket_timeout=5,
                 decode_responses=True,
             )
@@ -159,11 +164,14 @@ class WorkQueue:
 
     # ── Enqueue ────────────────────────────────────────────
 
-    def enqueue(self, workflow_id: int,
-                trigger_data: dict | None = None,
-                priority: int = 0,
-                max_retries: int = DEFAULT_MAX_RETRIES,
-                scheduled_at: str | None = None) -> WorkQueueItem:
+    def enqueue(
+        self,
+        workflow_id: int,
+        trigger_data: dict | None = None,
+        priority: int = 0,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        scheduled_at: str | None = None,
+    ) -> WorkQueueItem:
         """
         Agrega un workflow a la cola de ejecución.
 
@@ -184,28 +192,21 @@ class WorkQueue:
             # Verificar límite
             current_depth = self._count_by_status("queued")
             if current_depth >= MAX_QUEUE_SIZE:
-                raise ValueError(
-                    f"Cola llena ({MAX_QUEUE_SIZE} items). "
-                    "Espera a que los workers procesen."
-                )
+                raise ValueError(f"Cola llena ({MAX_QUEUE_SIZE} items). Espera a que los workers procesen.")
 
             if self._use_redis and self._redis:
-                return self._redis_enqueue(workflow_id, trigger_data,
-                                           priority, max_retries, scheduled_at)
-            return self._sqlite_enqueue(workflow_id, trigger_data,
-                                        priority, max_retries, scheduled_at)
+                return self._redis_enqueue(workflow_id, trigger_data, priority, max_retries, scheduled_at)
+            return self._sqlite_enqueue(workflow_id, trigger_data, priority, max_retries, scheduled_at)
 
-    def _sqlite_enqueue(self, workflow_id: int,
-                         trigger_data: dict | None,
-                         priority: int, max_retries: int,
-                         scheduled_at: str | None) -> WorkQueueItem:
+    def _sqlite_enqueue(
+        self, workflow_id: int, trigger_data: dict | None, priority: int, max_retries: int, scheduled_at: str | None
+    ) -> WorkQueueItem:
         """Enqueue usando SQLite."""
         cursor = self._db.execute(
             """INSERT INTO work_queue
                (workflow_id, trigger_data, priority, status, max_retries, scheduled_at)
                VALUES (?, ?, ?, 'queued', ?, ?)""",
-            (workflow_id, json.dumps(trigger_data or {}),
-             priority, max_retries, scheduled_at),
+            (workflow_id, json.dumps(trigger_data or {}), priority, max_retries, scheduled_at),
         )
         self._db.commit()
         item_id = cursor.lastrowid
@@ -217,16 +218,18 @@ class WorkQueue:
 
         logger.info(f"WorkQueue: encolado workflow {workflow_id} (#{item_id})")
         return WorkQueueItem(
-            id=item_id, workflow_id=workflow_id,
-            trigger_data=trigger_data, priority=priority,
-            max_retries=max_retries, status="queued",
+            id=item_id,
+            workflow_id=workflow_id,
+            trigger_data=trigger_data,
+            priority=priority,
+            max_retries=max_retries,
+            status="queued",
             scheduled_at=scheduled_at,
         )
 
-    def _redis_enqueue(self, workflow_id: int,
-                        trigger_data: dict | None,
-                        priority: int, max_retries: int,
-                        scheduled_at: str | None) -> WorkQueueItem:
+    def _redis_enqueue(
+        self, workflow_id: int, trigger_data: dict | None, priority: int, max_retries: int, scheduled_at: str | None
+    ) -> WorkQueueItem:
         """Enqueue usando Redis."""
         item = {
             "workflow_id": workflow_id,
@@ -238,15 +241,19 @@ class WorkQueue:
         }
         # Usar sorted set con priority como score
         import secrets
+
         item_id = secrets.token_hex(8)
         self._redis.zadd("work_queue", {json.dumps(item): -priority})
         self._redis.lpush("work_queue:pending", item_id)
         self._metrics["total_enqueued"] += 1
         logger.info(f"WorkQueue (Redis): encolado workflow {workflow_id}")
         return WorkQueueItem(
-            id=hash(item_id) % 1000000, workflow_id=workflow_id,
-            trigger_data=trigger_data, priority=priority,
-            max_retries=max_retries, status="queued",
+            id=hash(item_id) % 1000000,
+            workflow_id=workflow_id,
+            trigger_data=trigger_data,
+            priority=priority,
+            max_retries=max_retries,
+            status="queued",
             scheduled_at=scheduled_at,
         )
 
@@ -335,9 +342,7 @@ class WorkQueue:
             True si se marcó, False si no existe
         """
         with self._lock:
-            row = self._db.fetchone(
-                "SELECT * FROM work_queue WHERE id = ?", (item_id,)
-            )
+            row = self._db.fetchone("SELECT * FROM work_queue WHERE id = ?", (item_id,))
             if not row:
                 return False
 
@@ -358,8 +363,7 @@ class WorkQueue:
             logger.info(f"WorkQueue: item #{item_id} completado")
             return True
 
-    def nack(self, item_id: int, error_message: str = "",
-             requeue: bool = True) -> bool:
+    def nack(self, item_id: int, error_message: str = "", requeue: bool = True) -> bool:
         """
         Marca un item como fallido.
 
@@ -372,9 +376,7 @@ class WorkQueue:
             True si se procesó, False si no existe
         """
         with self._lock:
-            row = self._db.fetchone(
-                "SELECT * FROM work_queue WHERE id = ?", (item_id,)
-            )
+            row = self._db.fetchone("SELECT * FROM work_queue WHERE id = ?", (item_id,))
             if not row:
                 return False
 
@@ -385,6 +387,7 @@ class WorkQueue:
                 # Re-encolar con backoff: cada reintento espera más
                 backoff_seconds = min(60 * (2 ** (retry_count - 1)), 3600)
                 from datetime import datetime, timedelta
+
                 scheduled = (datetime.utcnow() + timedelta(seconds=backoff_seconds)).isoformat()
 
                 self._db.execute(
@@ -410,10 +413,7 @@ class WorkQueue:
                     (retry_count, error_message, item_id),
                 )
                 self._metrics["total_failed"] += 1
-                logger.warning(
-                    f"WorkQueue: item #{item_id} falló definitivamente "
-                    f"después de {retry_count} intentos"
-                )
+                logger.warning(f"WorkQueue: item #{item_id} falló definitivamente después de {retry_count} intentos")
 
             self._db.commit()
             return True
@@ -456,10 +456,7 @@ class WorkQueue:
 
             avg_processing_time = 0
             if self._metrics["total_processed"] > 0:
-                avg_processing_time = (
-                    self._metrics["total_processing_time_ms"] //
-                    self._metrics["total_processed"]
-                )
+                avg_processing_time = self._metrics["total_processing_time_ms"] // self._metrics["total_processed"]
 
             return {
                 "depth": {
@@ -496,6 +493,7 @@ class WorkQueue:
             Número de items eliminados
         """
         from datetime import datetime, timedelta
+
         cutoff = (datetime.utcnow() - timedelta(hours=max_age_hours)).isoformat()
 
         self._db.execute(

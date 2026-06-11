@@ -18,20 +18,20 @@ import hashlib
 import threading
 import time
 
-from src.workflow.step_executor import StepExecutor, StepResult
-from src.workflow.condition_evaluator import ConditionEvaluator
-from src.workflow.branch_handler import BranchHandler
-from src.workflow.loop_handler import LoopHandler
-from src.workflow.fork_handler import ForkHandler, JoinHandler
-from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+from src.orbital.context import OrbitalContext
 from src.orbital.models import (
-    OrbitalResult,
-    TWO_PI,
     DEFAULT_THRESHOLD,
     RETROFEEDBACK_DAMPING,
+    TWO_PI,
+    OrbitalResult,
 )
-from src.orbital.context import OrbitalContext
 from src.utils.logger import setup_logging
+from src.workflow.branch_handler import BranchHandler
+from src.workflow.condition_evaluator import ConditionEvaluator
+from src.workflow.fork_handler import ForkHandler, JoinHandler
+from src.workflow.loop_handler import LoopHandler
+from src.workflow.repository import WorkflowDefinition, WorkflowRepository
+from src.workflow.step_executor import StepExecutor, StepResult
 
 logger = setup_logging(__name__)
 
@@ -41,12 +41,18 @@ MAX_SUBWORKFLOW_DEPTH = 10
 class ExecutionResult:
     """Resultado completo de una ejecucion de workflow (compatible + enriquecido)."""
 
-    def __init__(self, execution_id: int, workflow_id: int, status: str,
-                 duration_ms: int, step_results: list[dict] | None = None,
-                 error_message: str | None = None,
-                 orbital_espectro: dict | None = None,
-                 orbital_variables: int = 0,
-                 orbital_resonance: float = 0.0):
+    def __init__(
+        self,
+        execution_id: int,
+        workflow_id: int,
+        status: str,
+        duration_ms: int,
+        step_results: list[dict] | None = None,
+        error_message: str | None = None,
+        orbital_espectro: dict | None = None,
+        orbital_variables: int = 0,
+        orbital_resonance: float = 0.0,
+    ):
         self.execution_id = execution_id
         self.workflow_id = workflow_id
         self.status = status
@@ -85,10 +91,10 @@ class WorkflowEngine:
     Singleton como el original.
     """
 
-    _instance: "WorkflowEngine | None" = None
+    _instance: WorkflowEngine | None = None
     _lock = threading.RLock()
 
-    def __new__(cls) -> "WorkflowEngine":
+    def __new__(cls) -> WorkflowEngine:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -109,6 +115,7 @@ class WorkflowEngine:
             self._branch_handler = BranchHandler()
             self._loop_handler = LoopHandler()
             from src.workflow.error_handler import ErrorHandler
+
             self._error_handler = ErrorHandler()
             self._fork_handler = ForkHandler(self._step_executor)
             self._join_handler = JoinHandler()
@@ -186,17 +193,19 @@ class WorkflowEngine:
             for step in definition.steps:
                 step_result = self._execute_step(step, context, orbital_engine)
 
-                step_results.append({
-                    "step_id": step.get("id"),
-                    "tool": step.get("tool"),
-                    "action": step.get("action"),
-                    "status": step_result.status,
-                    "output": step_result.output_data,
-                    "duration_ms": step_result.duration_ms,
-                    "error": step_result.error_message,
-                    "orbital_theta": getattr(step_result, "orbital_theta", 0.0),
-                    "orbital_tension": getattr(step_result, "orbital_tension", 0.0),
-                })
+                step_results.append(
+                    {
+                        "step_id": step.get("id"),
+                        "tool": step.get("tool"),
+                        "action": step.get("action"),
+                        "status": step_result.status,
+                        "output": step_result.output_data,
+                        "duration_ms": step_result.duration_ms,
+                        "error": step_result.error_message,
+                        "orbital_theta": getattr(step_result, "orbital_theta", 0.0),
+                        "orbital_tension": getattr(step_result, "orbital_tension", 0.0),
+                    }
+                )
 
                 # Guardar output en contexto
                 step_id = str(step.get("id", 0))
@@ -225,8 +234,7 @@ class WorkflowEngine:
                     logger.info(f"continue_on_error=True: continuando despues de paso {step.get('id')}")
 
                 # Sprint 4: skipped por continue_on_error no es fallo
-                if step_result.status == "skipped" and \
-                   step_result.output_data.get("reason") == "continue_on_error":
+                if step_result.status == "skipped" and step_result.output_data.get("reason") == "continue_on_error":
                     logger.info(f"Paso {step.get('id')} skipped (continue_on_error)")
 
         except Exception as e:
@@ -251,7 +259,9 @@ class WorkflowEngine:
                 orbital_espectro = orbital_result.espectro.to_dict()
 
             if orbital_result.rcc_results:
-                orbital_resonance = sum(r.resonance_strength for r in orbital_result.rcc_results) / len(orbital_result.rcc_results)
+                orbital_resonance = sum(r.resonance_strength for r in orbital_result.rcc_results) / len(
+                    orbital_result.rcc_results
+                )
 
             logger.info(
                 f"OrbitalWorkflowEngine: Workflow {workflow_id} completado — "
@@ -284,8 +294,7 @@ class WorkflowEngine:
             orbital_resonance=orbital_resonance,
         )
 
-    def _execute_step(self, step: dict, context: dict,
-                      orbital_engine) -> StepResult:
+    def _execute_step(self, step: dict, context: dict, orbital_engine) -> StepResult:
         """Ejecuta un paso individual, manejando branches, loops y errores orbitalmente."""
         step_type = step.get("type", "action")
 
@@ -305,11 +314,13 @@ class WorkflowEngine:
             branch_outputs = []
             for branch_step in branch_result.steps:
                 result = self._execute_step(branch_step, context, orbital_engine)
-                branch_outputs.append({
-                    "step_id": branch_step.get("id"),
-                    "status": result.status,
-                    "output": result.output_data,
-                })
+                branch_outputs.append(
+                    {
+                        "step_id": branch_step.get("id"),
+                        "status": result.status,
+                        "output": result.output_data,
+                    }
+                )
             return StepResult(
                 status="completed",
                 output_data={
@@ -575,29 +586,37 @@ class WorkflowEngine:
 
     def _load_settings(self) -> dict:
         from src.data.database_manager import DatabaseManager
+
         db = DatabaseManager()
         rows = db.fetchall("SELECT key, value FROM settings")
         return {row["key"]: row["value"] for row in rows}
 
-    def _emit_completion_event(self, definition: WorkflowDefinition, status: str,
-                                execution_id: int, duration_ms: int) -> None:
+    def _emit_completion_event(
+        self, definition: WorkflowDefinition, status: str, execution_id: int, duration_ms: int
+    ) -> None:
         from src.events.bus import EventBus
+
         event_bus = EventBus()
         event_type = "workflow.completed" if status == "completed" else "workflow.failed"
-        event_bus.publish(event_type, {
-            "workflow_id": definition.id,
-            "execution_id": execution_id,
-            "duration_ms": duration_ms,
-            "status": status,
-        })
+        event_bus.publish(
+            event_type,
+            {
+                "workflow_id": definition.id,
+                "execution_id": execution_id,
+                "duration_ms": duration_ms,
+                "status": status,
+            },
+        )
 
     def _remove_subscriptions(self, workflow_id: int) -> None:
         from src.events.bus import EventBus
+
         event_bus = EventBus()
         event_bus.unsubscribe_all(workflow_id)
 
     def _restore_subscriptions(self, definition: WorkflowDefinition) -> None:
         from src.events.bus import EventBus
+
         event_bus = EventBus()
         if definition.trigger_type == "event":
             event_config = definition.trigger_config
@@ -638,9 +657,7 @@ class WorkflowEngine:
 
     # ── Ejecucion Asincrona (Sprint 7-8) ───────────────────────
 
-    def execute_async(self, workflow_id: int,
-                      trigger_data: dict | None = None,
-                      priority: int = 0) -> dict:
+    def execute_async(self, workflow_id: int, trigger_data: dict | None = None, priority: int = 0) -> dict:
         """
         Encola un workflow para ejecución asíncrona via WorkQueue.
 
@@ -659,11 +676,10 @@ class WorkflowEngine:
         if not definition:
             raise ValueError(f"Workflow no encontrado: {workflow_id}")
         if definition.status != "active":
-            raise ValueError(
-                f"Workflow '{definition.name}' no está activo (estado: {definition.status})"
-            )
+            raise ValueError(f"Workflow '{definition.name}' no está activo (estado: {definition.status})")
 
         from src.events.work_queue import WorkQueue
+
         queue = WorkQueue()
         item = queue.enqueue(
             workflow_id=workflow_id,
@@ -671,10 +687,7 @@ class WorkflowEngine:
             priority=priority,
         )
 
-        logger.info(
-            f"Workflow {workflow_id} encolado asíncronamente "
-            f"(#queue{item.id}, prioridad {priority})"
-        )
+        logger.info(f"Workflow {workflow_id} encolado asíncronamente (#queue{item.id}, prioridad {priority})")
         return {
             "status": "queued",
             "queue_id": item.id,

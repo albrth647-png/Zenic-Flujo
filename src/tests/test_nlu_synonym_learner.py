@@ -1,8 +1,10 @@
 """
 Tests para SynonymLearner (Sprint 4, Tarea 2).
 """
+
 import pytest
-from src.nlu.synonym_learner import SynonymLearner, Synonym
+
+from src.nlu.synonym_learner import Synonym, SynonymLearner
 
 
 @pytest.fixture
@@ -11,7 +13,6 @@ def learner():
 
 
 class TestSynonymLearner:
-
     def test_learn_creates_synonym(self, learner):
         s = learner.learn("facturar", "factura", "factura_automatica")
         assert isinstance(s, Synonym)

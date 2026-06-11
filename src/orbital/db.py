@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from src.utils.logger import setup_logging
@@ -116,6 +116,7 @@ class OrbitalDB:
         """
         if db_path is None:
             from src.config import DB_PATH
+
             db_path = DB_PATH
 
         self._db_path = db_path
@@ -153,21 +154,24 @@ class OrbitalDB:
         conn = self._get_connection()
         var_id = var.get("id", str(uuid.uuid4()))
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO orbital_variables
             (id, name, theta, amplitude, velocity, value, orbit_group, metadata, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            var_id,
-            var.get("name", ""),
-            var.get("theta", 0.0),
-            var.get("amplitude", 1.0),
-            var.get("velocity", 0.1),
-            var.get("value", 1.0),
-            var.get("orbit_group", "default"),
-            json.dumps(var.get("metadata", {})),
-            datetime.now(timezone.utc).isoformat(),
-        ))
+        """,
+            (
+                var_id,
+                var.get("name", ""),
+                var.get("theta", 0.0),
+                var.get("amplitude", 1.0),
+                var.get("velocity", 0.1),
+                var.get("value", 1.0),
+                var.get("orbit_group", "default"),
+                json.dumps(var.get("metadata", {})),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         conn.commit()
         return var_id
 
@@ -182,9 +186,7 @@ class OrbitalDB:
     def load_variable(self, name: str) -> dict[str, Any] | None:
         """Carga una variable orbital por nombre."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM orbital_variables WHERE name = ?", (name,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM orbital_variables WHERE name = ?", (name,)).fetchone()
         if row:
             return dict(row)
         return None
@@ -209,28 +211,29 @@ class OrbitalDB:
         conn = self._get_connection()
         cycle_id = cycle.get("id", str(uuid.uuid4()))
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO orbital_cycles
             (id, name, variable_ids, threshold, status, resonance_level, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            cycle_id,
-            cycle.get("name", ""),
-            json.dumps(cycle.get("variable_ids", [])),
-            cycle.get("threshold", 0.5),
-            cycle.get("status", "active"),
-            cycle.get("resonance_level", 0.0),
-            datetime.now(timezone.utc).isoformat(),
-        ))
+        """,
+            (
+                cycle_id,
+                cycle.get("name", ""),
+                json.dumps(cycle.get("variable_ids", [])),
+                cycle.get("threshold", 0.5),
+                cycle.get("status", "active"),
+                cycle.get("resonance_level", 0.0),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         conn.commit()
         return cycle_id
 
     def load_cycle(self, cycle_id: str) -> dict[str, Any] | None:
         """Carga un ciclo orbital por ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM orbital_cycles WHERE id = ?", (cycle_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM orbital_cycles WHERE id = ?", (cycle_id,)).fetchone()
         if row:
             result = dict(row)
             result["variable_ids"] = json.loads(result.get("variable_ids", "[]"))
@@ -255,26 +258,29 @@ class OrbitalDB:
         conn = self._get_connection()
         spec_id = str(uuid.uuid4())
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO orbital_spectrum
             (id, cycle_id, tick, phase_state, tor_matrix, resonance_active,
              resonance_strength, collapsed_state, spectrum_modes, primary_mode,
              retrofeedback, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            spec_id,
-            cycle_id,
-            tick,
-            json.dumps(data.get("phase_state", {})),
-            json.dumps(data.get("tor_matrix", [])),
-            1 if data.get("resonance_active", False) else 0,
-            data.get("resonance_strength", 0.0),
-            json.dumps(data.get("collapsed_state", {})),
-            json.dumps(data.get("spectrum_modes", [])),
-            data.get("primary_mode", 0),
-            json.dumps(data.get("retrofeedback", {})),
-            datetime.now(timezone.utc).isoformat(),
-        ))
+        """,
+            (
+                spec_id,
+                cycle_id,
+                tick,
+                json.dumps(data.get("phase_state", {})),
+                json.dumps(data.get("tor_matrix", [])),
+                1 if data.get("resonance_active", False) else 0,
+                data.get("resonance_strength", 0.0),
+                json.dumps(data.get("collapsed_state", {})),
+                json.dumps(data.get("spectrum_modes", [])),
+                data.get("primary_mode", 0),
+                json.dumps(data.get("retrofeedback", {})),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         conn.commit()
         return spec_id
 
@@ -282,8 +288,7 @@ class OrbitalDB:
         """Carga el historial de espectro de un ciclo."""
         conn = self._get_connection()
         rows = conn.execute(
-            "SELECT * FROM orbital_spectrum WHERE cycle_id = ? ORDER BY tick DESC LIMIT ?",
-            (cycle_id, limit)
+            "SELECT * FROM orbital_spectrum WHERE cycle_id = ? ORDER BY tick DESC LIMIT ?", (cycle_id, limit)
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -294,32 +299,33 @@ class OrbitalDB:
         conn = self._get_connection()
         exec_id = str(uuid.uuid4())
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO orbital_executions
             (id, tick, total_variables, total_cycles, total_tor_pairs,
              resonant_cycles, converged_cycles, final_state, duration_ms, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            exec_id,
-            result.get("tick", 0),
-            result.get("total_variables", 0),
-            result.get("total_cycles", 0),
-            result.get("total_tor_pairs", 0),
-            result.get("resonant_cycles", 0),
-            result.get("converged_cycles", 0),
-            json.dumps(result.get("final_state", {})),
-            result.get("duration_ms", 0),
-            datetime.now(timezone.utc).isoformat(),
-        ))
+        """,
+            (
+                exec_id,
+                result.get("tick", 0),
+                result.get("total_variables", 0),
+                result.get("total_cycles", 0),
+                result.get("total_tor_pairs", 0),
+                result.get("resonant_cycles", 0),
+                result.get("converged_cycles", 0),
+                json.dumps(result.get("final_state", {})),
+                result.get("duration_ms", 0),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         conn.commit()
         return exec_id
 
     def load_execution_history(self, limit: int = 50) -> list[dict[str, Any]]:
         """Carga el historial de ejecuciones orbitales."""
         conn = self._get_connection()
-        rows = conn.execute(
-            "SELECT * FROM orbital_executions ORDER BY tick DESC LIMIT ?", (limit,)
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM orbital_executions ORDER BY tick DESC LIMIT ?", (limit,)).fetchall()
         return [dict(r) for r in rows]
 
     # ── Estadisticas ───────────────────────────────────────

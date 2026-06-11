@@ -2,6 +2,7 @@
 Workflow Determinista — Tests del EventBus
 Tests unitarios para el sistema de mensajería pub/sub: suscripciones, publicación, persistencia.
 """
+
 from unittest.mock import MagicMock, patch
 
 
@@ -11,7 +12,7 @@ class TestEventBus:
     def test_subscribe_and_publish(self, db_manager):
         """Test: un workflow suscrito recibe el evento publicado."""
         from src.events.bus import EventBus
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         # Reset singleton
         EventBus._instance = None
@@ -19,13 +20,15 @@ class TestEventBus:
 
         # Create a workflow first
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name="Test WF",
-            description="Test",
-            trigger_type="event",
-            trigger_config={"event": "test.event"},
-            steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name="Test WF",
+                description="Test",
+                trigger_type="event",
+                trigger_config={"event": "test.event"},
+                steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}],
+            )
+        )
 
         bus.subscribe("test.event", wf.id)
 
@@ -40,19 +43,21 @@ class TestEventBus:
     def test_unsubscribe(self, db_manager):
         """Test: desuscribir un workflow lo elimina de las suscripciones."""
         from src.events.bus import EventBus
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         EventBus._instance = None
         bus = EventBus()
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name="Test WF 2",
-            description="Test",
-            trigger_type="event",
-            trigger_config={"event": "test.unsub"},
-            steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name="Test WF 2",
+                description="Test",
+                trigger_type="event",
+                trigger_config={"event": "test.unsub"},
+                steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}],
+            )
+        )
 
         bus.subscribe("test.unsub", wf.id)
         bus.unsubscribe("test.unsub", wf.id)
@@ -68,19 +73,21 @@ class TestEventBus:
     def test_unsubscribe_all(self, db_manager):
         """Test: unsubscribe_all elimina todas las suscripciones de un workflow."""
         from src.events.bus import EventBus
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         EventBus._instance = None
         bus = EventBus()
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name="Test WF 3",
-            description="Test",
-            trigger_type="event",
-            trigger_config={"event": "test.multi"},
-            steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name="Test WF 3",
+                description="Test",
+                trigger_type="event",
+                trigger_config={"event": "test.multi"},
+                steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}],
+            )
+        )
 
         bus.subscribe("test.event1", wf.id)
         bus.subscribe("test.event2", wf.id)

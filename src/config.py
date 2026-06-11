@@ -5,6 +5,9 @@ Seguridad: Los secrets (SESSION_SECRET, LICENSE_SECRET_KEY) DEBEN configurarse
 via variables de entorno en producción. Si se usan los valores por defecto
 en modo producción, el sistema se rehusa a arrancar.
 """
+
+import base64
+import hashlib
 import os
 import secrets
 import warnings
@@ -100,11 +103,7 @@ else:
 
 # ── Encryption ────────────────────────────────────────────
 # Derivada de SESSION_SECRET para cifrar tokens sensibles (WhatsApp, etc.)
-import base64
-import hashlib
-WHATSAPP_ENCRYPTION_KEY = base64.urlsafe_b64encode(
-    hashlib.sha256(SESSION_SECRET.encode()).digest()
-)
+WHATSAPP_ENCRYPTION_KEY = base64.urlsafe_b64encode(hashlib.sha256(SESSION_SECRET.encode()).digest())
 
 # ── Free Tier Limits ──────────────────────────────────────
 FREE_TIER_MAX_WORKFLOWS = 3
@@ -124,6 +123,7 @@ LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # ── Validación de configuración ────────────────────────────
 
+
 def validate_config() -> list[str]:
     """
     Valida la configuración del sistema y retorna una lista de advertencias.
@@ -139,14 +139,12 @@ def validate_config() -> list[str]:
     # Verificar que los secrets no sean los valores por defecto inseguros
     if SESSION_SECRET == _INSECURE_SESSION_DEFAULT:
         warnings_list.append(
-            "SESSION_SECRET usa el valor por defecto inseguro. "
-            "Configure WFD_SESSION_SECRET antes de desplegar."
+            "SESSION_SECRET usa el valor por defecto inseguro. Configure WFD_SESSION_SECRET antes de desplegar."
         )
 
     if LICENSE_SECRET_KEY == _INSECURE_LICENSE_DEFAULT:
         warnings_list.append(
-            "LICENSE_SECRET_KEY usa el valor por defecto inseguro. "
-            "Configure WFD_LICENSE_SECRET antes de desplegar."
+            "LICENSE_SECRET_KEY usa el valor por defecto inseguro. Configure WFD_LICENSE_SECRET antes de desplegar."
         )
 
     # Verificar que SESSION_SECRET tenga suficiente entropía

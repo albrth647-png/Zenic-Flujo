@@ -162,8 +162,7 @@ class InstallerWizard(tk.Tk):
         super().__init__()
         self.selected_lang = tk.StringVar(value="es")
         self.install_dir = tk.StringVar(
-            value=LANG["es"]["dir_default_win"] if IS_WINDOWS
-            else LANG["es"]["dir_default_linux"]
+            value=LANG["es"]["dir_default_win"] if IS_WINDOWS else LANG["es"]["dir_default_linux"]
         )
         self.license_key = tk.StringVar(value="")
         self.admin_password = tk.StringVar(value="")
@@ -198,19 +197,24 @@ class InstallerWizard(tk.Tk):
         self.header_frame.pack(fill="x")
 
         self.header_label = ttk.Label(
-            self.header_frame, text="Workflow Determinista",
+            self.header_frame,
+            text="Workflow Determinista",
             font=("Segoe UI", 16, "bold"),
         )
         self.header_label.pack()
 
         self.step_indicator = ttk.Label(
-            self.header_frame, text="", font=("Segoe UI", 9),
+            self.header_frame,
+            text="",
+            font=("Segoe UI", 9),
         )
         self.step_indicator.pack()
 
         # ── Progress bar at the top of the content area ────────────────
         self.top_progress = ttk.Progressbar(
-            self, mode="determinate", maximum=self.TOTAL_STEPS,
+            self,
+            mode="determinate",
+            maximum=self.TOTAL_STEPS,
         )
         self.top_progress.pack(fill="x", padx=20)
 
@@ -223,17 +227,23 @@ class InstallerWizard(tk.Tk):
         self.nav_frame.pack(fill="x")
 
         self.btn_back = ttk.Button(
-            self.nav_frame, text="← Atrás", command=self._go_back,
+            self.nav_frame,
+            text="← Atrás",
+            command=self._go_back,
         )
         self.btn_back.pack(side="left")
 
         self.btn_cancel = ttk.Button(
-            self.nav_frame, text="Cancelar", command=self._on_cancel,
+            self.nav_frame,
+            text="Cancelar",
+            command=self._on_cancel,
         )
         self.btn_cancel.pack(side="left", padx=(10, 0))
 
         self.btn_next = ttk.Button(
-            self.nav_frame, text="Siguiente →", command=self._go_next,
+            self.nav_frame,
+            text="Siguiente →",
+            command=self._go_next,
         )
         self.btn_next.pack(side="right")
 
@@ -261,9 +271,7 @@ class InstallerWizard(tk.Tk):
             self._txt("step_progress"),
             self._txt("step_complete"),
         ]
-        self.step_indicator.config(
-            text=f"Paso {step + 1} de {self.TOTAL_STEPS} — {step_names[step]}"
-        )
+        self.step_indicator.config(text=f"Paso {step + 1} de {self.TOTAL_STEPS} — {step_names[step]}")
 
         # Dispatch to step builder
         builders = [
@@ -303,14 +311,18 @@ class InstallerWizard(tk.Tk):
 
         for code, label in [("es", "Español"), ("en", "English")]:
             ttk.Radiobutton(
-                self.content_frame, text=label, variable=self.selected_lang,
-                value=code, command=self._on_language_change,
+                self.content_frame,
+                text=label,
+                variable=self.selected_lang,
+                value=code,
+                command=self._on_language_change,
             ).pack(anchor="w", padx=30, pady=5)
 
         ttk.Label(
             self.content_frame,
             text=self._txt("welcome"),
-            font=("Segoe UI", 10), foreground="gray",
+            font=("Segoe UI", 10),
+            foreground="gray",
         ).pack(anchor="w", pady=(30, 0))
 
     def _on_language_change(self):
@@ -334,26 +346,26 @@ class InstallerWizard(tk.Tk):
         self.dir_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
         ttk.Button(
-            dir_frame, text=self._txt("dir_browse"),
+            dir_frame,
+            text=self._txt("dir_browse"),
             command=self._browse_directory,
         ).pack(side="right")
 
         # Info label
-        default_dir = (
-            self._txt("dir_default_win") if IS_WINDOWS
-            else self._txt("dir_default_linux")
-        )
+        default_dir = self._txt("dir_default_win") if IS_WINDOWS else self._txt("dir_default_linux")
         ttk.Label(
             self.content_frame,
             text=f"Por defecto: {default_dir}",
-            font=("Segoe UI", 9), foreground="gray",
+            font=("Segoe UI", 9),
+            foreground="gray",
         ).pack(anchor="w", pady=(5, 0))
 
         # Disk space warning (informational)
         ttk.Label(
             self.content_frame,
             text="Se requieren aproximadamente 100 MB de espacio libre.",
-            font=("Segoe UI", 9), foreground="gray",
+            font=("Segoe UI", 9),
+            foreground="gray",
         ).pack(anchor="w", pady=(15, 0))
 
     def _browse_directory(self):
@@ -374,7 +386,9 @@ class InstallerWizard(tk.Tk):
         ).pack(anchor="w", pady=(10, 15))
 
         self.license_entry = ttk.Entry(
-            self.content_frame, textvariable=self.license_key, width=40,
+            self.content_frame,
+            textvariable=self.license_key,
+            width=40,
         )
         self.license_entry.pack(anchor="w", padx=20, pady=5)
 
@@ -387,7 +401,8 @@ class InstallerWizard(tk.Tk):
         ttk.Label(
             self.content_frame,
             text=self._txt("license_hint"),
-            font=("Segoe UI", 9), foreground="gray",
+            font=("Segoe UI", 9),
+            foreground="gray",
         ).pack(anchor="w", padx=20, pady=(10, 0))
 
     def _on_license_focus_in(self, event):
@@ -410,8 +425,10 @@ class InstallerWizard(tk.Tk):
         ).pack(anchor="w", pady=(10, 5))
 
         self.pw_entry = ttk.Entry(
-            self.content_frame, textvariable=self.admin_password,
-            show="*", width=40,
+            self.content_frame,
+            textvariable=self.admin_password,
+            show="*",
+            width=40,
         )
         self.pw_entry.pack(anchor="w", padx=20, pady=5)
 
@@ -422,14 +439,19 @@ class InstallerWizard(tk.Tk):
         ).pack(anchor="w", pady=(15, 5))
 
         self.pw_confirm_entry = ttk.Entry(
-            self.content_frame, textvariable=self.admin_password_confirm,
-            show="*", width=40,
+            self.content_frame,
+            textvariable=self.admin_password_confirm,
+            show="*",
+            width=40,
         )
         self.pw_confirm_entry.pack(anchor="w", padx=20, pady=5)
 
         # Validation label
         self.pw_validation_label = ttk.Label(
-            self.content_frame, text="", font=("Segoe UI", 9), foreground="red",
+            self.content_frame,
+            text="",
+            font=("Segoe UI", 9),
+            foreground="red",
         )
         self.pw_validation_label.pack(anchor="w", padx=20, pady=(10, 0))
 
@@ -458,14 +480,19 @@ class InstallerWizard(tk.Tk):
         self.progress_label.pack(anchor="w", pady=(20, 10))
 
         self.progress_bar = ttk.Progressbar(
-            self.content_frame, mode="determinate", maximum=100,
+            self.content_frame,
+            mode="determinate",
+            maximum=100,
         )
         self.progress_bar.pack(fill="x", pady=10)
 
         # Log area
         self.log_text = tk.Text(
-            self.content_frame, height=8, state="disabled",
-            font=("Consolas", 9), bg="#f5f5f5",
+            self.content_frame,
+            height=8,
+            state="disabled",
+            font=("Consolas", 9),
+            bg="#f5f5f5",
         )
         self.log_text.pack(fill="both", expand=True, pady=(10, 0))
 
@@ -490,7 +517,8 @@ class InstallerWizard(tk.Tk):
         ttk.Label(
             self.content_frame,
             text="✓",
-            font=("Segoe UI", 48), foreground="green",
+            font=("Segoe UI", 48),
+            foreground="green",
         ).pack(pady=(10, 5))
 
         ttk.Label(
@@ -502,13 +530,15 @@ class InstallerWizard(tk.Tk):
         ttk.Label(
             self.content_frame,
             text=self._txt("complete_url"),
-            font=("Segoe UI", 10), foreground="gray",
+            font=("Segoe UI", 10),
+            foreground="gray",
         ).pack()
 
         ttk.Label(
             self.content_frame,
             text=APP_URL,
-            font=("Segoe UI", 11, "bold"), foreground="#0066cc",
+            font=("Segoe UI", 11, "bold"),
+            foreground="#0066cc",
         ).pack(pady=(5, 15))
 
         # Open browser button
@@ -522,7 +552,8 @@ class InstallerWizard(tk.Tk):
             ttk.Label(
                 self.content_frame,
                 text=f"⚠ {self.install_error}",
-                font=("Segoe UI", 9), foreground="red",
+                font=("Segoe UI", 9),
+                foreground="red",
             ).pack(pady=(10, 0))
 
     # ── Navigation ─────────────────────────────────────────────────────────
@@ -617,12 +648,14 @@ class InstallerWizard(tk.Tk):
 
 class InstallError(Exception):
     """Raised when an installation step fails."""
+
     pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Installation step implementations (methods added to InstallerWizard)
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def _install_step_create_dirs(self):
     """Step 1: Create the installation directory structure."""
@@ -677,9 +710,16 @@ def _install_step_copy_files(self):
         dest_src = install_path / "src"
         if dest_src.exists():
             shutil.rmtree(dest_src)
-        shutil.copytree(src_dir, dest_src, ignore=shutil.ignore_patterns(
-            "__pycache__", "*.pyc", "*.pyo", ".git",
-        ))
+        shutil.copytree(
+            src_dir,
+            dest_src,
+            ignore=shutil.ignore_patterns(
+                "__pycache__",
+                "*.pyc",
+                "*.pyo",
+                ".git",
+            ),
+        )
 
         # Copy config files
         for config_file in ["requirements.txt", "README.md"]:
@@ -705,6 +745,7 @@ def _install_step_create_database(self):
 
     try:
         from src.data.database_manager import DatabaseManager
+
         db = DatabaseManager()
         # The DatabaseManager singleton creates all tables on __init__
         # Just confirm it's accessible
@@ -729,6 +770,7 @@ def _install_step_save_password(self):
         hashed = bcrypt.hashpw(password, bcrypt.gensalt(rounds=12)).decode("utf-8")
 
         from src.data.database_manager import DatabaseManager
+
         db = DatabaseManager()
         db.set_setting("admin_password_hash", hashed)
         db.audit("installer.password_set", "Admin password configured during installation")
@@ -745,6 +787,7 @@ def _install_step_configure_license(self):
 
     try:
         from src.data.database_manager import DatabaseManager
+
         db = DatabaseManager()
 
         key = self.license_key.get().strip().upper()
@@ -752,6 +795,7 @@ def _install_step_configure_license(self):
         if key and key.startswith("WFD-") and "XXXX" not in key:
             # Validate and activate the license key
             from src.license.validator import LicenseValidator
+
             validator = LicenseValidator()
             result = validator.validate(key)
             if result["valid"]:
@@ -764,14 +808,14 @@ def _install_step_configure_license(self):
             else:
                 # Key didn't validate — fall back to trial
                 self._log_progress(
-                    f"License validation failed ({result.get('reason', 'unknown')}), "
-                    "falling back to trial mode."
+                    f"License validation failed ({result.get('reason', 'unknown')}), falling back to trial mode."
                 )
                 validator._start_trial()
                 self._log_progress(self._txt("trial_activated"))
         else:
             # No valid key — start trial
             from src.license.validator import LicenseValidator
+
             validator = LicenseValidator()
             validator._start_trial()
             self._log_progress(self._txt("trial_activated"))
@@ -808,6 +852,7 @@ def _configure_autostart_windows(self, install_path: Path, python_executable: st
     """Add a Registry entry to start the app on login (Windows)."""
     try:
         import winreg
+
         key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
         app_value = f'"{python_executable}" "{install_path / "src" / "main.py"}"'
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as reg_key:
@@ -866,8 +911,7 @@ def _install_step_start_server(self):
             subprocess.Popen(
                 [python_executable, str(main_script)],
                 env=env,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-                | subprocess.DETACHED_PROCESS,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -883,6 +927,7 @@ def _install_step_start_server(self):
 
         # Give the server a moment to start, then open browser
         import time
+
         time.sleep(2)
         try:
             webbrowser.open(APP_URL)
@@ -909,6 +954,7 @@ InstallerWizard._install_step_start_server = _install_step_start_server
 # ═══════════════════════════════════════════════════════════════════════════
 #  Entry point
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def main():
     """Launch the installer wizard."""

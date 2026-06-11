@@ -25,8 +25,8 @@ import threading
 import time
 
 from src.events.work_queue import WorkQueue
-from src.workflow.engine import WorkflowEngine
 from src.utils.logger import setup_logging
+from src.workflow.engine import WorkflowEngine
 
 logger = setup_logging(__name__)
 
@@ -172,8 +172,7 @@ class WorkerManager:
         mgr.stop()
     """
 
-    def __init__(self, num_workers: int = DEFAULT_NUM_WORKERS,
-                 queue: WorkQueue | None = None):
+    def __init__(self, num_workers: int = DEFAULT_NUM_WORKERS, queue: WorkQueue | None = None):
         self._num_workers = num_workers
         self._queue = queue or WorkQueue()
         self._workers: list[Worker] = []
@@ -207,9 +206,7 @@ class WorkerManager:
         )
         self._health_thread.start()
 
-        logger.info(
-            f"WorkerManager: {self._num_workers} workers iniciados"
-        )
+        logger.info(f"WorkerManager: {self._num_workers} workers iniciados")
 
     def stop(self) -> None:
         """Detiene todos los workers gracefulmente."""
@@ -245,25 +242,20 @@ class WorkerManager:
 
                 # Worker muerto (thread terminado)
                 if not health["alive"] and worker.status != "stopped":
-                    logger.warning(
-                        f"Worker #{worker.worker_id}: thread muerto, reiniciando"
-                    )
+                    logger.warning(f"Worker #{worker.worker_id}: thread muerto, reiniciando")
                     needs_restart = True
 
                 # Demasiados fallos consecutivos
                 if health["consecutive_failures"] >= WORKER_MAX_CONSECUTIVE_FAILURES:
                     logger.warning(
-                        f"Worker #{worker.worker_id}: "
-                        f"{health['consecutive_failures']} fallos consecutivos, "
-                        f"reiniciando"
+                        f"Worker #{worker.worker_id}: {health['consecutive_failures']} fallos consecutivos, reiniciando"
                     )
                     needs_restart = True
 
                 # Heartbeat muy viejo (> 2x health interval)
                 if health["last_heartbeat_ago"] > WORKER_HEALTH_INTERVAL * 3:
                     logger.warning(
-                        f"Worker #{worker.worker_id}: heartbeat viejo "
-                        f"({health['last_heartbeat_ago']}s), reiniciando"
+                        f"Worker #{worker.worker_id}: heartbeat viejo ({health['last_heartbeat_ago']}s), reiniciando"
                     )
                     needs_restart = True
 
@@ -343,14 +335,8 @@ class WorkerManager:
                 "total": len(self._workers),
                 "alive": alive_count,
                 "dead": len(self._workers) - alive_count,
-                "processing": sum(
-                    1 for h in workers_health
-                    if h["status"] == "processing"
-                ),
-                "idle": sum(
-                    1 for h in workers_health
-                    if h["status"] == "idle"
-                ),
+                "processing": sum(1 for h in workers_health if h["status"] == "processing"),
+                "idle": sum(1 for h in workers_health if h["status"] == "idle"),
                 "total_processed": total_processed,
                 "total_failed": total_failed,
                 "avg_processing_time_ms": avg_processing_time,

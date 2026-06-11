@@ -1,8 +1,9 @@
 """
 Workflow Determinista — Inventory Service
 """
-from src.tools.inventory.repository import InventoryRepository
+
 from src.events.bus import EventBus
+from src.tools.inventory.repository import InventoryRepository
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -13,17 +14,24 @@ class InventoryService:
         self._repo = InventoryRepository()
         self._event_bus = EventBus()
 
-    def add_product(self, sku: str, name: str, description: str = "",
-                    category: str = "", stock: int = 0,
-                    min_stock: int = 10, price: float = 0.0,
-                    user_id: int | None = None) -> dict:
-        product = self._repo.create_product(sku, name, description, category,
-                                            stock, min_stock, price, user_id)
+    def add_product(
+        self,
+        sku: str,
+        name: str,
+        description: str = "",
+        category: str = "",
+        stock: int = 0,
+        min_stock: int = 10,
+        price: float = 0.0,
+        user_id: int | None = None,
+    ) -> dict:
+        product = self._repo.create_product(sku, name, description, category, stock, min_stock, price, user_id)
         logger.info(f"Producto creado: {name} (SKU: {sku})")
         return product
 
-    def update_stock(self, product_id: int, quantity: int,
-                     movement_type: str = "adjustment", reason: str = "") -> dict | None:
+    def update_stock(
+        self, product_id: int, quantity: int, movement_type: str = "adjustment", reason: str = ""
+    ) -> dict | None:
         product = self._repo.get_product(product_id)
         if not product:
             return None
@@ -48,9 +56,9 @@ class InventoryService:
     def get_product(self, product_id: int) -> dict | None:
         return self._repo.get_product(product_id)
 
-    def list_products(self, category: str | None = None,
-                      low_stock_only: bool = False,
-                      user_id: int | None = None) -> list[dict]:
+    def list_products(
+        self, category: str | None = None, low_stock_only: bool = False, user_id: int | None = None
+    ) -> list[dict]:
         return self._repo.list_products(category, low_stock_only, user_id)
 
     def delete_product(self, product_id: int) -> bool:

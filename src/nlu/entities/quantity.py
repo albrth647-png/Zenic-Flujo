@@ -6,33 +6,47 @@ Soporta: "más de 10 unidades", "< 50", "al menos 100", "menos de 5"
 
 Determinista. Sin eval(). Sin IA.
 """
+
 from __future__ import annotations
+
 import re
+
 from src.nlu.entities.base import Entity
 
 # Patrones: cantidad + unidad opcional
 QTY_PATTERNS = [
-    re.compile(r'(\d+)\s*(unidades?|items?|uds?|piezas?|productos?)', re.IGNORECASE),
-    re.compile(r'(\d+)\s*$'),  # número suelto al final (backup)
+    re.compile(r"(\d+)\s*(unidades?|items?|uds?|piezas?|productos?)", re.IGNORECASE),
+    re.compile(r"(\d+)\s*$"),  # número suelto al final (backup)
 ]
 
 # Palabras de operador para cantidades
 OPERATOR_WORDS_QTY = {
-    "mayor o igual": ">=", "menor o igual": "<=",
-    "mayor": ">", "menor": "<",
-    "mas de": ">=", "más de": ">=",
+    "mayor o igual": ">=",
+    "menor o igual": "<=",
+    "mayor": ">",
+    "menor": "<",
+    "mas de": ">=",
+    "más de": ">=",
     "menos de": "<=",
-    "al menos": ">=", "por lo menos": ">=",
-    "como minimo": ">=", "como mínimo": ">=",
-    "maximo": "<=", "máximo": "<=",
-    "exactamente": "==", "exacto": "==",
-    "at least": ">=", "at most": "<=",
-    "more than": ">", "less than": "<",
-    "greater than": ">", "less than": "<",
-    "exactly": "==", "equal to": "==",
+    "al menos": ">=",
+    "por lo menos": ">=",
+    "como minimo": ">=",
+    "como mínimo": ">=",
+    "maximo": "<=",
+    "máximo": "<=",
+    "exactamente": "==",
+    "exacto": "==",
+    "at least": ">=",
+    "at most": "<=",
+    "more than": ">",
+    "less than": "<",
+    "greater than": ">=",
+    "less than or equal": "<=",
+    "exactly": "==",
+    "equal to": "==",
 }
 
-OPERATOR_SYMBOLS_QTY = re.compile(r'(>=|<=|!=|==|>|<)')
+OPERATOR_SYMBOLS_QTY = re.compile(r"(>=|<=|!=|==|>|<)")
 
 
 class QuantityExtractor:
@@ -64,13 +78,15 @@ class QuantityExtractor:
                     "value": value_num,
                 }
 
-                entities.append(Entity(
-                    type="qty",
-                    value=entity_value,
-                    raw=raw,
-                    span=(match.start(), match.end()),
-                    score=0.85,
-                ))
+                entities.append(
+                    Entity(
+                        type="qty",
+                        value=entity_value,
+                        raw=raw,
+                        span=(match.start(), match.end()),
+                        score=0.85,
+                    )
+                )
 
         return entities
 

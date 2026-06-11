@@ -16,32 +16,37 @@ Ejecutar con: pytest src/tests/test_orbital_fase3.py -v
 """
 
 import math
-import pytest
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 # ══════════════════════════════════════════════════════════════
 # FIXTURES
 # ══════════════════════════════════════════════════════════════
 
+
 @pytest.fixture
 def mock_crm():
     class MockCRM:
         def create_lead(self, name="", email=""):
             return {"id": 1, "name": name, "email": email}
+
         def update_lead(self, lead_id=0, **kwargs):
             return {"id": lead_id, "updated": True}
+
     return MockCRM()
+
 
 @pytest.fixture
 def mock_notification():
     class MockNotification:
         def send_email(self, to="", subject="", body=""):
             return {"status": "sent", "to": to}
+
     return MockNotification()
 
 
@@ -49,10 +54,12 @@ def mock_notification():
 # TESTS: StepExecutor Orbital
 # ══════════════════════════════════════════════════════════════
 
+
 class TestStepExecutorOrbital:
     def test_step_creates_orbital_variable(self, mock_crm):
         """Cada paso ejecutado debe crear una variable orbital."""
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         executor.register_tool("crm", mock_crm)
 
@@ -66,6 +73,7 @@ class TestStepExecutorOrbital:
     def test_step_result_has_orbital_metadata(self, mock_crm):
         """El resultado debe tener metadatos orbitales (theta, tension, resonance)."""
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         executor.register_tool("crm", mock_crm)
 
@@ -81,6 +89,7 @@ class TestStepExecutorOrbital:
     def test_step_failure_retrofeeds(self):
         """Un paso fallido debe retroalimentar negativamente la variable orbital."""
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         # No registrar herramienta → fallo
 
@@ -93,6 +102,7 @@ class TestStepExecutorOrbital:
     def test_consecutive_steps_tor(self, mock_crm, mock_notification):
         """Pasos consecutivos deben calcular TOR entre ellos."""
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         executor.register_tool("crm", mock_crm)
         executor.register_tool("notification", mock_notification)
@@ -113,6 +123,7 @@ class TestStepExecutorOrbital:
     def test_orbital_snapshot(self, mock_crm):
         """Debe generar un snapshot orbital del estado de los pasos."""
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         executor.register_tool("crm", mock_crm)
 
@@ -130,10 +141,12 @@ class TestStepExecutorOrbital:
 # TESTS: ConditionEvaluator Orbital (ResonanceDetector)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestConditionEvaluatorOrbital:
     def test_simple_condition_textual(self):
         """Debe evaluar condiciones textuales simples (fallback)."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         result = evaluator.evaluate("5 < 10", {})
         assert result is True
@@ -141,6 +154,7 @@ class TestConditionEvaluatorOrbital:
     def test_condition_with_context(self):
         """Debe evaluar condiciones contra el contexto."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         result = evaluator.evaluate("stock < 10", {"stock": 5})
         assert result is True
@@ -148,6 +162,7 @@ class TestConditionEvaluatorOrbital:
     def test_condition_equality(self):
         """Debe evaluar igualdad."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         result = evaluator.evaluate("producto == 'Tornillos'", {"producto": "Tornillos"})
         assert result is True
@@ -155,6 +170,7 @@ class TestConditionEvaluatorOrbital:
     def test_condition_and(self):
         """Debe evaluar condiciones AND."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         result = evaluator.evaluate("stock < 10 AND producto == 'Tornillos'", {"stock": 5, "producto": "Tornillos"})
         assert result is True
@@ -162,6 +178,7 @@ class TestConditionEvaluatorOrbital:
     def test_condition_orbital_determinista(self):
         """Mismas condiciones + mismo contexto → mismo resultado (determinismo)."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         r1 = evaluator.evaluate("stock < 10", {"stock": 5})
         r2 = evaluator.evaluate("stock < 10", {"stock": 5})
@@ -170,6 +187,7 @@ class TestConditionEvaluatorOrbital:
     def test_validate_expression(self):
         """Debe validar expresiones."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         result = evaluator.validate_expression("stock < 10")
         assert result["valid"] is True
@@ -177,6 +195,7 @@ class TestConditionEvaluatorOrbital:
     def test_empty_condition(self):
         """Condicion vacia debe retornar True."""
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         assert evaluator.evaluate("", {}) is True
         assert evaluator.evaluate("   ", {}) is True
@@ -186,17 +205,23 @@ class TestConditionEvaluatorOrbital:
 # TESTS: BranchHandler Orbital (OrbitalDivergence)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestBranchHandlerOrbital:
     def test_simple_branch(self):
         """Debe evaluar branches y seleccionar la rama correcta."""
         from src.workflow.branch_handler import BranchHandler
+
         handler = BranchHandler()
 
         step = {
             "id": 1,
             "type": "branch",
             "branches": [
-                {"name": "low_stock", "condition": "stock < 10", "steps": [{"id": 1, "tool": "notification", "action": "send_email", "params": {}}]},
+                {
+                    "name": "low_stock",
+                    "condition": "stock < 10",
+                    "steps": [{"id": 1, "tool": "notification", "action": "send_email", "params": {}}],
+                },
                 {"name": "default", "condition": "True", "steps": []},
             ],
         }
@@ -207,6 +232,7 @@ class TestBranchHandlerOrbital:
     def test_branch_default(self):
         """Debe seleccionar la rama default si ninguna condicion se cumple."""
         from src.workflow.branch_handler import BranchHandler
+
         handler = BranchHandler()
 
         step = {
@@ -223,6 +249,7 @@ class TestBranchHandlerOrbital:
     def test_branch_no_default_raises(self):
         """Sin rama default, si TOR no es suficientemente fuerte, debe lanzar error o seleccionar por TOR."""
         from src.workflow.branch_handler import BranchHandler
+
         handler = BranchHandler()
 
         step = {
@@ -247,11 +274,13 @@ class TestBranchHandlerOrbital:
 # TESTS: LoopHandler Orbital (OrbitalConvergence)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestLoopHandlerOrbital:
     def test_foreach_loop(self, mock_notification):
         """Debe ejecutar foreach con enriquecimiento orbital."""
         from src.workflow.loop_handler import LoopHandler
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         executor.register_tool("notification", mock_notification)
         handler = LoopHandler()
@@ -273,6 +302,7 @@ class TestLoopHandlerOrbital:
         """Debe ejecutar bucle for."""
         from src.workflow.loop_handler import LoopHandler
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         handler = LoopHandler()
 
@@ -294,10 +324,12 @@ class TestLoopHandlerOrbital:
 # TESTS: ErrorHandler Orbital (OrbitalRecovery)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestErrorHandlerOrbital:
     def test_error_with_fallback(self):
         """Debe ejecutar fallback cuando el paso falla."""
         from src.workflow.error_handler import ErrorHandler
+
         handler = ErrorHandler()
 
         step = {
@@ -310,6 +342,7 @@ class TestErrorHandlerOrbital:
         }
 
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
 
         result = handler.handle(step, ValueError("test error"), {}, executor)
@@ -318,6 +351,7 @@ class TestErrorHandlerOrbital:
     def test_error_has_orbital_metadata(self):
         """El resultado del error handler debe tener metadatos orbitales."""
         from src.workflow.error_handler import ErrorHandler
+
         handler = ErrorHandler()
 
         step = {
@@ -330,6 +364,7 @@ class TestErrorHandlerOrbital:
         }
 
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
 
         result = handler.handle(step, ValueError("test error"), {}, executor)
@@ -341,10 +376,12 @@ class TestErrorHandlerOrbital:
 # TESTS: EventBus Orbital
 # ══════════════════════════════════════════════════════════════
 
+
 class TestEventBusOrbital:
     def test_event_creates_orbital_variable(self):
         """Publicar un evento debe crear una variable orbital."""
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         bus._ensure_orbital_variable("test.event")
@@ -357,6 +394,7 @@ class TestEventBusOrbital:
     def test_event_phase_deterministic(self):
         """La fase de un evento debe ser determinista."""
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
 
@@ -369,6 +407,7 @@ class TestEventBusOrbital:
     def test_event_resonance(self):
         """Debe poder calcular resonancia entre tipos de eventos."""
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
 
@@ -382,6 +421,7 @@ class TestEventBusOrbital:
     def test_orbital_snapshot(self):
         """Debe generar snapshot orbital del bus."""
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
 
@@ -396,6 +436,7 @@ class TestEventBusOrbital:
     def test_system_events(self):
         """Debe retornar la lista de eventos del sistema."""
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         events = bus.get_system_events()
@@ -407,9 +448,11 @@ class TestEventBusOrbital:
 # TESTS: OrbitalCompiler (Sigue funcionando post-Fase 3)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalCompilerFase3:
     def test_compile_cliente(self):
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         result = compiler.compile("Quiero registrar un cliente nuevo")
         assert result.status == "ready"
@@ -417,6 +460,7 @@ class TestOrbitalCompilerFase3:
 
     def test_compile_determinista(self):
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         r1 = compiler.compile("registrar cliente nuevo")
         r2 = compiler.compile("registrar cliente nuevo")
@@ -427,9 +471,11 @@ class TestOrbitalCompilerFase3:
 # TESTS: OrbitalAdapter (Sigue funcionando post-Fase 3)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalAdapterFase3:
     def test_execute_action(self, mock_crm):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         result = adapter.execute_action("crm", "create_lead", {"name": "Test"})
@@ -437,6 +483,7 @@ class TestOrbitalAdapterFase3:
 
     def test_tool_recommendations(self, mock_crm, mock_notification):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         adapter.register_tool("notification", mock_notification)
@@ -449,17 +496,22 @@ class TestOrbitalAdapterFase3:
 # TESTS: OrbitalRepository (Sigue funcionando post-Fase 3)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalRepositoryFase3:
     def test_convert_linear_to_orbital(self):
         import tempfile
+
         from src.orbital.orbital_repository import OrbitalRepository, OrbitalWorkflowDef
+
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
         repo = OrbitalRepository(db_path)
 
         linear = {
-            "id": 1, "name": "Test",
-            "trigger_type": "event", "trigger_config": {"event": "crm.lead.created"},
+            "id": 1,
+            "name": "Test",
+            "trigger_type": "event",
+            "trigger_config": {"event": "crm.lead.created"},
             "steps": [
                 {"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "$input.nombre"}},
             ],
@@ -475,10 +527,12 @@ class TestOrbitalRepositoryFase3:
 # TESTS: Integracion Completa Fase 3
 # ══════════════════════════════════════════════════════════════
 
+
 class TestIntegracionFase3:
     def test_orbital_engine_completo(self):
         """El motor orbital completo debe ejecutar un tick exitosamente."""
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("var_a", theta=0.0, amplitude=1.0, velocity=0.1)
         engine.create_variable("var_b", theta=1.5, amplitude=1.0, velocity=0.1)
@@ -491,8 +545,8 @@ class TestIntegracionFase3:
 
     def test_compiler_adapter_integration(self, mock_crm, mock_notification):
         """Compilador + Adaptador deben funcionar juntos."""
-        from src.orbital.orbital_compiler import OrbitalCompiler
         from src.orbital.orbital_adapter import OrbitalAdapter
+        from src.orbital.orbital_compiler import OrbitalCompiler
 
         compiler = OrbitalCompiler()
         compile_result = compiler.compile("registrar cliente nuevo")

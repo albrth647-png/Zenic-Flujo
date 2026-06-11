@@ -2,14 +2,16 @@
 Workflow Determinista — Report Generator
 Generación de reportes PDF y CSV para workflows, CRM, inventario y facturas.
 """
+
 import csv
 import io
 import json
 from datetime import datetime
 
+from fpdf import FPDF
+
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
-from fpdf import FPDF
 
 logger = setup_logging(__name__)
 
@@ -53,8 +55,7 @@ class PDF(FPDF):
             self.cell(widths[i], 7, col, border=1, fill=True, align="C")
         self.ln()
 
-    def table_row(self, cols: list[str], widths: list[int],
-                  fill: bool = False) -> None:
+    def table_row(self, cols: list[str], widths: list[int], fill: bool = False) -> None:
         """Fila de datos."""
         if fill:
             self.set_fill_color(26, 26, 26)
@@ -63,8 +64,7 @@ class PDF(FPDF):
         self.set_text_color(224, 224, 224)
         self.set_font("Helvetica", "", 8)
         for i, col in enumerate(cols):
-            self.cell(widths[i], 6, str(col)[:40], border=1,
-                      fill=True, align="C" if i > 0 else "L")
+            self.cell(widths[i], 6, str(col)[:40], border=1, fill=True, align="C" if i > 0 else "L")
         self.ln()
 
 
@@ -92,14 +92,19 @@ class ReportGenerator:
         )
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Nombre", "Descripción", "Disparador",
-                         "Estado", "Creado", "Actualizado"])
+        writer.writerow(["ID", "Nombre", "Descripción", "Disparador", "Estado", "Creado", "Actualizado"])
         for r in rows:
-            writer.writerow([
-                r["id"], r["name"], r.get("description", ""),
-                r["trigger_type"], r["status"],
-                r.get("created_at", ""), r.get("updated_at", ""),
-            ])
+            writer.writerow(
+                [
+                    r["id"],
+                    r["name"],
+                    r.get("description", ""),
+                    r["trigger_type"],
+                    r["status"],
+                    r.get("created_at", ""),
+                    r.get("updated_at", ""),
+                ]
+            )
         return output.getvalue()
 
     # ── Workflows PDF ────────────────────────────────────────
@@ -121,8 +126,7 @@ class ReportGenerator:
             return bytes(pdf.output())
 
         widths = [10, 50, 35, 25, 20, 40]
-        pdf.table_header(["ID", "Nombre", "Disparador", "Estado",
-                          "Pasos", "Creado"], widths)
+        pdf.table_header(["ID", "Nombre", "Disparador", "Estado", "Pasos", "Creado"], widths)
         for i, r in enumerate(rows):
             raw_steps = r.get("steps", "[]")
             if isinstance(raw_steps, str):
@@ -134,11 +138,18 @@ class ReportGenerator:
                 step_count = len(raw_steps)
             else:
                 step_count = 0
-            pdf.table_row([
-                str(r["id"]), r["name"][:30], r["trigger_type"],
-                r["status"], str(step_count),
-                (r.get("created_at") or "")[:10],
-            ], widths, fill=(i % 2 == 0))
+            pdf.table_row(
+                [
+                    str(r["id"]),
+                    r["name"][:30],
+                    r["trigger_type"],
+                    r["status"],
+                    str(step_count),
+                    (r.get("created_at") or "")[:10],
+                ],
+                widths,
+                fill=(i % 2 == 0),
+            )
 
         return bytes(pdf.output())
 
@@ -151,15 +162,21 @@ class ReportGenerator:
         )
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Nombre", "Email", "Teléfono", "Empresa",
-                         "Etapa", "Origen", "Notas", "Creado"])
+        writer.writerow(["ID", "Nombre", "Email", "Teléfono", "Empresa", "Etapa", "Origen", "Notas", "Creado"])
         for r in rows:
-            writer.writerow([
-                r["id"], r["name"], r.get("email", ""),
-                r.get("phone", ""), r.get("company", ""),
-                r.get("stage", ""), r.get("source", ""),
-                r.get("notes", ""), r.get("created_at", ""),
-            ])
+            writer.writerow(
+                [
+                    r["id"],
+                    r["name"],
+                    r.get("email", ""),
+                    r.get("phone", ""),
+                    r.get("company", ""),
+                    r.get("stage", ""),
+                    r.get("source", ""),
+                    r.get("notes", ""),
+                    r.get("created_at", ""),
+                ]
+            )
         return output.getvalue()
 
     # ── CRM Leads PDF ────────────────────────────────────────
@@ -171,8 +188,7 @@ class ReportGenerator:
         pdf.section_title("Reporte de Leads CRM")
 
         rows = self._db.fetchall(
-            "SELECT id, name, email, phone, company, stage, source, "
-            "created_at FROM leads ORDER BY created_at DESC"
+            "SELECT id, name, email, phone, company, stage, source, created_at FROM leads ORDER BY created_at DESC"
         )
         if not rows:
             pdf.set_text_color(136, 136, 136)
@@ -181,15 +197,22 @@ class ReportGenerator:
             return bytes(pdf.output())
 
         widths = [8, 35, 40, 25, 30, 20, 20, 22]
-        pdf.table_header(["ID", "Nombre", "Email", "Teléfono",
-                          "Empresa", "Etapa", "Origen", "Creado"], widths)
+        pdf.table_header(["ID", "Nombre", "Email", "Teléfono", "Empresa", "Etapa", "Origen", "Creado"], widths)
         for i, r in enumerate(rows):
-            pdf.table_row([
-                str(r["id"]), r["name"][:25], (r.get("email") or "")[:30],
-                r.get("phone") or "", (r.get("company") or "")[:20],
-                r.get("stage") or "", r.get("source") or "",
-                (r.get("created_at") or "")[:10],
-            ], widths, fill=(i % 2 == 0))
+            pdf.table_row(
+                [
+                    str(r["id"]),
+                    r["name"][:25],
+                    (r.get("email") or "")[:30],
+                    r.get("phone") or "",
+                    (r.get("company") or "")[:20],
+                    r.get("stage") or "",
+                    r.get("source") or "",
+                    (r.get("created_at") or "")[:10],
+                ],
+                widths,
+                fill=(i % 2 == 0),
+            )
 
         return bytes(pdf.output())
 
@@ -197,21 +220,27 @@ class ReportGenerator:
 
     def inventory_csv(self) -> str:
         rows = self._db.fetchall(
-            "SELECT id, sku, name, description, category, stock, "
-            "min_stock, price FROM products ORDER BY name ASC"
+            "SELECT id, sku, name, description, category, stock, min_stock, price FROM products ORDER BY name ASC"
         )
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "SKU", "Nombre", "Categoría",
-                         "Stock", "Stock Mínimo", "Precio", "Estado"])
+        writer.writerow(["ID", "SKU", "Nombre", "Categoría", "Stock", "Stock Mínimo", "Precio", "Estado"])
         for r in rows:
             stock = r["stock"]
             min_stock = r["min_stock"]
             estado = "Bajo stock" if stock <= min_stock else "Normal"
-            writer.writerow([
-                r["id"], r["sku"], r["name"], r.get("category", ""),
-                stock, min_stock, r.get("price", 0), estado,
-            ])
+            writer.writerow(
+                [
+                    r["id"],
+                    r["sku"],
+                    r["name"],
+                    r.get("category", ""),
+                    stock,
+                    min_stock,
+                    r.get("price", 0),
+                    estado,
+                ]
+            )
         return output.getvalue()
 
     # ── Inventory PDF ────────────────────────────────────────
@@ -223,8 +252,7 @@ class ReportGenerator:
         pdf.section_title("Reporte de Inventario")
 
         rows = self._db.fetchall(
-            "SELECT id, sku, name, category, stock, min_stock, price "
-            "FROM products ORDER BY name ASC"
+            "SELECT id, sku, name, category, stock, min_stock, price FROM products ORDER BY name ASC"
         )
         if not rows:
             pdf.set_text_color(136, 136, 136)
@@ -233,18 +261,25 @@ class ReportGenerator:
             return bytes(pdf.output())
 
         widths = [8, 25, 45, 25, 15, 20, 22, 30]
-        pdf.table_header(["ID", "SKU", "Nombre", "Categoría",
-                          "Stock", "St. Mín", "Precio", "Estado"], widths)
+        pdf.table_header(["ID", "SKU", "Nombre", "Categoría", "Stock", "St. Mín", "Precio", "Estado"], widths)
         for i, r in enumerate(rows):
             stock = r["stock"]
             min_stock = r["min_stock"]
             estado = "Bajo stock" if stock <= min_stock else "Ok"
-            pdf.table_row([
-                str(r["id"]), r["sku"], r["name"][:30],
-                (r.get("category") or "")[:15],
-                str(stock), str(min_stock),
-                f"${r.get('price', 0):.2f}", estado,
-            ], widths, fill=(i % 2 == 0))
+            pdf.table_row(
+                [
+                    str(r["id"]),
+                    r["sku"],
+                    r["name"][:30],
+                    (r.get("category") or "")[:15],
+                    str(stock),
+                    str(min_stock),
+                    f"${r.get('price', 0):.2f}",
+                    estado,
+                ],
+                widths,
+                fill=(i % 2 == 0),
+            )
 
         return bytes(pdf.output())
 
@@ -258,18 +293,39 @@ class ReportGenerator:
         )
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Número", "Cliente", "Email Cliente",
-                         "Estado", "Subtotal", "IVA", "Descuento",
-                         "Total", "Vencimiento", "Emitida", "Pagada"])
+        writer.writerow(
+            [
+                "ID",
+                "Número",
+                "Cliente",
+                "Email Cliente",
+                "Estado",
+                "Subtotal",
+                "IVA",
+                "Descuento",
+                "Total",
+                "Vencimiento",
+                "Emitida",
+                "Pagada",
+            ]
+        )
         for r in rows:
-            writer.writerow([
-                r["id"], r.get("number", ""), r["client_name"],
-                r.get("client_email", ""), r["status"],
-                r.get("subtotal", 0), r.get("tax_amount", 0),
-                r.get("discount", 0), r.get("total", 0),
-                r.get("due_date", ""), r.get("issued_at", ""),
-                r.get("paid_at", ""),
-            ])
+            writer.writerow(
+                [
+                    r["id"],
+                    r.get("number", ""),
+                    r["client_name"],
+                    r.get("client_email", ""),
+                    r["status"],
+                    r.get("subtotal", 0),
+                    r.get("tax_amount", 0),
+                    r.get("discount", 0),
+                    r.get("total", 0),
+                    r.get("due_date", ""),
+                    r.get("issued_at", ""),
+                    r.get("paid_at", ""),
+                ]
+            )
         return output.getvalue()
 
     # ── Invoices PDF ─────────────────────────────────────────
@@ -292,19 +348,25 @@ class ReportGenerator:
             return bytes(pdf.output())
 
         widths = [8, 25, 35, 18, 20, 18, 18, 22, 18, 18]
-        pdf.table_header(["ID", "Número", "Cliente", "Estado",
-                          "Subtotal", "IVA", "Desc.", "Total",
-                          "Venc.", "Emitida"], widths)
+        pdf.table_header(
+            ["ID", "Número", "Cliente", "Estado", "Subtotal", "IVA", "Desc.", "Total", "Venc.", "Emitida"], widths
+        )
         for i, r in enumerate(rows):
-            pdf.table_row([
-                str(r["id"]), r.get("number", "")[:10],
-                r["client_name"][:20], r["status"],
-                f"${r.get('subtotal', 0):.2f}",
-                f"${r.get('tax_amount', 0):.2f}",
-                f"${r.get('discount', 0):.2f}",
-                f"${r.get('total', 0):.2f}",
-                (r.get("due_date") or "")[:10],
-                (r.get("issued_at") or "")[:10],
-            ], widths, fill=(i % 2 == 0))
+            pdf.table_row(
+                [
+                    str(r["id"]),
+                    r.get("number", "")[:10],
+                    r["client_name"][:20],
+                    r["status"],
+                    f"${r.get('subtotal', 0):.2f}",
+                    f"${r.get('tax_amount', 0):.2f}",
+                    f"${r.get('discount', 0):.2f}",
+                    f"${r.get('total', 0):.2f}",
+                    (r.get("due_date") or "")[:10],
+                    (r.get("issued_at") or "")[:10],
+                ],
+                widths,
+                fill=(i % 2 == 0),
+            )
 
         return bytes(pdf.output())

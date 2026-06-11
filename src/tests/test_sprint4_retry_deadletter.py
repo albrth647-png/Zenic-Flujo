@@ -5,14 +5,15 @@ integración con engine y API.
 """
 
 import time
-from src.workflow.dead_letter import DeadLetterManager, DeadLetterEntry
+
+from src.workflow.dead_letter import DeadLetterEntry, DeadLetterManager
 from src.workflow.error_handler import ErrorHandler, ErrorHandlerResult
 from src.workflow.step_executor import StepExecutor, StepResult
-
 
 # ===================================================================
 # DeadLetterManager — CRUD
 # ===================================================================
+
 
 class TestDeadLetterManager:
     """Tests para DeadLetterManager CRUD."""
@@ -21,9 +22,12 @@ class TestDeadLetterManager:
         """Agregar entrada a dead letter queue."""
         dl = DeadLetterManager()
         entry_id = dl.add(
-            workflow_id=1, workflow_name="Test WF",
-            execution_id=10, step_id=5,
-            tool="test_tool", action="test_action",
+            workflow_id=1,
+            workflow_name="Test WF",
+            execution_id=10,
+            step_id=5,
+            tool="test_tool",
+            action="test_action",
             error_message="Something went wrong",
             retry_count=3,
             step_definition={"id": 5, "tool": "test_tool"},
@@ -45,12 +49,26 @@ class TestDeadLetterManager:
     def test_add_and_list(self):
         """Listar entradas después de agregar."""
         dl = DeadLetterManager()
-        dl.add(workflow_id=1, workflow_name="WF1", execution_id=1,
-               step_id=1, tool="t1", action="a1",
-               error_message="err1", retry_count=1)
-        dl.add(workflow_id=2, workflow_name="WF2", execution_id=2,
-               step_id=2, tool="t2", action="a2",
-               error_message="err2", retry_count=2)
+        dl.add(
+            workflow_id=1,
+            workflow_name="WF1",
+            execution_id=1,
+            step_id=1,
+            tool="t1",
+            action="a1",
+            error_message="err1",
+            retry_count=1,
+        )
+        dl.add(
+            workflow_id=2,
+            workflow_name="WF2",
+            execution_id=2,
+            step_id=2,
+            tool="t2",
+            action="a2",
+            error_message="err2",
+            retry_count=2,
+        )
 
         entries = dl.list(limit=10)
         assert len(entries) >= 2
@@ -58,9 +76,16 @@ class TestDeadLetterManager:
     def test_list_filter_by_status(self):
         """Listar filtrado por status."""
         dl = DeadLetterManager()
-        eid = dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-                     step_id=1, tool="t", action="a",
-                     error_message="err", retry_count=1)
+        eid = dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
 
         # Todas las pending
         pending = dl.list(status="pending")
@@ -73,9 +98,16 @@ class TestDeadLetterManager:
     def test_list_filter_by_workflow(self):
         """Listar filtrado por workflow_id."""
         dl = DeadLetterManager()
-        eid = dl.add(workflow_id=42, workflow_name="WF42", execution_id=1,
-                     step_id=1, tool="t", action="a",
-                     error_message="err", retry_count=1)
+        eid = dl.add(
+            workflow_id=42,
+            workflow_name="WF42",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
 
         entries = dl.list(workflow_id=42)
         assert any(e.id == eid for e in entries)
@@ -92,9 +124,16 @@ class TestDeadLetterManager:
     def test_discard_entry(self):
         """Descartar entrada cambia status."""
         dl = DeadLetterManager()
-        eid = dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-                     step_id=1, tool="t", action="a",
-                     error_message="err", retry_count=1)
+        eid = dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
 
         result = dl.discard(eid)
         assert result is True
@@ -112,29 +151,57 @@ class TestDeadLetterManager:
         """Contar entradas."""
         dl = DeadLetterManager()
         initial = dl.count()
-        dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-               step_id=1, tool="t", action="a",
-               error_message="err", retry_count=1)
+        dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
         assert dl.count() == initial + 1
 
     def test_count_by_status(self):
         """Contar entradas por status."""
         dl = DeadLetterManager()
         pending_before = dl.count(status="pending")
-        dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-               step_id=1, tool="t", action="a",
-               error_message="err", retry_count=1)
+        dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
         assert dl.count(status="pending") == pending_before + 1
 
     def test_discard_all(self):
         """Descartar todas las pending."""
         dl = DeadLetterManager()
-        dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-               step_id=1, tool="t", action="a",
-               error_message="err", retry_count=1)
-        dl.add(workflow_id=2, workflow_name="WF2", execution_id=2,
-               step_id=2, tool="t", action="a",
-               error_message="err2", retry_count=2)
+        dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
+        dl.add(
+            workflow_id=2,
+            workflow_name="WF2",
+            execution_id=2,
+            step_id=2,
+            tool="t",
+            action="a",
+            error_message="err2",
+            retry_count=2,
+        )
 
         count = dl.discard_all()
         assert count >= 0  # Puede haber entradas de tests anteriores
@@ -152,9 +219,16 @@ class TestDeadLetterManager:
     def test_notify_dead_letter(self):
         """Notificar entrada (aunque no haya suscriptores)."""
         dl = DeadLetterManager()
-        eid = dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-                     step_id=1, tool="t", action="a",
-                     error_message="err", retry_count=1)
+        eid = dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=1,
+        )
         result = dl.notify_dead_letter(eid)
         assert result is True
 
@@ -172,10 +246,15 @@ class TestDeadLetterManager:
     def test_to_dict(self):
         """DeadLetterEntry.to_dict() serializa correctamente."""
         entry = DeadLetterEntry(
-            id=1, workflow_id=1, workflow_name="WF",
-            execution_id=10, step_id=5,
-            tool="t", action="a",
-            error_message="err", retry_count=3,
+            id=1,
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=10,
+            step_id=5,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=3,
             status="pending",
         )
         d = entry.to_dict()
@@ -188,13 +267,14 @@ class TestDeadLetterManager:
 # ErrorHandler — Retry Mejorado
 # ===================================================================
 
+
 class FakeExecutor:
     """Fake executor que simula StepExecutor sin usar MagicMock."""
+
     def __init__(self, fail_count=0, result_after_fails=None):
         self._calls = 0
         self._fail_count = fail_count
-        self._result = result_after_fails or StepResult(status="completed",
-                                                         output_data={"ok": True})
+        self._result = result_after_fails or StepResult(status="completed", output_data={"ok": True})
 
     def execute(self, step, context):
         self._calls += 1
@@ -209,8 +289,7 @@ class TestErrorHandlerEnhanced:
     def test_continue_on_error_step_flag(self):
         """continue_on_error=True en step retorna skipped."""
         handler = ErrorHandler()
-        step = {"id": 1, "tool": "test", "action": "fail",
-                "continue_on_error": True}
+        step = {"id": 1, "tool": "test", "action": "fail", "continue_on_error": True}
         error = ValueError("Test error")
         context = {"workflow": {"id": 1, "name": "Test"}}
 
@@ -224,8 +303,7 @@ class TestErrorHandlerEnhanced:
         handler = ErrorHandler()
         step = {"id": 1, "tool": "test", "action": "fail"}
         error = ValueError("Test error")
-        context = {"workflow": {"id": 1, "name": "Test",
-                                "continue_on_error": True}}
+        context = {"workflow": {"id": 1, "name": "Test", "continue_on_error": True}}
 
         executor = FakeExecutor(fail_count=99)
         result = handler.handle(step, error, context, executor)
@@ -234,9 +312,12 @@ class TestErrorHandlerEnhanced:
     def test_retry_on_timeout_true(self):
         """retry_on_timeout=True reintenta incluso timeout."""
         handler = ErrorHandler()
-        step = {"id": 1, "tool": "test", "action": "timeout",
-                "retry": {"retry_on_timeout": True, "max_attempts": 2,
-                          "base_delay": 0.01}}
+        step = {
+            "id": 1,
+            "tool": "test",
+            "action": "timeout",
+            "retry": {"retry_on_timeout": True, "max_attempts": 2, "base_delay": 0.01},
+        }
 
         error = TimeoutError("Step 1 excedio el timeout de 30s")
         context = {}
@@ -252,17 +333,19 @@ class TestErrorHandlerEnhanced:
     def test_retry_backoff_with_jitter(self):
         """Backoff con jitter no crashea."""
         handler = ErrorHandler()
-        step = {"id": 1, "tool": "test", "action": "fail",
-                "retry": {"max_attempts": 3, "base_delay": 0.01,
-                          "multiplier": 2.0, "jitter": True}}
+        step = {
+            "id": 1,
+            "tool": "test",
+            "action": "fail",
+            "retry": {"max_attempts": 3, "base_delay": 0.01, "multiplier": 2.0, "jitter": True},
+        }
         error = ValueError("Test error")
         context = {}
 
         # Falla 2 veces, éxito en el 3er intento
-        executor = FakeExecutor(fail_count=2,
-                                result_after_fails=StepResult(
-                                    status="completed",
-                                    output_data={"done": True}))
+        executor = FakeExecutor(
+            fail_count=2, result_after_fails=StepResult(status="completed", output_data={"done": True})
+        )
 
         t0 = time.time()
         result = handler.handle(step, error, context, executor)
@@ -274,8 +357,7 @@ class TestErrorHandlerEnhanced:
     def test_retry_exhausted_goes_to_dead_letter(self):
         """Cuando se agotan reintentos, va a dead letter."""
         handler = ErrorHandler()
-        step = {"id": 1, "tool": "test", "action": "fail",
-                "retry": {"max_attempts": 1, "base_delay": 0.01}}
+        step = {"id": 1, "tool": "test", "action": "fail", "retry": {"max_attempts": 1, "base_delay": 0.01}}
         error = ValueError("Fatal error")
         context = {"workflow": {"id": 1, "name": "Test"}}
 
@@ -286,8 +368,7 @@ class TestErrorHandlerEnhanced:
     def test_retry_without_timeout_does_not_retry(self):
         """Timeout sin retry_on_timeout no reintenta."""
         handler = ErrorHandler()
-        step = {"id": 1, "tool": "test", "action": "slow",
-                "retry": {"retry_on_timeout": False, "max_attempts": 5}}
+        step = {"id": 1, "tool": "test", "action": "slow", "retry": {"retry_on_timeout": False, "max_attempts": 5}}
         error = TimeoutError("excedio el timeout de 30s")
         context = {"workflow": {"id": 1, "name": "Test"}}
 
@@ -300,21 +381,20 @@ class TestErrorHandlerEnhanced:
 
     def test_context_snapshot(self):
         """_get_context_snapshot incluye keys seguras."""
-        snapshot = ErrorHandler._get_context_snapshot({
-            "input": {"x": 1},
-            "workflow": {"id": 1},
-            "secret": "should_not_be_included",
-        })
+        snapshot = ErrorHandler._get_context_snapshot(
+            {
+                "input": {"x": 1},
+                "workflow": {"id": 1},
+                "secret": "should_not_be_included",
+            }
+        )
         assert "input" in snapshot
         assert "workflow" in snapshot
         assert "secret" not in snapshot
 
     def test_error_handler_result(self):
         """ErrorHandlerResult se construye correctamente."""
-        r = ErrorHandlerResult(status="dead_letter",
-                                error_message="test error",
-                                retries=3,
-                                orbital_alignment=0.5)
+        r = ErrorHandlerResult(status="dead_letter", error_message="test error", retries=3, orbital_alignment=0.5)
         assert r.status == "dead_letter"
         assert r.error_message == "test error"
         assert r.retries == 3
@@ -323,6 +403,7 @@ class TestErrorHandlerEnhanced:
 # ===================================================================
 # StepExecutor — continue_on_error
 # ===================================================================
+
 
 class TestContinueOnError:
     """Tests para continue_on_error en StepExecutor y Engine."""
@@ -357,15 +438,23 @@ class TestContinueOnError:
 # DeadLetterEntry — Edge Cases
 # ===================================================================
 
+
 class TestDeadLetterEdgeCases:
     """Tests para edge cases de DeadLetterManager."""
 
     def test_empty_step_definition(self):
         """Step definition vacío no crashea."""
         dl = DeadLetterManager()
-        eid = dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-                     step_id=1, tool="t", action="a",
-                     error_message="err", retry_count=0)
+        eid = dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message="err",
+            retry_count=0,
+        )
         entry = dl.get(eid)
         assert entry is not None
         assert entry.step_definition == {}
@@ -374,9 +463,16 @@ class TestDeadLetterEdgeCases:
         """Error message largo se guarda completo."""
         long_err = "A" * 5000
         dl = DeadLetterManager()
-        eid = dl.add(workflow_id=1, workflow_name="WF", execution_id=1,
-                     step_id=1, tool="t", action="a",
-                     error_message=long_err, retry_count=0)
+        eid = dl.add(
+            workflow_id=1,
+            workflow_name="WF",
+            execution_id=1,
+            step_id=1,
+            tool="t",
+            action="a",
+            error_message=long_err,
+            retry_count=0,
+        )
         entry = dl.get(eid)
         assert entry.error_message == long_err
 
@@ -386,9 +482,11 @@ class TestDeadLetterEdgeCases:
         eid = dl.add(
             workflow_id=1,
             workflow_name="Test <script>alert('xss')</script>",
-            execution_id=1, step_id=1,
-            tool="tést_ñ", action="acción_española",
-            error_message="Error: ñoño & \"comillas\"",
+            execution_id=1,
+            step_id=1,
+            tool="tést_ñ",
+            action="acción_española",
+            error_message='Error: ñoño & "comillas"',
             retry_count=0,
         )
         entry = dl.get(eid)
@@ -405,6 +503,7 @@ class TestDeadLetterEdgeCases:
 # ===================================================================
 # Notification Summary
 # ===================================================================
+
 
 class TestNotificationSummary:
     """Tests para el resumen de notificación."""

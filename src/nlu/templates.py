@@ -4,6 +4,7 @@ Templates para convertir lenguaje natural en definiciones de workflow.
 
 Migrado de src/nlp/templates.py → src/nlu/templates.py
 """
+
 from __future__ import annotations
 
 TEMPLATES: list[dict] = [
@@ -16,10 +17,22 @@ TEMPLATES: list[dict] = [
         "keywords_en": ["regist", "new", "client", "custom", "save", "creat", "add", "lead", "contact"],
         "trigger": {"type": "event", "config": {"event": "crm.lead.created"}},
         "steps": [
-            {"id": 1, "tool": "crm", "action": "create_lead",
-             "params": {"name": "$input.nombre", "email": "$input.email", "phone": "$input.telefono"}},
-            {"id": 2, "tool": "notification", "action": "send_email",
-             "params": {"to": "$input.email", "subject": "¡Bienvenido!", "body": "Hola $input.nombre, gracias por registrarte."}},
+            {
+                "id": 1,
+                "tool": "crm",
+                "action": "create_lead",
+                "params": {"name": "$input.nombre", "email": "$input.email", "phone": "$input.telefono"},
+            },
+            {
+                "id": 2,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {
+                    "to": "$input.email",
+                    "subject": "¡Bienvenido!",
+                    "body": "Hola $input.nombre, gracias por registrarte.",
+                },
+            },
         ],
     },
     {
@@ -32,8 +45,16 @@ TEMPLATES: list[dict] = [
         "trigger": {"type": "schedule", "config": {"cron": "0 9 * * *"}},
         "steps": [
             {"id": 1, "tool": "inventory", "action": "get_low_stock_products"},
-            {"id": 2, "tool": "notification", "action": "send_email",
-             "params": {"to": "$settings.admin_email", "subject": "Alerta: Productos con stock bajo", "body": "$output.1"}},
+            {
+                "id": 2,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {
+                    "to": "$settings.admin_email",
+                    "subject": "Alerta: Productos con stock bajo",
+                    "body": "$output.1",
+                },
+            },
         ],
     },
     {
@@ -46,8 +67,12 @@ TEMPLATES: list[dict] = [
         "trigger": {"type": "schedule", "config": {"cron": "0 9 * * 1"}},
         "steps": [
             {"id": 1, "tool": "invoice", "action": "get_overdue_invoices"},
-            {"id": 2, "tool": "notification", "action": "send_email",
-             "params": {"to": "$settings.admin_email", "subject": "Facturas de la semana", "body": "$output.1"}},
+            {
+                "id": 2,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {"to": "$settings.admin_email", "subject": "Facturas de la semana", "body": "$output.1"},
+            },
         ],
     },
     {
@@ -83,8 +108,16 @@ TEMPLATES: list[dict] = [
         "keywords_en": ["lead", "stage", "advanc", "opportun", "sale", "pipeline", "deal"],
         "trigger": {"type": "event", "config": {"event": "crm.lead.stage_changed"}},
         "steps": [
-            {"id": 1, "tool": "notification", "action": "send_email",
-             "params": {"to": "$settings.admin_email", "subject": "Lead avanzó: $input.to_stage", "body": "Lead $input.lead_id cambió de $input.from_stage a $input.to_stage"}},
+            {
+                "id": 1,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {
+                    "to": "$settings.admin_email",
+                    "subject": "Lead avanzó: $input.to_stage",
+                    "body": "Lead $input.lead_id cambió de $input.from_stage a $input.to_stage",
+                },
+            },
         ],
     },
     {
@@ -96,10 +129,17 @@ TEMPLATES: list[dict] = [
         "keywords_en": ["invoic", "overdu", "due", "payment", "pending", "collect"],
         "trigger": {"type": "event", "config": {"event": "invoice.overdue"}},
         "steps": [
-            {"id": 1, "tool": "invoice", "action": "get_invoice",
-             "params": {"invoice_id": "$input.invoice_id"}},
-            {"id": 2, "tool": "notification", "action": "send_email",
-             "params": {"to": "$output.1.client_email", "subject": "Factura vencida", "body": "Tu factura está vencida."}},
+            {"id": 1, "tool": "invoice", "action": "get_invoice", "params": {"invoice_id": "$input.invoice_id"}},
+            {
+                "id": 2,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {
+                    "to": "$output.1.client_email",
+                    "subject": "Factura vencida",
+                    "body": "Tu factura está vencida.",
+                },
+            },
         ],
     },
     {
@@ -111,8 +151,16 @@ TEMPLATES: list[dict] = [
         "keywords_en": ["product", "out", "stock", "zero", "miss", "unavail"],
         "trigger": {"type": "event", "config": {"event": "inventory.stock_out"}},
         "steps": [
-            {"id": 1, "tool": "notification", "action": "send_email",
-             "params": {"to": "$settings.admin_email", "subject": "Producto agotado: $input.name", "body": "El producto $input.name (ID: $input.id) está agotado."}},
+            {
+                "id": 1,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {
+                    "to": "$settings.admin_email",
+                    "subject": "Producto agotado: $input.name",
+                    "body": "El producto $input.name (ID: $input.id) está agotado.",
+                },
+            },
         ],
     },
     {
@@ -124,8 +172,12 @@ TEMPLATES: list[dict] = [
         "keywords_en": ["webhook", "extern", "api", "http", "post", "receiv"],
         "trigger": {"type": "webhook", "config": {}},
         "steps": [
-            {"id": 1, "tool": "notification", "action": "send_notification",
-             "params": {"channel": "log", "recipients": "admin", "message": "Webhook recibido: $input.body"}},
+            {
+                "id": 1,
+                "tool": "notification",
+                "action": "send_notification",
+                "params": {"channel": "log", "recipients": "admin", "message": "Webhook recibido: $input.body"},
+            },
         ],
     },
     {
@@ -137,8 +189,12 @@ TEMPLATES: list[dict] = [
         "keywords_en": ["file", "new", "folder", "directori", "csv", "excel", "upload"],
         "trigger": {"type": "event", "config": {"event": "file.created"}},
         "steps": [
-            {"id": 1, "tool": "notification", "action": "send_notification",
-             "params": {"channel": "log", "recipients": "admin", "message": "Archivo nuevo: $input.filename"}},
+            {
+                "id": 1,
+                "tool": "notification",
+                "action": "send_notification",
+                "params": {"channel": "log", "recipients": "admin", "message": "Archivo nuevo: $input.filename"},
+            },
         ],
     },
 ]

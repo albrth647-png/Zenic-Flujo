@@ -1,4 +1,5 @@
 """Tests para el Data Keeper Service."""
+
 import pytest
 
 
@@ -8,6 +9,7 @@ class TestDataKeeperService:
     def test_create_collection(self, db_manager):
         """Test: crear una colección nueva."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         collection = service.create_collection(
@@ -28,6 +30,7 @@ class TestDataKeeperService:
     def test_create_collection_duplicate(self, db_manager):
         """Test: crear colección duplicada lanza error."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         service.create_collection("test", {"campo": "string"})
@@ -37,6 +40,7 @@ class TestDataKeeperService:
     def test_list_collections(self, db_manager):
         """Test: listar colecciones."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         service.create_collection("clientes", {"nombre": "string"})
@@ -51,19 +55,26 @@ class TestDataKeeperService:
     def test_insert_record(self, db_manager):
         """Test: insertar un registro en una colección."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
-        service.create_collection("clientes", {
-            "nombre": "string",
-            "edad": "number",
-            "activo": "boolean",
-        })
+        service.create_collection(
+            "clientes",
+            {
+                "nombre": "string",
+                "edad": "number",
+                "activo": "boolean",
+            },
+        )
 
-        record = service.insert("clientes", {
-            "nombre": "Juan Pérez",
-            "edad": 30,
-            "activo": True,
-        })
+        record = service.insert(
+            "clientes",
+            {
+                "nombre": "Juan Pérez",
+                "edad": 30,
+                "activo": True,
+            },
+        )
 
         assert record["nombre"] == "Juan Pérez"
         assert record["edad"] == 30
@@ -74,6 +85,7 @@ class TestDataKeeperService:
     def test_insert_record_invalid_collection(self, db_manager):
         """Test: insertar en colección inexistente lanza error."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         with pytest.raises(ValueError, match="no encontrada"):
@@ -82,6 +94,7 @@ class TestDataKeeperService:
     def test_insert_record_validation(self, db_manager):
         """Test: insertar registro con campo no definido en schema."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         service.create_collection("test", {"nombre": "string"})
@@ -91,13 +104,17 @@ class TestDataKeeperService:
     def test_query_records(self, db_manager):
         """Test: consultar registros con filtros."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
-        service.create_collection("clientes", {
-            "nombre": "string",
-            "ciudad": "string",
-            "edad": "number",
-        })
+        service.create_collection(
+            "clientes",
+            {
+                "nombre": "string",
+                "ciudad": "string",
+                "edad": "number",
+            },
+        )
 
         service.insert("clientes", {"nombre": "Juan", "ciudad": "Madrid", "edad": 30})
         service.insert("clientes", {"nombre": "Ana", "ciudad": "Barcelona", "edad": 25})
@@ -115,6 +132,7 @@ class TestDataKeeperService:
     def test_update_record(self, db_manager):
         """Test: actualizar un registro."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         service.create_collection("test", {"nombre": "string", "edad": "number"})
@@ -127,6 +145,7 @@ class TestDataKeeperService:
     def test_delete_record(self, db_manager):
         """Test: eliminar un registro."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         service.create_collection("test", {"nombre": "string"})
@@ -142,6 +161,7 @@ class TestDataKeeperService:
     def test_delete_record_not_found(self, db_manager):
         """Test: eliminar registro inexistente retorna False."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         service.create_collection("test", {"nombre": "string"})
@@ -151,13 +171,17 @@ class TestDataKeeperService:
     def test_get_collection_info(self, db_manager):
         """Test: obtener info de una colección."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
-        service.create_collection("productos", {
-            "sku": "string",
-            "precio": "number",
-            "stock": "number",
-        })
+        service.create_collection(
+            "productos",
+            {
+                "sku": "string",
+                "precio": "number",
+                "stock": "number",
+            },
+        )
         service.insert("productos", {"sku": "ABC", "precio": 100, "stock": 10})
         service.insert("productos", {"sku": "XYZ", "precio": 200, "stock": 5})
 
@@ -169,6 +193,7 @@ class TestDataKeeperService:
     def test_get_tool_definition(self, db_manager):
         """Test: definición de la tool para el editor."""
         from src.tools.data_keeper.service import DataKeeperService
+
         service = DataKeeperService()
 
         definition = service.get_tool_definition()

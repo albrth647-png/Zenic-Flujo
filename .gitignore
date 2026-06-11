@@ -54,3 +54,15 @@ Desktop.ini
 # ── Backups ────────────────────────────────────
 backups/
 *.bak
+
+# ── Node.js ────────────────────────────────────
+node_modules/
+
+# ── Environment / Secrets ──────────────────────
+.env
+.env.local
+.env.production
+
+# ── SSH Keys ───────────────────────────────────
+zenic-flijo-github
+zenic-flijo-github.pub

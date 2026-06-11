@@ -13,19 +13,19 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
-
 # ── Constantes ──────────────────────────────────────────────
 
 TWO_PI = 2 * math.pi
 DEFAULT_AMPLITUDE = 1.0
 DEFAULT_VELOCITY = 0.1  # radianes por tick
 DEFAULT_THRESHOLD = 0.5  # umbral RCC
-DEFAULT_EPSILON = 1e-6   # precision COD
+DEFAULT_EPSILON = 1e-6  # precision COD
 MAX_COD_ITERATIONS = 1000
 RETROFEEDBACK_DAMPING = 0.3  # factor de amortiguacion retroalimentacion
 
 
 # ── VariableOrbital ────────────────────────────────────────
+
 
 @dataclass
 class VariableOrbital:
@@ -45,6 +45,7 @@ class VariableOrbital:
         orbit_group: Grupo orbital al que pertenece
         metadata: Datos adicionales arbitrarios
     """
+
     id: str = field(default_factory=lambda: str(uuid4()))
     name: str = ""
     theta: float = 0.0
@@ -138,6 +139,7 @@ class VariableOrbital:
 
 # ── CicloOrbital ───────────────────────────────────────────
 
+
 @dataclass
 class CicloOrbital:
     """
@@ -154,6 +156,7 @@ class CicloOrbital:
         status: Estado del ciclo (active, collapsed, diverged)
         resonance_level: Nivel actual de resonancia [0, 1]
     """
+
     id: str = field(default_factory=lambda: str(uuid4()))
     name: str = ""
     variable_ids: list[str] = field(default_factory=list)
@@ -185,6 +188,7 @@ class CicloOrbital:
 
 # ── TORResult ──────────────────────────────────────────────
 
+
 @dataclass
 class TORResult:
     """
@@ -195,6 +199,7 @@ class TORResult:
     Esta fuerza orbital reciproca es computable, determinista y simetrica:
     TOR(i,j) = TOR(j,i).
     """
+
     variable_i: str = ""
     variable_j: str = ""
     tor_value: float = 0.0
@@ -215,6 +220,7 @@ class TORResult:
 
 # ── RCCResult ──────────────────────────────────────────────
 
+
 @dataclass
 class RCCResult:
     """
@@ -224,6 +230,7 @@ class RCCResult:
     supera el umbral. Esto indica resonancia determinista: las variables
     estan sincronizadas orbitalmente y se puede predecir multimodalmente.
     """
+
     cycle_id: str = ""
     total_tension: float = 0.0
     average_tension: float = 0.0
@@ -248,6 +255,7 @@ class RCCResult:
 
 # ── CODResult ──────────────────────────────────────────────
 
+
 @dataclass
 class CODResult:
     """
@@ -260,6 +268,7 @@ class CODResult:
 
     El colapso NO es probabilidad: es el ESTADO DETERMINISTA del sistema circular.
     """
+
     cycle_id: str = ""
     converged: bool = False
     iterations: int = 0
@@ -282,6 +291,7 @@ class CODResult:
 
 # ── EspectroEstado ─────────────────────────────────────────
 
+
 @dataclass
 class EspectroEstado:
     """
@@ -296,6 +306,7 @@ class EspectroEstado:
         primary_mode: Indice del modo primario (mayor tension)
         retrofeedback: Valor que retroalimenta al input del sistema
     """
+
     modes: list[dict[str, float]] = field(default_factory=list)
     primary_mode: int = 0
     retrofeedback: dict[str, float] = field(default_factory=dict)
@@ -321,6 +332,7 @@ class EspectroEstado:
 
 # ── OrbitalResult ──────────────────────────────────────────
 
+
 @dataclass
 class OrbitalResult:
     """
@@ -333,6 +345,7 @@ class OrbitalResult:
     - COD: resultado del colapso determinista
     - Espectro: salida multimodal con retroalimentacion
     """
+
     tick: int = 0
     variables: dict[str, VariableOrbital] = field(default_factory=dict)
     tor_results: list[TORResult] = field(default_factory=list)

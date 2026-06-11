@@ -17,8 +17,7 @@ class TestWorkflowValidator:
             "trigger_config": {"event": "test.event"},
             "steps": [
                 {"id": 1, "tool": "crm", "action": "create_lead", "params": {}},
-                {"id": 2, "tool": "notification", "action": "send_email",
-                 "params": {"to": "test@test.com"}},
+                {"id": 2, "tool": "notification", "action": "send_email", "params": {"to": "test@test.com"}},
             ],
         }
         result = validator.validate(workflow)
@@ -88,8 +87,7 @@ class TestWorkflowValidator:
             "trigger_type": "event",
             "trigger_config": {"event": "test"},
             "steps": [
-                {"id": 1, "tool": "notification", "action": "send_email",
-                 "params": {"to": "$slot.email_sin_resolver"}},
+                {"id": 1, "tool": "notification", "action": "send_email", "params": {"to": "$slot.email_sin_resolver"}},
             ],
         }
         result = validator.validate(workflow)

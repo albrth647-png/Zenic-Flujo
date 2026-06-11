@@ -15,16 +15,17 @@ Compatibilidad: mantiene la misma API que el EventBus original.
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
+import math
 import threading
 import time
-import math
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from src.data.database_manager import DatabaseManager
-from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
+from src.orbital.models import TWO_PI
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -34,6 +35,7 @@ class OrbitalEvent:
     """
     Evento orbital: un evento del bus enriquecido con fase y amplitud.
     """
+
     def __init__(self, event_type: str, data: dict, theta: float = 0.0, amplitude: float = 1.0):
         self.event_type = event_type
         self.data = data
@@ -66,10 +68,10 @@ class EventBus:
     Singleton como el original.
     """
 
-    _instance: "EventBus | None" = None
+    _instance: EventBus | None = None
     _lock = threading.RLock()
 
-    def __new__(cls) -> "EventBus":
+    def __new__(cls) -> EventBus:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -129,9 +131,7 @@ class EventBus:
 
     def remove_handler(self, event_type: str, handler: Callable) -> None:
         if event_type in self._handlers:
-            self._handlers[event_type] = [
-                h for h in self._handlers[event_type] if h != handler
-            ]
+            self._handlers[event_type] = [h for h in self._handlers[event_type] if h != handler]
 
     # ── Publicacion ORBITAL (OVC compartido) ────────────────
 
@@ -250,8 +250,7 @@ class EventBus:
 
     # ── Retroalimentacion (OVC compartido) ──────────────────
 
-    def _retrofeed_from_results(self, event_type: str, results: list[dict],
-                                 resonance_level: float) -> None:
+    def _retrofeed_from_results(self, event_type: str, results: list[dict], resonance_level: float) -> None:
         var = self._ctx.ovc.get_variable(event_type)
         if not var:
             return
@@ -317,6 +316,7 @@ class EventBus:
     def _execute_workflow(self, workflow_id: int, data: dict) -> dict:
         try:
             from src.workflow.engine import WorkflowEngine
+
             engine = WorkflowEngine()
             result = engine.execute(workflow_id, data)
             return {
@@ -357,9 +357,7 @@ class EventBus:
     # ── Recuperacion ────────────────────────────────────────
 
     def get_pending_events(self) -> list[dict]:
-        return self._db.fetchall(
-            "SELECT * FROM event_queue WHERE status = 'pending' ORDER BY created_at"
-        )
+        return self._db.fetchall("SELECT * FROM event_queue WHERE status = 'pending' ORDER BY created_at")
 
     def reprocess_pending(self) -> int:
         pending = self.get_pending_events()
@@ -376,9 +374,7 @@ class EventBus:
         return count
 
     def reprocess_failed(self) -> int:
-        failed = self._db.fetchall(
-            "SELECT * FROM event_queue WHERE status = 'failed' ORDER BY created_at"
-        )
+        failed = self._db.fetchall("SELECT * FROM event_queue WHERE status = 'failed' ORDER BY created_at")
         count = 0
         for event in failed:
             try:

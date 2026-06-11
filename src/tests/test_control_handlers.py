@@ -2,8 +2,10 @@
 Workflow Determinista — Tests del BranchHandler, LoopHandler, ErrorHandler
 Tests unitarios para los handlers de flujo de control del workflow engine.
 """
-import pytest
+
 from unittest.mock import MagicMock
+
+import pytest
 
 
 class TestBranchHandler:
@@ -13,7 +15,11 @@ class TestBranchHandler:
         """Test: se toma la primera rama cuando su condición es True."""
         step = {
             "branches": [
-                {"name": "low_stock", "condition": "stock < 10", "steps": [{"id": 1, "tool": "notification", "action": "send_email", "params": {}}]},
+                {
+                    "name": "low_stock",
+                    "condition": "stock < 10",
+                    "steps": [{"id": 1, "tool": "notification", "action": "send_email", "params": {}}],
+                },
                 {"name": "ok", "condition": "True", "steps": []},
             ],
         }
@@ -111,6 +117,7 @@ class TestLoopHandler:
         }
         mock_executor = MagicMock()
         from src.workflow.step_executor import StepResult
+
         mock_executor.execute.return_value = StepResult(status="completed", output_data={"ok": True})
 
         context = {"input": {"items": ["Alice", "Bob", "Charlie"]}, "output": {}}
@@ -130,6 +137,7 @@ class TestLoopHandler:
         }
         mock_executor = MagicMock()
         from src.workflow.step_executor import StepResult
+
         mock_executor.execute.return_value = StepResult(status="completed", output_data={"ok": True})
 
         context = {"input": {}, "output": {}}
@@ -146,6 +154,7 @@ class TestLoopHandler:
         }
         mock_executor = MagicMock()
         from src.workflow.step_executor import StepResult
+
         mock_executor.execute.return_value = StepResult(status="completed", output_data={"ok": True})
 
         context = {"input": {}, "output": {}}
@@ -173,7 +182,13 @@ class TestErrorHandler:
         ]
 
         result = error_handler.handle(
-            step={"id": 1, "tool": "crm", "action": "test", "params": {}, "retry": {"max_attempts": 1, "base_delay": 0}},
+            step={
+                "id": 1,
+                "tool": "crm",
+                "action": "test",
+                "params": {},
+                "retry": {"max_attempts": 1, "base_delay": 0},
+            },
             error=Exception("Test error"),
             context={"input": {}},
             step_executor=mock_executor,
@@ -189,7 +204,13 @@ class TestErrorHandler:
         mock_executor.execute.return_value = StepResult(status="failed", error_message="Persistent error")
 
         result = error_handler.handle(
-            step={"id": 1, "tool": "crm", "action": "test", "params": {}, "retry": {"max_attempts": 1, "base_delay": 0}},
+            step={
+                "id": 1,
+                "tool": "crm",
+                "action": "test",
+                "params": {},
+                "retry": {"max_attempts": 1, "base_delay": 0},
+            },
             error=Exception("Test error"),
             context={"input": {}},
             step_executor=mock_executor,
@@ -205,7 +226,10 @@ class TestErrorHandler:
 
         result = error_handler.handle(
             step={
-                "id": 1, "tool": "crm", "action": "test", "params": {},
+                "id": 1,
+                "tool": "crm",
+                "action": "test",
+                "params": {},
                 "retry": {"max_attempts": 1, "base_delay": 0},
                 "fallback": "skip",
             },

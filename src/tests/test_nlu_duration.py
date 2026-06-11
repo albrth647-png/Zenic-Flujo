@@ -8,6 +8,7 @@ class TestDurationExtractor:
 
     def test_daily(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("cada día")
         assert len(entities) == 1
@@ -16,6 +17,7 @@ class TestDurationExtractor:
 
     def test_diario(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("diario")
         assert len(entities) == 1
@@ -23,6 +25,7 @@ class TestDurationExtractor:
 
     def test_weekly(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("semanal")
         assert len(entities) == 1
@@ -30,6 +33,7 @@ class TestDurationExtractor:
 
     def test_every_15_minutes(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("cada 15 minutos")
         assert len(entities) == 1
@@ -37,6 +41,7 @@ class TestDurationExtractor:
 
     def test_every_2_hours(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("every 2 hours")
         assert len(entities) == 1
@@ -44,6 +49,7 @@ class TestDurationExtractor:
 
     def test_at_9am(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("a las 9")
         assert len(entities) >= 1
@@ -53,6 +59,7 @@ class TestDurationExtractor:
 
     def test_at_9pm(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("a las 9pm")
         cron = [e for e in entities if e.type == "cron"]
@@ -60,6 +67,7 @@ class TestDurationExtractor:
 
     def test_cada_lunes(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("cada lunes")
         cron = [e for e in entities if e.type == "cron"]
@@ -68,12 +76,14 @@ class TestDurationExtractor:
 
     def test_no_duration(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         entities = ext.extract("hola mundo")
         assert len(entities) == 0
 
     def test_determinista(self):
         from src.nlu.entities.duration import DurationExtractor
+
         ext = DurationExtractor()
         r1 = ext.extract("cada día")
         r2 = ext.extract("cada día")

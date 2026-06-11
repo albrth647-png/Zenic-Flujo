@@ -6,31 +6,47 @@ Soporta: $500, 500 pesos, más de $500, menos de 1000, mayor a 200, > 300
 
 Determinista: regex + parse de operadores. Sin eval(). Sin IA.
 """
-from __future__ import annotations
-import re
-from src.nlu.entities.base import Entity
 
+from __future__ import annotations
+
+import re
+
+from src.nlu.entities.base import Entity
 
 # Patrones para montos: $500, 500 pesos, USD 500
 MONEY_PATTERNS = [
-    re.compile(r'\$\s?(\d+[\.,]?\d*)'),
-    re.compile(r'(\d+[\.,]?\d*)\s*(dólares|dolares|pesos|usd|eur|mxn|ars)'),
-    re.compile(r'(usd|eur|mxn|ars)\s*(\d+[\.,]?\d*)', re.IGNORECASE),
+    re.compile(r"\$\s?(\d+[\.,]?\d*)"),
+    re.compile(r"(\d+[\.,]?\d*)\s*(dólares|dolares|pesos|usd|eur|mxn|ars)"),
+    re.compile(r"(usd|eur|mxn|ars)\s*(\d+[\.,]?\d*)", re.IGNORECASE),
 ]
 
 # Palabras de operador
 OPERATOR_WORDS = {
-    "mayor": ">", "menor": "<", "mas": ">=", "más": ">=",
-    "menos": "<=", "al menos": ">=", "por lo menos": ">=",
-    "mayor o igual": ">=", "menor o igual": "<=", "exactamente": "==",
-    "igual": "==", "exacto": "==",
-    "greater": ">", "less": "<", "more": ">=", "less or equal": "<=",
-    "greater or equal": ">=", "at least": ">=", "at most": "<=",
-    "exactly": "==", "equal": "==",
+    "mayor": ">",
+    "menor": "<",
+    "mas": ">=",
+    "más": ">=",
+    "menos": "<=",
+    "al menos": ">=",
+    "por lo menos": ">=",
+    "mayor o igual": ">=",
+    "menor o igual": "<=",
+    "exactamente": "==",
+    "igual": "==",
+    "exacto": "==",
+    "greater": ">",
+    "less": "<",
+    "more": ">=",
+    "less or equal": "<=",
+    "greater or equal": ">=",
+    "at least": ">=",
+    "at most": "<=",
+    "exactly": "==",
+    "equal": "==",
 }
 
 # Símbolos de operador directo
-OPERATOR_SYMBOLS = re.compile(r'(>=|<=|!=|==|>|<)')
+OPERATOR_SYMBOLS = re.compile(r"(>=|<=|!=|==|>|<)")
 
 
 class MoneyExtractor:
@@ -55,7 +71,7 @@ class MoneyExtractor:
                 groups = match.groups()
                 num_str = ""
                 for g in groups:
-                    if g and re.match(r'^[\d.,]+$', g):
+                    if g and re.match(r"^[\d.,]+$", g):
                         num_str = g
                         break
 
@@ -72,13 +88,15 @@ class MoneyExtractor:
                     "value": value_num,
                 }
 
-                entities.append(Entity(
-                    type="money",
-                    value=entity_value,
-                    raw=raw,
-                    span=(match.start(), match.end()),
-                    score=0.9,
-                ))
+                entities.append(
+                    Entity(
+                        type="money",
+                        value=entity_value,
+                        raw=raw,
+                        span=(match.start(), match.end()),
+                        score=0.9,
+                    )
+                )
 
         return entities
 

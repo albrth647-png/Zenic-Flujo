@@ -8,8 +8,8 @@ class TestIntentClassifier:
 
     def test_classify_spanish_client_registration(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("Quiero registrar un nuevo cliente")
@@ -22,8 +22,8 @@ class TestIntentClassifier:
 
     def test_classify_english_client_registration(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("Register a new customer")
@@ -35,8 +35,8 @@ class TestIntentClassifier:
 
     def test_classify_stock_alert(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("Alerta de inventario bajo")
@@ -48,8 +48,8 @@ class TestIntentClassifier:
 
     def test_classify_invoice(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("Generar factura semanal")
@@ -61,14 +61,15 @@ class TestIntentClassifier:
 
     def test_classify_empty_text(self):
         from src.nlu.intent_classifier import IntentClassifier
+
         classifier = IntentClassifier()
         results = classifier.classify([], "es")
         assert len(results) == 0
 
     def test_classify_gibberish_returns_low_score(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("xyz abc qwerty")
@@ -81,6 +82,7 @@ class TestIntentClassifier:
 
     def test_classify_text_helper(self):
         from src.nlu.intent_classifier import IntentClassifier
+
         classifier = IntentClassifier()
         results = classifier.classify_text("Quiero registrar un nuevo cliente")
 
@@ -89,8 +91,8 @@ class TestIntentClassifier:
 
     def test_classify_sorted_by_score(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("Registrar cliente nuevo en CRM")
@@ -102,8 +104,8 @@ class TestIntentClassifier:
 
     def test_classify_tiene_evidencia(self):
         from src.nlu.intent_classifier import IntentClassifier
-        from src.nlu.tokenizer import tokenize
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
 
         classifier = IntentClassifier()
         text = normalize("Registrar cliente nuevo")

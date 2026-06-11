@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 
 from src.data.database_manager import DatabaseManager
-from src.events.work_queue import WorkQueue, DEFAULT_MAX_RETRIES
+from src.events.work_queue import DEFAULT_MAX_RETRIES, WorkQueue
 from src.events.worker_manager import Worker, WorkerManager
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -320,6 +320,7 @@ class TestWorker:
     def test_worker_initial_state(self):
         """Worker inicia en idle."""
         from src.events.work_queue import WorkQueue
+
         q = WorkQueue()
         w = Worker(worker_id=1, queue=q)
         assert w.worker_id == 1
@@ -331,6 +332,7 @@ class TestWorker:
     def test_worker_start_and_stop(self):
         """Worker inicia y se detiene gracefulmente."""
         from src.events.work_queue import WorkQueue
+
         q = WorkQueue()
         w = Worker(worker_id=2, queue=q)
         w.start()
@@ -343,6 +345,7 @@ class TestWorker:
     def test_worker_get_health(self):
         """get_health retorna estado del worker."""
         from src.events.work_queue import WorkQueue
+
         q = WorkQueue()
         w = Worker(worker_id=3, queue=q)
         health = w.get_health()
@@ -360,6 +363,7 @@ class TestWorker:
         """
         cleanup_queue()
         from src.events.work_queue import WorkQueue
+
         q = WorkQueue()
         q.enqueue(workflow_id=1, trigger_data={"test": True}, max_retries=0)
 
@@ -371,9 +375,7 @@ class TestWorker:
 
         # Workflow 1 no existe → falla inmediatamente → status='failed'
         db = DatabaseManager()
-        row = db.fetchone(
-            "SELECT status FROM work_queue WHERE workflow_id = 1"
-        )
+        row = db.fetchone("SELECT status FROM work_queue WHERE workflow_id = 1")
         assert row is not None
         assert row["status"] in ("failed", "completed")
 
@@ -460,6 +462,7 @@ class TestWorkerManager:
     def test_worker_manager_processes_queue(self):
         """WorkerManager procesa items de la cola automáticamente."""
         from src.events.work_queue import WorkQueue
+
         q = WorkQueue()
 
         wm = WorkerManager(num_workers=2, queue=q)
@@ -490,6 +493,7 @@ class TestWorkerManager:
     def test_worker_manager_queue_property(self):
         """La property queue retorna la cola asociada."""
         from src.events.work_queue import WorkQueue
+
         q = WorkQueue()
         wm = WorkerManager(num_workers=1, queue=q)
         assert wm.queue is q

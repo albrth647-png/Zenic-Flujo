@@ -1,5 +1,6 @@
 """Tests para el API Connector Service."""
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import MagicMock, patch
 
 
 class TestAPIConnectorService:
@@ -8,6 +9,7 @@ class TestAPIConnectorService:
     def test_request_get_success(self):
         """Test: GET request exitoso retorna datos."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -28,14 +30,20 @@ class TestAPIConnectorService:
         assert "content-type" in result["headers"]
         # requests.request usa keyword arguments (method=, url=)
         mock_req.assert_called_once_with(
-            method="GET", url="https://api.example.com/users/1",
-            headers=None, json=None, data=None, params=None,
-            auth=None, timeout=30,
+            method="GET",
+            url="https://api.example.com/users/1",
+            headers=None,
+            json=None,
+            data=None,
+            params=None,
+            auth=None,
+            timeout=30,
         )
 
     def test_request_post_with_body(self):
         """Test: POST request con body JSON."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -58,6 +66,7 @@ class TestAPIConnectorService:
     def test_request_with_bearer_auth(self):
         """Test: autenticación Bearer token."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -79,6 +88,7 @@ class TestAPIConnectorService:
     def test_request_with_basic_auth(self):
         """Test: autenticación Basic Auth."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -100,6 +110,7 @@ class TestAPIConnectorService:
     def test_request_with_query_params(self):
         """Test: query parameters en la URL."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -120,6 +131,7 @@ class TestAPIConnectorService:
     def test_request_with_custom_headers(self):
         """Test: headers personalizados."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -142,6 +154,7 @@ class TestAPIConnectorService:
     def test_request_timeout(self):
         """Test: timeout configurable."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -161,8 +174,10 @@ class TestAPIConnectorService:
 
     def test_request_connection_error(self):
         """Test: error de conexión retorna dict con error."""
-        from src.tools.api_connector.service import APIConnectorService
         import requests
+
+        from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         with patch("requests.request", side_effect=requests.ConnectionError("Connection refused")):
@@ -177,8 +192,10 @@ class TestAPIConnectorService:
 
     def test_request_timeout_error(self):
         """Test: timeout retorna dict con error."""
-        from src.tools.api_connector.service import APIConnectorService
         import requests
+
+        from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         with patch("requests.request", side_effect=requests.Timeout("Request timed out")):
@@ -193,6 +210,7 @@ class TestAPIConnectorService:
     def test_request_non_json_response(self):
         """Test: respuesta no-JSON retorna texto como body."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -213,6 +231,7 @@ class TestAPIConnectorService:
     def test_request_400_error(self):
         """Test: error HTTP 400 retorna el body de error."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         mock_response = MagicMock()
@@ -234,6 +253,7 @@ class TestAPIConnectorService:
     def test_validate_url_valid(self):
         """Test: validación de URLs válidas."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         assert service.validate_url("https://api.example.com/users") is True
@@ -243,6 +263,7 @@ class TestAPIConnectorService:
     def test_validate_url_invalid(self):
         """Test: validación rechaza URLs inválidas o peligrosas."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         assert service.validate_url("") is False
@@ -254,6 +275,7 @@ class TestAPIConnectorService:
     def test_get_tool_definition(self):
         """Test: definición de la tool para el editor."""
         from src.tools.api_connector.service import APIConnectorService
+
         service = APIConnectorService()
 
         definition = service.get_tool_definition()

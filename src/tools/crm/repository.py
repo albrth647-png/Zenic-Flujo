@@ -1,7 +1,9 @@
 """
 Workflow Determinista — CRM Repository
 """
+
 from datetime import datetime
+
 from src.data.database_manager import DatabaseManager
 
 
@@ -11,10 +13,16 @@ class CRMRepository:
     def __init__(self):
         self._db = DatabaseManager()
 
-    def create_lead(self, name: str, email: str | None = None,
-                    phone: str | None = None, company: str | None = None,
-                    source: str = "manual", notes: str | None = None,
-                    user_id: int | None = None) -> dict:
+    def create_lead(
+        self,
+        name: str,
+        email: str | None = None,
+        phone: str | None = None,
+        company: str | None = None,
+        source: str = "manual",
+        notes: str | None = None,
+        user_id: int | None = None,
+    ) -> dict:
         cursor = self._db.execute(
             """INSERT INTO leads (name, email, phone, company, source, notes, stage, user_id)
                VALUES (?, ?, ?, ?, ?, ?, 'new', ?)""",
@@ -26,8 +34,9 @@ class CRMRepository:
     def get_lead(self, lead_id: int) -> dict | None:
         return self._db.fetchone("SELECT * FROM leads WHERE id = ?", (lead_id,))
 
-    def list_leads(self, stage: str | None = None, limit: int = 50, offset: int = 0,
-                    user_id: int | None = None) -> list[dict]:
+    def list_leads(
+        self, stage: str | None = None, limit: int = 50, offset: int = 0, user_id: int | None = None
+    ) -> list[dict]:
         if stage and user_id:
             return self._db.fetchall(
                 "SELECT * FROM leads WHERE stage = ? AND user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
@@ -61,9 +70,7 @@ class CRMRepository:
         set_parts.append("updated_at = ?")
         params.append(datetime.now().isoformat())
         params.append(lead_id)
-        self._db.execute(
-            f"UPDATE leads SET {', '.join(set_parts)} WHERE id = ?", tuple(params)
-        )
+        self._db.execute(f"UPDATE leads SET {', '.join(set_parts)} WHERE id = ?", tuple(params))
         self._db.commit()
         return self.get_lead(lead_id)
 
@@ -83,9 +90,7 @@ class CRMRepository:
 
     def get_stats(self) -> dict:
         total = self._db.fetchone("SELECT COUNT(*) as count FROM leads")
-        by_stage = self._db.fetchall(
-            "SELECT stage, COUNT(*) as count FROM leads GROUP BY stage"
-        )
+        by_stage = self._db.fetchall("SELECT stage, COUNT(*) as count FROM leads GROUP BY stage")
         return {
             "total": total["count"] if total else 0,
             "by_stage": {r["stage"]: r["count"] for r in by_stage},

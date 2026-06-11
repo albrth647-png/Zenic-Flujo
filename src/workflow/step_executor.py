@@ -23,9 +23,10 @@ import hashlib
 import math
 import threading
 import time
+from datetime import UTC
 
-from src.orbital.models import TWO_PI
 from src.orbital.context import OrbitalContext
+from src.orbital.models import TWO_PI
 from src.utils.helpers import resolve_variables
 from src.utils.logger import setup_logging
 
@@ -35,10 +36,16 @@ logger = setup_logging(__name__)
 class StepResult:
     """Resultado de la ejecucion de un paso (compatible + enriquecido con orbital)."""
 
-    def __init__(self, status: str, output_data: dict | None = None,
-                 duration_ms: int = 0, error_message: str | None = None,
-                 orbital_theta: float = 0.0, orbital_tension: float = 0.0,
-                 orbital_resonance: bool = False):
+    def __init__(
+        self,
+        status: str,
+        output_data: dict | None = None,
+        duration_ms: int = 0,
+        error_message: str | None = None,
+        orbital_theta: float = 0.0,
+        orbital_tension: float = 0.0,
+        orbital_resonance: bool = False,
+    ):
         self.status = status  # 'completed' | 'failed' | 'skipped'
         self.output_data = output_data or {}
         self.duration_ms = duration_ms
@@ -130,14 +137,15 @@ class StepExecutor:
         # 3. Decision orbital: anti-resonancia fuerte → saltar
         if tor_value < self._tor_threshold and prev_step_id:
             logger.info(
-                f"OrbitalStep: Paso {step_id} SALTADO por anti-resonancia "
-                f"(TOR={tor_value:.4f} < {self._tor_threshold})"
+                f"OrbitalStep: Paso {step_id} SALTADO por anti-resonancia (TOR={tor_value:.4f} < {self._tor_threshold})"
             )
             return StepResult(
                 status="skipped",
                 output_data={"skipped": True, "reason": "anti_resonance", "tor": tor_value},
                 duration_ms=self._elapsed(start_time),
-                orbital_theta=self._ctx.ovc.get_variable(var_name).theta if self._ctx.ovc.get_variable(var_name) else 0.0,
+                orbital_theta=self._ctx.ovc.get_variable(var_name).theta
+                if self._ctx.ovc.get_variable(var_name)
+                else 0.0,
                 orbital_tension=tor_value,
                 orbital_resonance=is_resonant,
             )
@@ -252,8 +260,10 @@ class StepExecutor:
                 resolved[key] = self._resolve_params(value, context)
             elif isinstance(value, list):
                 resolved[key] = [
-                    self._resolve_params(item, context) if isinstance(item, dict)
-                    else self._coerce_numeric(resolve_variables(item, context)) if isinstance(item, str)
+                    self._resolve_params(item, context)
+                    if isinstance(item, dict)
+                    else self._coerce_numeric(resolve_variables(item, context))
+                    if isinstance(item, str)
                     else item
                     for item in value
                 ]
@@ -267,16 +277,16 @@ class StepExecutor:
         if not isinstance(value, str):
             return value
         try:
-            if '.' in value:
+            if "." in value:
                 return float(value)
             return int(value)
         except (ValueError, TypeError):
             return value
 
-    def _execute_system_action(self, action: str, params: dict,
-                                context: dict | None = None) -> dict:
+    def _execute_system_action(self, action: str, params: dict, context: dict | None = None) -> dict:
         """Ejecuta acciones del sistema (backup, wait, schedule)."""
         from src.data.database_manager import DatabaseManager
+
         db = DatabaseManager()
 
         if action == "backup_database":
@@ -289,16 +299,18 @@ class StepExecutor:
         elif action == "wait":
             """Pausa por N segundos. Bloqueante, con límite máximo de 86400s (24h)."""
             import time
+
             seconds = float(params.get("seconds", 1))
             seconds = max(0, min(seconds, 86400))  # Cap at 24 hours
             if seconds >= 3600:
-                logger.warning(f"Wait node: pausa de {seconds:.0f}s ({seconds/3600:.1f}h) ")
+                logger.warning(f"Wait node: pausa de {seconds:.0f}s ({seconds / 3600:.1f}h) ")
             time.sleep(seconds)
             return {"waited_seconds": int(seconds), "status": "completed"}
         elif action == "wait_until":
             """Pausa hasta una fecha/hora específica. Usa UTC para evitar naive/aware crashes."""
             import time
-            from datetime import datetime, timezone
+            from datetime import datetime
+
             target_str = params.get("datetime", "")
             if not target_str:
                 return {"waited_seconds": 0, "status": "skipped", "reason": "no_datetime"}
@@ -306,18 +318,20 @@ class StepExecutor:
                 target = datetime.fromisoformat(target_str)
                 # Normalizar a UTC: si target es naive, asumir UTC; si es aware, convertir
                 if target.tzinfo is None:
-                    target = target.replace(tzinfo=timezone.utc)
-                now = datetime.now(timezone.utc)
+                    target = target.replace(tzinfo=UTC)
+                now = datetime.now(UTC)
                 if target <= now:
                     return {"waited_seconds": 0, "status": "completed", "reason": "already_passed"}
                 diff = (target - now).total_seconds()
                 diff = min(diff, 86400)  # Cap at 24 hours
                 if diff >= 3600:
-                    logger.warning(f"WaitUntil node: esperando {diff:.0f}s ({diff/3600:.1f}h) hasta {target_str}")
+                    logger.warning(f"WaitUntil node: esperando {diff:.0f}s ({diff / 3600:.1f}h) hasta {target_str}")
                 time.sleep(diff)
                 return {"waited_seconds": int(diff), "status": "completed"}
             except ValueError as e:
-                raise ValueError(f"Formato datetime inválido: {target_str}. Usa ISO 8601 (2026-06-15T14:30:00). Error: {e}")
+                raise ValueError(
+                    f"Formato datetime inválido: {target_str}. Usa ISO 8601 (2026-06-15T14:30:00). Error: {e}"
+                ) from e
         elif action == "variable":
             """
             Workflow variable operations: set, get, delete, exists,
@@ -327,6 +341,7 @@ class StepExecutor:
             y aggregate (sum, avg, count, min, max).
             """
             from src.workflow.workflow_variables import WorkflowVariables
+
             return WorkflowVariables.execute(params, context)
         elif action == "schedule_interval":
             """Configura un intervalo de ejecución recurrente.
@@ -361,7 +376,7 @@ class StepExecutor:
 
     def get_step_phase(self, step_id: str) -> float | None:
         """Retorna la fase orbital de un paso."""
-        for var_name, var in self._ctx.ovc.get_all_variables().items():
+        for _var_name, var in self._ctx.ovc.get_all_variables().items():
             if var.metadata.get("step_id") == step_id:
                 return var.theta
         return None

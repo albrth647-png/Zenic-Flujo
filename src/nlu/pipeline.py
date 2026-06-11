@@ -24,24 +24,26 @@ El pipeline ofrece cuatro modos:
 Determinista: misma entrada → misma salida.
 IA: complemento opcional que genera workflows desde texto libre.
 """
+
 from __future__ import annotations
-from src.nlu.entities.base import NLUResult, CompileResult
-from src.nlu.normalizer import normalize
-from src.nlu.tokenizer import tokenize
-from src.nlu.language_router import LanguageRouter
+
+from src.nlu.ai_generator import AIGenerationResult, WorkflowAIGenerator
+from src.nlu.compiler import WorkflowCompiler
+from src.nlu.disambiguator import Disambiguator
+from src.nlu.dry_run import DryRunSimulator
+from src.nlu.entities.base import CompileResult, NLUResult
+from src.nlu.entities.condition import ConditionExtractor
+from src.nlu.entities.duration import DurationExtractor
 from src.nlu.entities.extractor import EntityExtractor
 from src.nlu.entities.money import MoneyExtractor
 from src.nlu.entities.quantity import QuantityExtractor
-from src.nlu.entities.duration import DurationExtractor
-from src.nlu.entities.condition import ConditionExtractor
-from src.nlu.intent_classifier import IntentClassifier
-from src.nlu.slot_filler import SlotFiller
-from src.nlu.disambiguator import Disambiguator
-from src.nlu.compiler import WorkflowCompiler
-from src.nlu.validator import WorkflowValidator
 from src.nlu.explainer import Explainer
-from src.nlu.dry_run import DryRunSimulator
-from src.nlu.ai_generator import WorkflowAIGenerator, AIGenerationResult
+from src.nlu.intent_classifier import IntentClassifier
+from src.nlu.language_router import LanguageRouter
+from src.nlu.normalizer import normalize
+from src.nlu.slot_filler import SlotFiller
+from src.nlu.tokenizer import tokenize
+from src.nlu.validator import WorkflowValidator
 
 
 class Pipeline:
@@ -160,6 +162,7 @@ class Pipeline:
         compile_result = self.compile(text, lang)
         if compile_result.status != "ready" or not compile_result.workflow:
             from src.nlu.dry_run import DryRunResult
+
             return DryRunResult(
                 workflow_name="",
                 trigger_type="",
@@ -194,9 +197,7 @@ class Pipeline:
         nlu_result = self.process(text, lang)
 
         # Etapa 7: Disambiguator
-        best_intent, is_ambiguous, candidates = self._disambiguator.resolve(
-            nlu_result.intents
-        )
+        best_intent, is_ambiguous, _candidates = self._disambiguator.resolve(nlu_result.intents)
 
         # ── Caso: sin intenciones detectadas ──────────────
         if not nlu_result.intents:
@@ -265,9 +266,7 @@ class Pipeline:
             )
 
         # Etapa 11: Explainer
-        explanation = compile_result.explanation or self._explainer.explain(
-            compile_result, nlu_result.lang
-        )
+        explanation = compile_result.explanation or self._explainer.explain(compile_result, nlu_result.lang)
 
         return CompileResult(
             workflow=compile_result.workflow,
@@ -278,6 +277,7 @@ class Pipeline:
 
 
 # ── Funciones de conveniencia ──────────────────────────
+
 
 def understand(text: str) -> NLUResult:
     """Función rápida para análisis NLU (etapas 1-6).
@@ -327,4 +327,3 @@ def ai_generate_workflow(text: str, lang: str = "es") -> AIGenerationResult:
         AIGenerationResult con el workflow y metadata
     """
     return Pipeline().ai_generate(text, lang)
-

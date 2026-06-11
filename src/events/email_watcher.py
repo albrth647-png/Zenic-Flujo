@@ -2,9 +2,10 @@
 Workflow Determinista — EmailWatcher
 Monitorea un buzón IMAP en busca de correos entrantes.
 """
+
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
@@ -15,7 +16,7 @@ logger = setup_logging(__name__)
 class EmailWatcher(threading.Thread):
     """
     Monitorea un buzón IMAP y emite eventos cuando llegan correos.
-    
+
     Requiere configuración SMTP/IMAP en settings:
     - imap_server
     - imap_port (default: 993)
@@ -67,8 +68,8 @@ class EmailWatcher(threading.Thread):
     def _poll_imap(self) -> None:
         """Conecta al servidor IMAP y busca nuevos correos."""
         try:
-            import imaplib
             import email as email_lib
+            import imaplib
             from email.header import decode_header
 
             server = self._db.get_setting("imap_server", "")
@@ -127,12 +128,15 @@ class EmailWatcher(threading.Thread):
                         else:
                             body = email_message.get_payload(decode=True).decode("utf-8", errors="ignore")
 
-                        self._emit("email.received", {
-                            "subject": subject,
-                            "from": sender,
-                            "body_preview": body[:500],
-                            "uid": uid.decode() if isinstance(uid, bytes) else str(uid),
-                        })
+                        self._emit(
+                            "email.received",
+                            {
+                                "subject": subject,
+                                "from": sender,
+                                "body_preview": body[:500],
+                                "uid": uid.decode() if isinstance(uid, bytes) else str(uid),
+                            },
+                        )
 
             self._last_uids = current_uids
             mail.logout()

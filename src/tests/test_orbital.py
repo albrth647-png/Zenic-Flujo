@@ -7,36 +7,38 @@ Ejecutar con: pytest src/tests/test_orbital.py -v
 """
 
 import math
-import pytest
-import tempfile
 import os
 
 # Asegurar que src esta en el path
 import sys
+import tempfile
+
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from src.orbital.cod import COD
+from src.orbital.db import OrbitalDB
+from src.orbital.engine import OrbitalEngine
+from src.orbital.espectro import EspectroOrbital
 from src.orbital.models import (
-    VariableOrbital,
+    TWO_PI,
     CicloOrbital,
-    TORResult,
-    RCCResult,
     CODResult,
     EspectroEstado,
     OrbitalResult,
-    TWO_PI,
+    RCCResult,
+    TORResult,
+    VariableOrbital,
 )
 from src.orbital.ovc import OVC
-from src.orbital.tor import TOR
 from src.orbital.rcc import RCC
-from src.orbital.cod import COD
-from src.orbital.espectro import EspectroOrbital
-from src.orbital.engine import OrbitalEngine
-from src.orbital.db import OrbitalDB
-
+from src.orbital.tor import TOR
 
 # ══════════════════════════════════════════════════════════════
 # FIXTURES
 # ══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def ovc():
@@ -95,6 +97,7 @@ def db():
 # ══════════════════════════════════════════════════════════════
 # TESTS: VariableOrbital (Modelo)
 # ══════════════════════════════════════════════════════════════
+
 
 class TestVariableOrbital:
     def test_creacion_basica(self):
@@ -179,6 +182,7 @@ class TestVariableOrbital:
 # TESTS: OVC (Pilar 1)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOVC:
     def test_create_variable(self, ovc):
         assert ovc.variable_count == 3
@@ -192,10 +196,12 @@ class TestOVC:
 
     def test_create_variables_batch(self):
         ovc = OVC()
-        vars = ovc.create_variables_batch([
-            {"name": "A", "theta": 0.0},
-            {"name": "B", "theta": 1.0},
-        ])
+        vars = ovc.create_variables_batch(
+            [
+                {"name": "A", "theta": 0.0},
+                {"name": "B", "theta": 1.0},
+            ]
+        )
         assert len(vars) == 2
         assert ovc.variable_count == 2
 
@@ -255,6 +261,7 @@ class TestOVC:
 # ══════════════════════════════════════════════════════════════
 # TESTS: TOR (Pilar 2)
 # ══════════════════════════════════════════════════════════════
+
 
 class TestTOR:
     def test_calculate_par(self, tor):
@@ -329,6 +336,7 @@ class TestTOR:
 # TESTS: RCC (Pilar 3)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestRCC:
     def test_register_cycle(self, rcc):
         cycle = CicloOrbital(name="Test", variable_ids=["Demanda", "Precio"], threshold=0.5)
@@ -383,6 +391,7 @@ class TestRCC:
 # ══════════════════════════════════════════════════════════════
 # TESTS: COD (Pilar 4)
 # ══════════════════════════════════════════════════════════════
+
 
 class TestCOD:
     def test_collapse_basico(self, rcc, cod):
@@ -442,6 +451,7 @@ class TestCOD:
 # TESTS: Espectro Orbital (Pilar 5)
 # ══════════════════════════════════════════════════════════════
 
+
 class TestEspectroOrbital:
     def test_generate(self, rcc, espectro):
         cycle = rcc.register_cycle_from_names("Spec", ["Demanda", "Precio"], threshold=0.5)
@@ -465,10 +475,10 @@ class TestEspectroOrbital:
 
     def test_retrofeedback_cierra_ciclo(self, rcc, espectro, ovc):
         """El espectro debe retroalimentar al OVC."""
-        pre_phases = ovc.get_phase_snapshot()
+        _pre_phases = ovc.get_phase_snapshot()
         cycle = rcc.register_cycle_from_names("Retro", ["Demanda", "Precio"], threshold=0.5)
-        estado = espectro.generate(cycle, retrofeed_damping=0.3)
-        post_phases = ovc.get_phase_snapshot()
+        espectro.generate(cycle, retrofeed_damping=0.3)
+        _post_phases = ovc.get_phase_snapshot()
         # El OVC debe haber cambiado por la retroalimentacion
         # (al menos el tick avanzo)
 
@@ -498,6 +508,7 @@ class TestEspectroOrbital:
 # ══════════════════════════════════════════════════════════════
 # TESTS: OrbitalEngine (Integracion)
 # ══════════════════════════════════════════════════════════════
+
 
 class TestOrbitalEngine:
     def test_creacion(self, engine):
@@ -544,7 +555,7 @@ class TestOrbitalEngine:
         engine.create_variable("Y", theta=0.5, amplitude=5.0, velocity=0.1)
         engine.create_cycle("Test", ["X", "Y"], threshold=0.5)
 
-        r1 = engine.run_tick()
+        _r1 = engine.run_tick()
         val1 = engine.get_value_snapshot()
 
         engine.reset()
@@ -552,7 +563,7 @@ class TestOrbitalEngine:
         engine.create_variable("Y", theta=0.5, amplitude=5.0, velocity=0.1)
         engine.create_cycle("Test", ["X", "Y"], threshold=0.5)
 
-        r2 = engine.run_tick()
+        _r2 = engine.run_tick()
         val2 = engine.get_value_snapshot()
 
         # Los valores deben ser identicos (determinismo)
@@ -573,6 +584,7 @@ class TestOrbitalEngine:
 # ══════════════════════════════════════════════════════════════
 # TESTS: OrbitalDB
 # ══════════════════════════════════════════════════════════════
+
 
 class TestOrbitalDB:
     def test_initialize_schema(self, db):
@@ -673,18 +685,21 @@ class TestOrbitalDB:
 # TESTS: Ejemplo Economico Completo
 # ══════════════════════════════════════════════════════════════
 
+
 class TestEjemploEconomico:
     """Test de integracion: ciclo economico completo Demanda→Precio→Oferta."""
 
     def test_ciclo_economico_orbital(self):
         engine = OrbitalEngine()
-        engine.create_variables_batch([
-            {"name": "Demanda", "theta": 0.0, "amplitude": 10.0, "velocity": 0.15},
-            {"name": "Precio", "theta": 0.3, "amplitude": 50.0, "velocity": 0.08},
-            {"name": "Oferta", "theta": 0.5, "amplitude": 8.0, "velocity": 0.12},
-            {"name": "Confianza", "theta": 0.8, "amplitude": 6.0, "velocity": 0.10},
-            {"name": "Innovacion", "theta": 1.2, "amplitude": 4.0, "velocity": 0.06},
-        ])
+        engine.create_variables_batch(
+            [
+                {"name": "Demanda", "theta": 0.0, "amplitude": 10.0, "velocity": 0.15},
+                {"name": "Precio", "theta": 0.3, "amplitude": 50.0, "velocity": 0.08},
+                {"name": "Oferta", "theta": 0.5, "amplitude": 8.0, "velocity": 0.12},
+                {"name": "Confianza", "theta": 0.8, "amplitude": 6.0, "velocity": 0.10},
+                {"name": "Innovacion", "theta": 1.2, "amplitude": 4.0, "velocity": 0.06},
+            ]
+        )
         engine.create_cycle("Economico", ["Demanda", "Precio", "Oferta", "Confianza", "Innovacion"], threshold=0.5)
 
         # Ejecutar 10 ticks

@@ -25,12 +25,13 @@ Compatibilidad: misma salida que el NLU pipeline (CompileResult).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 
+from src.orbital.context import OrbitalContext
 from src.orbital.models import (
     TWO_PI,
 )
-from src.orbital.context import OrbitalContext
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -90,8 +91,18 @@ ORBITAL_TEMPLATES = {
             "trigger_type": "event",
             "trigger_config": {"event": "crm.lead.created"},
             "steps": [
-                {"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "$input.nombre", "email": "$input.email"}},
-                {"id": 2, "tool": "notification", "action": "send_email", "params": {"to": "$input.email", "subject": "Bienvenido"}},
+                {
+                    "id": 1,
+                    "tool": "crm",
+                    "action": "create_lead",
+                    "params": {"name": "$input.nombre", "email": "$input.email"},
+                },
+                {
+                    "id": 2,
+                    "tool": "notification",
+                    "action": "send_email",
+                    "params": {"to": "$input.email", "subject": "Bienvenido"},
+                },
             ],
         },
         "explanation": "Se creara un workflow que: 1) Guarda el lead en CRM, 2) Envia email de bienvenida",
@@ -103,8 +114,18 @@ ORBITAL_TEMPLATES = {
             "trigger_type": "event",
             "trigger_config": {"event": "invoice.created"},
             "steps": [
-                {"id": 1, "tool": "invoice", "action": "create_invoice", "params": {"client_name": "$input.cliente", "items": "$input.items"}},
-                {"id": 2, "tool": "notification", "action": "send_email", "params": {"to": "$input.email", "subject": "Factura generada"}},
+                {
+                    "id": 1,
+                    "tool": "invoice",
+                    "action": "create_invoice",
+                    "params": {"client_name": "$input.cliente", "items": "$input.items"},
+                },
+                {
+                    "id": 2,
+                    "tool": "notification",
+                    "action": "send_email",
+                    "params": {"to": "$input.email", "subject": "Factura generada"},
+                },
             ],
         },
         "explanation": "Se creara un workflow que: 1) Genera la factura, 2) Notifica al cliente",
@@ -116,8 +137,18 @@ ORBITAL_TEMPLATES = {
             "trigger_type": "event",
             "trigger_config": {"event": "inventory.stock_low"},
             "steps": [
-                {"id": 1, "tool": "inventory", "action": "update_stock", "params": {"product_id": "$input.product_id", "type": "in", "quantity": "$input.cantidad"}},
-                {"id": 2, "tool": "notification", "action": "send_email", "params": {"to": "$input.email", "subject": "Stock reabastecido"}},
+                {
+                    "id": 1,
+                    "tool": "inventory",
+                    "action": "update_stock",
+                    "params": {"product_id": "$input.product_id", "type": "in", "quantity": "$input.cantidad"},
+                },
+                {
+                    "id": 2,
+                    "tool": "notification",
+                    "action": "send_email",
+                    "params": {"to": "$input.email", "subject": "Stock reabastecido"},
+                },
             ],
         },
         "explanation": "Se creara un workflow que: 1) Reabastece el stock, 2) Notifica la actualizacion",
@@ -129,7 +160,12 @@ ORBITAL_TEMPLATES = {
             "trigger_type": "manual",
             "trigger_config": {},
             "steps": [
-                {"id": 1, "tool": "notification", "action": "send_email", "params": {"to": "$input.email", "subject": "$input.asunto"}},
+                {
+                    "id": 1,
+                    "tool": "notification",
+                    "action": "send_email",
+                    "params": {"to": "$input.email", "subject": "$input.asunto"},
+                },
             ],
         },
         "explanation": "Se creara un workflow de notificacion por email",
@@ -206,17 +242,15 @@ class OrbitalCompiler:
         # 2. Limpiar variables de compilaciones anteriores del grupo input_tokens
         for name in list(self._orbital_engine.get_all_variables().keys()):
             if name.startswith("token_") or name.startswith("kw_"):
-                try:
+                with contextlib.suppress(KeyError):
                     del self._orbital_engine._ovc._variables[name]
-                except KeyError:
-                    pass
         # Limpiar ciclos de match anteriores
         for cid in list(self._orbital_engine._rcc._cycles.keys()):
             if cid.startswith("match_"):
                 del self._orbital_engine._rcc._cycles[cid]
 
         # 3. Crear variables orbitales para cada token
-        for i, token in enumerate(tokens):
+        for _i, token in enumerate(tokens):
             theta = self._deterministic_theta(token)
             self._orbital_engine.create_variable(
                 name=f"token_{token}",
@@ -227,7 +261,6 @@ class OrbitalCompiler:
             )
 
         # 4. Crear variables orbitales para cada template
-        template_scores = {}
         for template_name, template in self._templates.items():
             keywords = template.get("intent_keywords", [])
             if not keywords:
@@ -235,7 +268,7 @@ class OrbitalCompiler:
 
             for keyword in keywords:
                 theta = self._deterministic_theta(keyword)
-                try:
+                with contextlib.suppress(ValueError):  # Ya existe
                     self._orbital_engine.create_variable(
                         name=f"kw_{template_name}_{keyword}",
                         theta=theta,
@@ -243,8 +276,6 @@ class OrbitalCompiler:
                         velocity=0.05,
                         orbit_group=f"template_{template_name}",
                     )
-                except ValueError:
-                    pass  # Ya existe
 
             # Crear ciclo orbital para este template
             template_vars = [f"kw_{template_name}_{kw}" for kw in keywords]
@@ -253,14 +284,12 @@ class OrbitalCompiler:
             cycle_vars = token_vars + template_vars
 
             if len(cycle_vars) >= 2:
-                try:
+                with contextlib.suppress(ValueError):
                     self._orbital_engine.create_cycle(
                         f"match_{template_name}",
                         cycle_vars[:10],  # Limitar a 10 variables por ciclo
                         threshold=0.1,
                     )
-                except ValueError:
-                    pass
 
         # 5. Ejecutar tick orbital
         orbital_result = self._orbital_engine.run_tick()
@@ -325,19 +354,51 @@ class OrbitalCompiler:
     def _tokenize(self, text: str) -> list[str]:
         """Tokenizacion simplificada: lowercase, split, filtrar stopwords."""
         import re
+
         text = text.lower().strip()
         # Normalizar acentos para matching
-        text = re.sub(r'[áàä]', 'a', text)
-        text = re.sub(r'[éèë]', 'e', text)
-        text = re.sub(r'[íìï]', 'i', text)
-        text = re.sub(r'[óòö]', 'o', text)
-        text = re.sub(r'[úùü]', 'u', text)
-        text = re.sub(r'[^a-z0-9 ]', ' ', text)
+        text = re.sub(r"[áàä]", "a", text)
+        text = re.sub(r"[éèë]", "e", text)
+        text = re.sub(r"[íìï]", "i", text)
+        text = re.sub(r"[óòö]", "o", text)
+        text = re.sub(r"[úùü]", "u", text)
+        text = re.sub(r"[^a-z0-9 ]", " ", text)
 
-        stopwords = {"quiero", "que", "un", "una", "el", "la", "los", "las",
-                     "se", "en", "y", "o", "de", "del", "al", "a", "por",
-                     "para", "con", "sin", "es", "lo", "mi", "tu", "su",
-                     "me", "te", "le", "nos", "les", "cuando", "como", "mas"}
+        stopwords = {
+            "quiero",
+            "que",
+            "un",
+            "una",
+            "el",
+            "la",
+            "los",
+            "las",
+            "se",
+            "en",
+            "y",
+            "o",
+            "de",
+            "del",
+            "al",
+            "a",
+            "por",
+            "para",
+            "con",
+            "sin",
+            "es",
+            "lo",
+            "mi",
+            "tu",
+            "su",
+            "me",
+            "te",
+            "le",
+            "nos",
+            "les",
+            "cuando",
+            "como",
+            "mas",
+        }
 
         tokens = [t for t in text.split() if t and t not in stopwords and len(t) > 1]
         return tokens
@@ -364,15 +425,16 @@ class OrbitalCompiler:
     def _extract_simple_entities(self, text: str) -> list[dict]:
         """Extraccion simplificada de entidades."""
         import re
+
         entities = []
 
         # Emails
-        emails = re.findall(r'[\w.+-]+@[\w-]+\.[\w.]+', text)
+        emails = re.findall(r"[\w.+-]+@[\w-]+\.[\w.]+", text)
         for email in emails:
             entities.append({"type": "email", "value": email})
 
         # Numeros
-        numbers = re.findall(r'\b\d+(?:\.\d+)?\b', text)
+        numbers = re.findall(r"\b\d+(?:\.\d+)?\b", text)
         for num in numbers:
             entities.append({"type": "number", "value": num})
 

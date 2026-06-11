@@ -28,21 +28,24 @@ logger = setup_logging(__name__)
 class DeadLetterEntry:
     """Representa una entrada en la Dead Letter Queue."""
 
-    def __init__(self, id: int | None = None,
-                 workflow_id: int = 0,
-                 workflow_name: str = "",
-                 execution_id: int = 0,
-                 step_id: int = 0,
-                 tool: str = "",
-                 action: str = "",
-                 error_message: str = "",
-                 retry_count: int = 0,
-                 step_definition: dict | None = None,
-                 context_snapshot: dict | None = None,
-                 status: str = "pending",
-                 created_at: str | None = None,
-                 updated_at: str | None = None,
-                 notified: int = 0):
+    def __init__(
+        self,
+        id: int | None = None,
+        workflow_id: int = 0,
+        workflow_name: str = "",
+        execution_id: int = 0,
+        step_id: int = 0,
+        tool: str = "",
+        action: str = "",
+        error_message: str = "",
+        retry_count: int = 0,
+        step_definition: dict | None = None,
+        context_snapshot: dict | None = None,
+        status: str = "pending",
+        created_at: str | None = None,
+        updated_at: str | None = None,
+        notified: int = 0,
+    ):
         self.id = id
         self.workflow_id = workflow_id
         self.workflow_name = workflow_name
@@ -96,11 +99,19 @@ class DeadLetterManager:
 
     # ── CRUD ────────────────────────────────────────────────
 
-    def add(self, workflow_id: int, workflow_name: str,
-            execution_id: int, step_id: int, tool: str,
-            action: str, error_message: str, retry_count: int,
-            step_definition: dict | None = None,
-            context_snapshot: dict | None = None) -> int:
+    def add(
+        self,
+        workflow_id: int,
+        workflow_name: str,
+        execution_id: int,
+        step_id: int,
+        tool: str,
+        action: str,
+        error_message: str,
+        retry_count: int,
+        step_definition: dict | None = None,
+        context_snapshot: dict | None = None,
+    ) -> int:
         """
         Agrega una entrada a la Dead Letter Queue.
 
@@ -114,8 +125,14 @@ class DeadLetterManager:
                 step_definition, context_snapshot, status)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')""",
             (
-                workflow_id, workflow_name, execution_id, step_id,
-                tool, action, error_message, retry_count,
+                workflow_id,
+                workflow_name,
+                execution_id,
+                step_id,
+                tool,
+                action,
+                error_message,
+                retry_count,
                 json.dumps(step_definition or {}),
                 json.dumps(context_snapshot or {}),
             ),
@@ -136,9 +153,9 @@ class DeadLetterManager:
         )
         return self._row_to_entry(row) if row else None
 
-    def list(self, status: str | None = None,
-             workflow_id: int | None = None,
-             limit: int = 50, offset: int = 0) -> list[DeadLetterEntry]:
+    def list(
+        self, status: str | None = None, workflow_id: int | None = None, limit: int = 50, offset: int = 0
+    ) -> list[DeadLetterEntry]:
         """
         Lista entradas con filtros opcionales.
 
@@ -169,8 +186,7 @@ class DeadLetterManager:
         rows = self._db.fetchall(sql, tuple(params))
         return [self._row_to_entry(r) for r in rows if r]
 
-    def count(self, status: str | None = None,
-              workflow_id: int | None = None) -> int:
+    def count(self, status: str | None = None, workflow_id: int | None = None) -> int:
         """Cuenta entradas con filtros opcionales."""
         conditions = []
         params = []
@@ -204,19 +220,18 @@ class DeadLetterManager:
             return {"status": "error", "message": "Entrada no encontrada"}
 
         if entry.status == "discarded":
-            return {"status": "error",
-                    "message": "La entrada fue descartada"}
+            return {"status": "error", "message": "La entrada fue descartada"}
 
         # Marcar como retrying
         self._db.execute(
-            "UPDATE dead_letter_queue SET status = 'retrying', "
-            "updated_at = ? WHERE id = ?",
+            "UPDATE dead_letter_queue SET status = 'retrying', updated_at = ? WHERE id = ?",
             (datetime.now().isoformat(), entry_id),
         )
         self._db.commit()
 
         try:
             from src.workflow.engine import WorkflowEngine
+
             engine = WorkflowEngine()
 
             # Re-ejecutar el workflow completo
@@ -225,8 +240,7 @@ class DeadLetterManager:
             if result.status == "completed":
                 # Marcar como resuelta
                 self._db.execute(
-                    "UPDATE dead_letter_queue SET status = 'resolved', "
-                    "updated_at = ? WHERE id = ?",
+                    "UPDATE dead_letter_queue SET status = 'resolved', updated_at = ? WHERE id = ?",
                     (datetime.now().isoformat(), entry_id),
                 )
                 self._db.commit()
@@ -242,14 +256,10 @@ class DeadLetterManager:
                     "UPDATE dead_letter_queue SET status = 'pending', "
                     "retry_count = retry_count + 1, error_message = ?, "
                     "updated_at = ? WHERE id = ?",
-                    (result.error_message or "Error desconocido",
-                     datetime.now().isoformat(), entry_id),
+                    (result.error_message or "Error desconocido", datetime.now().isoformat(), entry_id),
                 )
                 self._db.commit()
-                logger.warning(
-                    f"DeadLetter: entrada #{entry_id} reintento falló: "
-                    f"{result.error_message}"
-                )
+                logger.warning(f"DeadLetter: entrada #{entry_id} reintento falló: {result.error_message}")
                 return {
                     "status": "failed",
                     "message": "Workflow falló en reintento",
@@ -283,8 +293,7 @@ class DeadLetterManager:
             return False
 
         self._db.execute(
-            "UPDATE dead_letter_queue SET status = 'discarded', "
-            "updated_at = ? WHERE id = ?",
+            "UPDATE dead_letter_queue SET status = 'discarded', updated_at = ? WHERE id = ?",
             (datetime.now().isoformat(), entry_id),
         )
         self._db.commit()
@@ -310,15 +319,14 @@ class DeadLetterManager:
                 results["resolved"] += 1
             else:
                 results["failed"] += 1
-                results["errors"].append({
-                    "id": entry.id,
-                    "error": result.get("message", "Unknown"),
-                })
+                results["errors"].append(
+                    {
+                        "id": entry.id,
+                        "error": result.get("message", "Unknown"),
+                    }
+                )
 
-        logger.info(
-            f"DeadLetter: retry_all completado — "
-            f"{results['resolved']}/{results['total']} resueltos"
-        )
+        logger.info(f"DeadLetter: retry_all completado — {results['resolved']}/{results['total']} resueltos")
         return results
 
     def discard_all(self, status: str = "pending") -> int:
@@ -369,9 +377,7 @@ class DeadLetterManager:
                 "retrying": retrying,
             },
             "top_workflows": [
-                {"workflow_id": r["workflow_id"],
-                 "workflow_name": r["workflow_name"],
-                 "count": r["count"]}
+                {"workflow_id": r["workflow_id"], "workflow_name": r["workflow_name"], "count": r["count"]}
                 for r in top_wf
             ],
         }
@@ -401,20 +407,24 @@ class DeadLetterManager:
             return False
 
         from src.events.bus import EventBus
+
         event_bus = EventBus()
 
-        event_bus.publish("dead_letter.new", {
-            "entry_id": entry.id,
-            "workflow_id": entry.workflow_id,
-            "workflow_name": entry.workflow_name,
-            "execution_id": entry.execution_id,
-            "step_id": entry.step_id,
-            "tool": entry.tool,
-            "action": entry.action,
-            "error_message": entry.error_message,
-            "retry_count": entry.retry_count,
-            "created_at": entry.created_at,
-        })
+        event_bus.publish(
+            "dead_letter.new",
+            {
+                "entry_id": entry.id,
+                "workflow_id": entry.workflow_id,
+                "workflow_name": entry.workflow_name,
+                "execution_id": entry.execution_id,
+                "step_id": entry.step_id,
+                "tool": entry.tool,
+                "action": entry.action,
+                "error_message": entry.error_message,
+                "retry_count": entry.retry_count,
+                "created_at": entry.created_at,
+            },
+        )
 
         # Marcar como notificado
         self._db.execute(
@@ -444,9 +454,11 @@ class DeadLetterManager:
         for wf in stats["top_workflows"]:
             lines.append(f"  • {wf['workflow_name']}: {wf['count']} error(es)")
 
-        lines.append(f"\nTotal: {stats['total']} | "
-                     f"Resueltas: {stats['by_status']['resolved']} | "
-                     f"Descartadas: {stats['by_status']['discarded']}")
+        lines.append(
+            f"\nTotal: {stats['total']} | "
+            f"Resueltas: {stats['by_status']['resolved']} | "
+            f"Descartadas: {stats['by_status']['discarded']}"
+        )
 
         return "\n".join(lines)
 

@@ -1,0 +1,814 @@
+"""
+Zenic CLI — Generador de Plantillas para Scaffolding de Conectores
+===================================================================
+
+Genera codigo boilerplate para crear nuevos conectores, soportando
+todos los tipos de autenticacion disponibles en el SDK:
+
+- api_key: Autenticacion mediante API key via header o query param
+- basic: Autenticacion HTTP Basic (usuario/contrasena)
+- oauth2: OAuth 2.0 Authorization Code Flow con token refresh
+- oauth1: OAuth 1.0a con firma HMAC-SHA1
+- mtls: Mutual TLS con certificado de cliente
+- custom: Headers y tokens personalizados
+- none: Sin autenticacion (acceso publico)
+
+Cada plantilla genera codigo funcional que hereda de BaseConnector
+e implementa todos los metodos abstractos requeridos.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from src.utils.logger import setup_logging
+
+logger = setup_logging(__name__)
+
+# ── Tipos de autenticacion soportados ──────────────────────────
+
+VALID_AUTH_TYPES: list[str] = [
+    "api_key",
+    "basic",
+    "oauth2",
+    "oauth1",
+    "mtls",
+    "custom",
+    "none",
+]
+
+# ── Mapeo de tipo de auth a campos requeridos ──────────────────
+
+AUTH_REQUIRED_FIELDS: dict[str, list[str]] = {
+    "api_key": ["api_key"],
+    "basic": ["username", "password"],
+    "oauth2": ["client_id", "client_secret", "token_url"],
+    "oauth1": ["consumer_key", "consumer_secret"],
+    "mtls": ["cert_path", "key_path"],
+    "custom": ["token"],
+    "none": [],
+}
+
+# ── Mapeo de tipo de auth a campos opcionales ─────────────────
+
+AUTH_OPTIONAL_FIELDS: dict[str, list[str]] = {
+    "api_key": ["header_name", "query_name", "location"],
+    "basic": [],
+    "oauth2": [
+        "authorize_url",
+        "redirect_uri",
+        "scopes",
+        "access_token",
+        "refresh_token",
+    ],
+    "oauth1": [
+        "access_token",
+        "access_token_secret",
+        "request_token_url",
+        "authorize_url",
+        "access_token_url",
+    ],
+    "mtls": ["ca_path", "cert_password"],
+    "custom": ["headers", "query_params", "token_prefix", "expires_at"],
+    "none": [],
+}
+
+
+def generate_connector_code(name: str, category: str, auth_type: str) -> str:
+    """
+    Genera el codigo Python completo para un conector con el tipo de autenticacion dado.
+
+    Crea una clase que hereda de BaseConnector e implementa los metodos
+    abstractos connect(), execute(), validate() y disconnect(). El codigo
+    generado incluye manejo de autenticacion segun el tipo seleccionado
+    y un despachador de acciones basico.
+
+    Args:
+        name: Nombre del conector en formato snake_case (ej: 'mi_conector')
+        category: Categoria del conector (ej: 'messaging', 'crm', 'storage')
+        auth_type: Tipo de autenticacion ('api_key', 'basic', 'oauth2', 'oauth1', 'mtls', 'custom', 'none')
+
+    Retorna:
+        Codigo fuente Python completo como string, listo para escribir a archivo
+    """
+    class_name = _to_class_name(name)
+    auth_setup = _generate_auth_setup(auth_type)
+    auth_import = _generate_auth_import(auth_type)
+    connect_body = _generate_connect_body(auth_type)
+    validate_body = _generate_validate_body(auth_type)
+
+    return f'''\
+"""
+Conector {class_name} — {category.capitalize()}
+===============================================
+
+Conector generado automaticamente por zenic-cli.
+Tipo de autenticacion: {auth_type}
+Categoria: {category}
+
+Para personalizar:
+1. Implemente la logica de conexion en connect()
+2. Agregue acciones en execute()
+3. Defina esquemas de entrada/salida en schema.py
+4. Configure las credenciales necesarias
+"""
+
+from __future__ import annotations
+
+from typing import Any
+{auth_import}
+from src.sdk.base import BaseConnector
+
+
+class {class_name}(BaseConnector):
+    """Conector para {name.replace("_", " ").title()} ({category})."""
+
+    name = "{name}"
+    version = "1.0.0"
+    description = "Conector {name.replace("_", " ")} - generado por zenic-cli"
+    category = "{category}"
+    icon = "plug"
+    author = ""
+
+{auth_setup}
+    def connect(self) -> bool:
+        """Establece la conexion con el servicio externo."""
+{connect_body}
+
+    def execute(self, action: str, params: dict[str, Any]) -> Any:
+        """Ejecuta una accion del conector.
+
+        Args:
+            action: Nombre de la accion a ejecutar
+            params: Parametros de la accion
+
+        Retorna:
+            Resultado de la accion ejecutada
+
+        Raises:
+            ValueError: Si la accion no esta soportada
+        """
+        action_map = {{
+            "ping": self._action_ping,
+        }}
+
+        handler = action_map.get(action)
+        if handler is None:
+            available = ", ".join(sorted(action_map.keys()))
+            msg = f"Accion '{{action}}' no soportada. Disponibles: {{available}}"
+            raise ValueError(msg)
+
+        return handler(params)
+
+    def validate(self) -> bool:
+        """Valida la configuracion del conector."""
+{validate_body}
+
+    def disconnect(self) -> bool:
+        """Cierra la conexion con el servicio externo."""
+        self._connected = False
+        self._log_operation("disconnect", "Desconexion exitosa")
+        return True
+
+    # ── Acciones de ejemplo ────────────────────────────────────
+
+    @staticmethod
+    def _action_ping(params: dict[str, Any]) -> dict[str, Any]:
+        """Accion de verificacion de salud del conector.
+
+        Args:
+            params: Parametros (no utilizados en esta accion)
+
+        Retorna:
+            Diccionario con estado del conector
+        """
+        return {{"status": "ok", "message": "pong"}}
+'''
+
+
+def generate_schema_code(name: str) -> str:
+    """
+    Genera el codigo Python para la definicion del esquema del conector.
+
+    Crea un archivo schema.py con definiciones de modelos Pydantic para
+    las entradas y salidas de las acciones del conector, asi como
+    la definicion del esquema completo del conector.
+
+    Args:
+        name: Nombre del conector en formato snake_case
+
+    Retorna:
+        Codigo fuente Python con los modelos Pydantic y ConnectorSchema
+    """
+    class_name = _to_class_name(name)
+
+    return f'''\
+"""
+Esquema del Conector {class_name}
+===================================
+
+Define los modelos de entrada/salida y el esquema completo
+del conector usando Pydantic y ConnectorSchema.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+from src.sdk.schema import ActionDefinition, AuthRequirement, ConnectorSchema
+
+
+# ── Modelos de Entrada/Salida ─────────────────────────────────
+
+
+class PingInput(BaseModel):
+    """Modelo de entrada para la accion ping."""
+
+    message: str = Field(default="hello", description="Mensaje de verificacion")
+
+
+class PingOutput(BaseModel):
+    """Modelo de salida para la accion ping."""
+
+    status: str = Field(description="Estado de la respuesta")
+    message: str = Field(description="Mensaje de respuesta")
+
+
+# ── Esquema del Conector ──────────────────────────────────────
+
+
+def build_schema() -> ConnectorSchema:
+    """Construye y retorna el esquema completo del conector.
+
+    Retorna:
+        Instancia de ConnectorSchema con todas las definiciones
+    """
+    return ConnectorSchema(
+        name="{name}",
+        version="1.0.0",
+        description="Conector {name.replace("_", " ")}",
+        category="general",
+        icon="plug",
+        author="",
+        actions=[
+            ActionDefinition(
+                name="ping",
+                description="Verifica la disponibilidad del conector",
+                input_schema=PingInput,
+                output_schema=PingOutput,
+                category="read",
+                timeout=10,
+            ),
+        ],
+        auth_requirements=_build_auth_requirements(),
+        tags=["auto-generated"],
+    )
+
+
+def _build_auth_requirements() -> list[AuthRequirement]:
+    """Construye los requisitos de autenticacion del conector.
+
+    Modifique esta funcion para agregar los requisitos de auth
+    que su conector necesite.
+
+    Retorna:
+        Lista de AuthRequirement con los metodos de auth soportados
+    """
+    return []
+
+
+# ── Esquema singleton ─────────────────────────────────────────
+
+SCHEMA = build_schema()
+'''
+
+
+def generate_test_code(name: str) -> str:
+    """
+    Genera el codigo Python para las pruebas unitarias del conector.
+
+    Crea un archivo de tests con pruebas basicas para verificar:
+    - Instanciacion del conector
+    - Conexion y desconexion
+    - Ejecucion de acciones (ping)
+    - Validacion del conector
+    - Propiedades basicas (name, version, category)
+
+    Args:
+        name: Nombre del conector en formato snake_case
+
+    Retorna:
+        Codigo fuente Python con las pruebas unitarias
+    """
+    class_name = _to_class_name(name)
+    module_path = f"src.connectors.{name}.connector"
+
+    return f'''\
+"""
+Pruebas Unitarias del Conector {class_name}
+==============================================
+
+Pruebas automaticas generadas por zenic-cli para verificar
+el funcionamiento basico del conector.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+# Agregar la raiz del proyecto al path para importar el conector
+project_root = Path(__file__).resolve().parents[3]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from src.sdk.base import BaseConnector
+from src.sdk.registry import ConnectorRegistry
+
+
+# ── Fixtures ──────────────────────────────────────────────────
+
+
+@pytest.fixture
+def connector_class():
+    """Obtiene la clase del conector desde el registro."""
+    # Intentar importar dinamicamente
+    try:
+        import importlib
+        module = importlib.import_module("{module_path}")
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if (
+                isinstance(attr, type)
+                and issubclass(attr, BaseConnector)
+                and attr is not BaseConnector
+                and getattr(attr, "name", "") == "{name}"
+            ):
+                return attr
+    except ImportError:
+        pass
+
+    # Fallback: buscar en el registro
+    cls = ConnectorRegistry.get("{name}")
+    if cls is not None:
+        return cls
+
+    pytest.skip("Conector '{name}' no encontrado")
+    return None
+
+
+@pytest.fixture
+def connector(connector_class):
+    """Crea una instancia del conector para las pruebas."""
+    # Mockear dependencias de infraestructura
+    with patch("src.sdk.base.RedisService"), \
+         patch("src.sdk.base.TelemetryService"):
+        instance = connector_class()
+    return instance
+
+
+# ── Pruebas de Instanciacion ──────────────────────────────────
+
+
+class TestConnectorInstantiation:
+    """Pruebas de creacion del conector."""
+
+    def test_connector_is_base_connector_subclass(self, connector_class):
+        """Verifica que el conector hereda de BaseConnector."""
+        assert issubclass(connector_class, BaseConnector)
+
+    def test_connector_has_name(self, connector):
+        """Verifica que el conector tiene un nombre definido."""
+        assert connector.name == "{name}"
+
+    def test_connector_has_version(self, connector):
+        """Verifica que el conector tiene una version definida."""
+        assert connector.version
+        assert isinstance(connector.version, str)
+
+    def test_connector_has_category(self, connector):
+        """Verifica que el conector tiene una categoria definida."""
+        assert connector.category
+
+
+# ── Pruebas de Conexion ───────────────────────────────────────
+
+
+class TestConnectorConnection:
+    """Pruebas del ciclo de conexion del conector."""
+
+    def test_connect_returns_bool(self, connector):
+        """Verifica que connect() retorna un booleano."""
+        with patch("src.sdk.base.RedisService"), \
+             patch("src.sdk.base.TelemetryService"):
+            result = connector.connect()
+        assert isinstance(result, bool)
+
+    def test_disconnect_returns_bool(self, connector):
+        """Verifica que disconnect() retorna un booleano."""
+        result = connector.disconnect()
+        assert isinstance(result, bool)
+
+    def test_validate_returns_bool(self, connector):
+        """Verifica que validate() retorna un booleano."""
+        result = connector.validate()
+        assert isinstance(result, bool)
+
+
+# ── Pruebas de Ejecucion ──────────────────────────────────────
+
+
+class TestConnectorExecution:
+    """Pruebas de ejecucion de acciones del conector."""
+
+    def test_execute_ping_action(self, connector):
+        """Verifica que la accion ping funciona correctamente."""
+        with patch("src.sdk.base.RedisService"), \
+             patch("src.sdk.base.TelemetryService"):
+            connector.connect()
+        result = connector.execute("ping", {{}})
+        assert isinstance(result, dict)
+        assert result.get("status") == "ok"
+
+    def test_execute_unknown_action_raises(self, connector):
+        """Verifica que una accion desconocida lanza error."""
+        with pytest.raises((ValueError, Exception)):
+            connector.execute("accion_inexistente", {{}})
+'''
+
+
+def generate_manifest(name: str, version: str, category: str, author: str) -> str:
+    """
+    Genera el contenido JSON del archivo manifest.json para publicacion.
+
+    El manifest contiene la metadata completa del conector necesaria
+    para el marketplace: nombre, version, categoria, autor, acciones,
+    requisitos de autenticacion y metadatos adicionales.
+
+    Args:
+        name: Nombre del conector
+        version: Version del conector en formato semver
+        category: Categoria del conector
+        author: Autor o equipo responsable del conector
+
+    Retorna:
+        String JSON formateado con el manifest del conector
+    """
+    manifest: dict[str, Any] = {
+        "name": name,
+        "version": version,
+        "category": category,
+        "author": author,
+        "description": f"Conector {name.replace('_', ' ')}",
+        "icon": "plug",
+        "sdk_version": "1.0.0",
+        "min_platform_version": "1.0.0",
+        "actions": [
+            {
+                "name": "ping",
+                "description": "Verifica la disponibilidad del conector",
+                "category": "read",
+            },
+        ],
+        "auth_requirements": [],
+        "tags": ["auto-generated"],
+        "files": [
+            "__init__.py",
+            "connector.py",
+            "schema.py",
+            "tests/test_connector.py",
+            "manifest.json",
+        ],
+    }
+    return json.dumps(manifest, indent=2, ensure_ascii=False)
+
+
+def generate_init_code(name: str) -> str:
+    """
+    Genera el codigo para el archivo __init__.py del conector.
+
+    Incluye la version del conector y las importaciones publicas
+    para facilitar el uso del conector como paquete Python.
+
+    Args:
+        name: Nombre del conector en formato snake_case
+
+    Retorna:
+        Codigo fuente Python para __init__.py
+    """
+    class_name = _to_class_name(name)
+
+    return f'''\
+"""
+Conector {class_name}
+======================
+
+Paquete del conector {name.replace("_", " ")}.
+"""
+
+from __future__ import annotations
+
+__version__ = "1.0.0"
+__connector_name__ = "{name}"
+
+from src.connectors.{name}.connector import {class_name}  # noqa: E402
+
+__all__ = ["{class_name}", "__version__", "__connector_name__"]
+'''
+
+
+# ── Funciones auxiliares privadas ─────────────────────────────
+
+
+def _to_class_name(name: str) -> str:
+    """
+    Convierte un nombre snake_case a CamelCase para nombres de clase.
+
+    Args:
+        name: Nombre en formato snake_case (ej: 'mi_conector')
+
+    Retorna:
+        Nombre en formato CamelCase (ej: 'MiConector')
+    """
+    return "".join(part.capitalize() for part in name.split("_"))
+
+
+def _generate_auth_import(auth_type: str) -> str:
+    """
+    Genera la sentencia de importacion del proveedor de autenticacion.
+
+    Args:
+        auth_type: Tipo de autenticacion
+
+    Retorna:
+        Sentencia de importacion como string, o string vacio si no requiere auth
+    """
+    auth_import_map: dict[str, str] = {
+        "api_key": "from src.sdk.auth import APIKeyAuth",
+        "basic": "from src.sdk.auth import BasicAuth",
+        "oauth2": "from src.sdk.auth import OAuth2Auth",
+        "oauth1": "from src.sdk.auth import OAuth1Auth",
+        "mtls": "from src.sdk.auth import MTLSAuth",
+        "custom": "from src.sdk.auth import CustomAuth",
+        "none": "",
+    }
+    return auth_import_map.get(auth_type, "")
+
+
+def _generate_auth_setup(auth_type: str) -> str:
+    """
+    Genera el codigo de configuracion del atributo de autenticacion en la clase.
+
+    Produce un bloque de inicializacion que sera parte del cuerpo de la clase,
+    creando el proveedor de autenticacion apropiado como atributo de instancia.
+
+    Args:
+        auth_type: Tipo de autenticacion
+
+    Retorna:
+        Codigo Python para la configuracion de auth, indentado para la clase
+    """
+    if auth_type == "none":
+        return ""
+
+    setup_map: dict[str, str] = {
+        "api_key": '''\
+    # ── Configuracion de Autenticacion ─────────────────────────
+    _API_KEY: str = ""
+
+    @property
+    def auth_provider(self):
+        """Proveedor de autenticacion API Key."""
+        if self._API_KEY and not self._auth_provider:
+            from src.sdk.auth import APIKeyAuth
+            self._auth_provider = APIKeyAuth(
+                api_key=self._API_KEY,
+                header_name="X-API-Key",
+                location="header",
+            )
+        return self._auth_provider''',
+        "basic": '''\
+    # ── Configuracion de Autenticacion ─────────────────────────
+    _USERNAME: str = ""
+    _PASSWORD: str = ""
+
+    @property
+    def auth_provider(self):
+        """Proveedor de autenticacion Basic Auth."""
+        if self._USERNAME and self._PASSWORD and not self._auth_provider:
+            from src.sdk.auth import BasicAuth
+            self._auth_provider = BasicAuth(
+                username=self._USERNAME,
+                password=self._PASSWORD,
+            )
+        return self._auth_provider''',
+        "oauth2": '''\
+    # ── Configuracion de Autenticacion ─────────────────────────
+    _CLIENT_ID: str = ""
+    _CLIENT_SECRET: str = ""
+    _TOKEN_URL: str = ""
+
+    @property
+    def auth_provider(self):
+        """Proveedor de autenticacion OAuth2."""
+        if self._CLIENT_ID and not self._auth_provider:
+            from src.sdk.auth import OAuth2Auth
+            self._auth_provider = OAuth2Auth(
+                client_id=self._CLIENT_ID,
+                client_secret=self._CLIENT_SECRET,
+                token_url=self._TOKEN_URL,
+            )
+        return self._auth_provider''',
+        "oauth1": '''\
+    # ── Configuracion de Autenticacion ─────────────────────────
+    _CONSUMER_KEY: str = ""
+    _CONSUMER_SECRET: str = ""
+
+    @property
+    def auth_provider(self):
+        """Proveedor de autenticacion OAuth1."""
+        if self._CONSUMER_KEY and not self._auth_provider:
+            from src.sdk.auth import OAuth1Auth
+            self._auth_provider = OAuth1Auth(
+                consumer_key=self._CONSUMER_KEY,
+                consumer_secret=self._CONSUMER_SECRET,
+            )
+        return self._auth_provider''',
+        "mtls": '''\
+    # ── Configuracion de Autenticacion ─────────────────────────
+    _CERT_PATH: str = ""
+    _KEY_PATH: str = ""
+
+    @property
+    def auth_provider(self):
+        """Proveedor de autenticacion mTLS."""
+        if self._CERT_PATH and self._KEY_PATH and not self._auth_provider:
+            from src.sdk.auth import MTLSAuth
+            self._auth_provider = MTLSAuth(
+                cert_path=self._CERT_PATH,
+                key_path=self._KEY_PATH,
+            )
+        return self._auth_provider''',
+        "custom": '''\
+    # ── Configuracion de Autenticacion ─────────────────────────
+    _TOKEN: str = ""
+
+    @property
+    def auth_provider(self):
+        """Proveedor de autenticacion personalizada."""
+        if self._TOKEN and not self._auth_provider:
+            from src.sdk.auth import CustomAuth
+            self._auth_provider = CustomAuth(
+                token=self._TOKEN,
+                token_prefix="Bearer",
+            )
+        return self._auth_provider''',
+    }
+    return setup_map.get(auth_type, "")
+
+
+def _generate_connect_body(auth_type: str) -> str:
+    """
+    Genera el cuerpo del metodo connect() segun el tipo de autenticacion.
+
+    Incluye la logica de validacion de credenciales y establecimiento
+    de conexion apropiada para cada tipo de auth.
+
+    Args:
+        auth_type: Tipo de autenticacion
+
+    Retorna:
+        Codigo Python indentado para el cuerpo del metodo connect()
+    """
+    if auth_type == "none":
+        return """\
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (sin autenticacion)")
+        return True"""
+
+    auth_valid_map: dict[str, str] = {
+        "api_key": """\
+        if not self._API_KEY:
+            self._log_operation("connect", "Error: API key no configurada")
+            return False
+        if self.auth_provider and not self.auth_provider.validate():
+            self._log_operation("connect", "Error: API key invalida")
+            return False
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (API Key)")
+        return True""",
+        "basic": """\
+        if not self._USERNAME or not self._PASSWORD:
+            self._log_operation("connect", "Error: credenciales Basic no configuradas")
+            return False
+        if self.auth_provider and not self.auth_provider.validate():
+            self._log_operation("connect", "Error: credenciales Basic invalidas")
+            return False
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (Basic Auth)")
+        return True""",
+        "oauth2": """\
+        if not self._CLIENT_ID or not self._CLIENT_SECRET:
+            self._log_operation("connect", "Error: credenciales OAuth2 no configuradas")
+            return False
+        if self.auth_provider and not self.auth_provider.validate():
+            self._log_operation("connect", "Error: credenciales OAuth2 invalidas")
+            return False
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (OAuth2)")
+        return True""",
+        "oauth1": """\
+        if not self._CONSUMER_KEY or not self._CONSUMER_SECRET:
+            self._log_operation("connect", "Error: credenciales OAuth1 no configuradas")
+            return False
+        if self.auth_provider and not self.auth_provider.validate():
+            self._log_operation("connect", "Error: credenciales OAuth1 invalidas")
+            return False
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (OAuth1)")
+        return True""",
+        "mtls": """\
+        if not self._CERT_PATH or not self._KEY_PATH:
+            self._log_operation("connect", "Error: certificados mTLS no configurados")
+            return False
+        if self.auth_provider and not self.auth_provider.validate():
+            self._log_operation("connect", "Error: certificados mTLS invalidos")
+            return False
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (mTLS)")
+        return True""",
+        "custom": """\
+        if not self._TOKEN:
+            self._log_operation("connect", "Error: token personalizado no configurado")
+            return False
+        if self.auth_provider and not self.auth_provider.validate():
+            self._log_operation("connect", "Error: token personalizado invalido")
+            return False
+        self._connected = True
+        self._log_operation("connect", "Conexion exitosa (Custom Auth)")
+        return True""",
+    }
+    return auth_valid_map.get(auth_type, "        self._connected = True\n        return True")
+
+
+def _generate_validate_body(auth_type: str) -> str:
+    """
+    Genera el cuerpo del metodo validate() segun el tipo de autenticacion.
+
+    Incluye la verificacion de que las credenciales necesarias esten
+    configuradas y sean validas.
+
+    Args:
+        auth_type: Tipo de autenticacion
+
+    Retorna:
+        Codigo Python indentado para el cuerpo del metodo validate()
+    """
+    if auth_type == "none":
+        return """\
+        # Sin requisitos de autenticacion
+        return True"""
+
+    validate_map: dict[str, str] = {
+        "api_key": """\
+        if not self._API_KEY:
+            return False
+        if self.auth_provider:
+            return self.auth_provider.validate()
+        return bool(self._API_KEY)""",
+        "basic": """\
+        if not self._USERNAME or not self._PASSWORD:
+            return False
+        if self.auth_provider:
+            return self.auth_provider.validate()
+        return bool(self._USERNAME and self._PASSWORD)""",
+        "oauth2": """\
+        if not self._CLIENT_ID or not self._CLIENT_SECRET or not self._TOKEN_URL:
+            return False
+        if self.auth_provider:
+            return self.auth_provider.validate()
+        return bool(self._CLIENT_ID and self._CLIENT_SECRET)""",
+        "oauth1": """\
+        if not self._CONSUMER_KEY or not self._CONSUMER_SECRET:
+            return False
+        if self.auth_provider:
+            return self.auth_provider.validate()
+        return bool(self._CONSUMER_KEY and self._CONSUMER_SECRET)""",
+        "mtls": """\
+        if not self._CERT_PATH or not self._KEY_PATH:
+            return False
+        if self.auth_provider:
+            return self.auth_provider.validate()
+        return True""",
+        "custom": """\
+        if not self._TOKEN:
+            return False
+        if self.auth_provider:
+            return self.auth_provider.validate()
+        return bool(self._TOKEN)""",
+    }
+    return validate_map.get(auth_type, "        return True")

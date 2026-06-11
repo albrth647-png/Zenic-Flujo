@@ -2,26 +2,25 @@
 Tests para Integraciones (Sprint 7).
 Tests mockeados para Gmail, Sheets, Telegram, Slack.
 """
-from unittest.mock import patch, MagicMock
-from src.tools.integrations.gmail_service import GmailService
-from src.tools.integrations.sheets_service import SheetsService
-from src.tools.integrations.telegram_service import TelegramService
-from src.tools.integrations.slack_service import SlackService
-from src.tools.integrations.gmail_service import GmailService
-from src.tools.integrations.sheets_service import SheetsService
-from src.tools.integrations.telegram_service import TelegramService
-from src.tools.integrations.slack_service import SlackService
 
+from unittest.mock import MagicMock, patch
+
+from src.tools.integrations.gmail_service import GmailService
+from src.tools.integrations.sheets_service import SheetsService
+from src.tools.integrations.slack_service import SlackService
+from src.tools.integrations.telegram_service import TelegramService
 
 # ═══════════════════════════════════════════════════════════════
 # GMAIL
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestGmailService:
     """Tests para GmailService."""
 
     def _make_service(self):
         from src.tools.integrations.gmail_service import GmailService
+
         with patch("src.tools.integrations.gmail_service.DatabaseManager"):
             return GmailService()
 
@@ -90,11 +89,13 @@ class TestGmailService:
 # GOOGLE SHEETS
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestSheetsService:
     """Tests para SheetsService."""
 
     def _make_service(self):
         from src.tools.integrations.sheets_service import SheetsService
+
         with patch("src.tools.integrations.sheets_service.DatabaseManager"):
             return SheetsService()
 
@@ -164,11 +165,13 @@ class TestSheetsService:
 # TELEGRAM
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestTelegramService:
     """Tests para TelegramService."""
 
     def _make_service(self):
         from src.tools.integrations.telegram_service import TelegramService
+
         with patch("src.tools.integrations.telegram_service.DatabaseManager"):
             return TelegramService()
 
@@ -251,11 +254,13 @@ class TestTelegramService:
 # SLACK
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestSlackService:
     """Tests para SlackService."""
 
     def _make_service(self):
         from src.tools.integrations.slack_service import SlackService
+
         with patch("src.tools.integrations.slack_service.DatabaseManager"):
             return SlackService()
 
@@ -326,8 +331,12 @@ class TestSlackService:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
             "ok": True,
-            "user": {"id": "U001", "name": "testuser", "real_name": "Test User",
-                     "profile": {"email": "test@slack.com"}},
+            "user": {
+                "id": "U001",
+                "name": "testuser",
+                "real_name": "Test User",
+                "profile": {"email": "test@slack.com"},
+            },
         }
         mock_requests.get.return_value = mock_resp
         result = svc.get_user_info("U001")

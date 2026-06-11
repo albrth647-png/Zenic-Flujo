@@ -2,6 +2,9 @@
 Workflow Determinista — DatabaseTrigger
 Detecta cambios en tablas SQLite y emite eventos correspondientes.
 """
+
+from typing import ClassVar
+
 from src.data.database_manager import DatabaseManager
 from src.events.bus import EventBus
 from src.utils.logger import setup_logging
@@ -12,13 +15,13 @@ logger = setup_logging(__name__)
 class DatabaseTrigger:
     """
     Detecta cambios en tablas SQLite y emite eventos.
-    
+
     Los triggers SQL se instalan al inicializar la base de datos
     y emiten eventos cuando se insertan, actualizan o eliminan registros.
     """
 
     # Mapeo de tablas a eventos
-    TABLE_EVENTS: dict[str, dict[str, str]] = {
+    TABLE_EVENTS: ClassVar[dict[str, dict[str, str]]] = {
         "leads": {
             "insert": "crm.lead.created",
             "update": "crm.lead.updated",
@@ -100,15 +103,13 @@ class DatabaseTrigger:
     def poll_changes(self) -> list[dict]:
         """
         Lee eventos pendientes generados por triggers SQL y los procesa.
-        
+
         Nota: Los triggers SQL ya insertan directamente en event_queue.
-        Este método marca los eventos como procesados sin re-publicarlos 
+        Este método marca los eventos como procesados sin re-publicarlos
         a través del EventBus (lo cual crearía duplicados).
         Para disparar workflows, usar EventBus.publish() directamente.
         """
-        pending = self._db.fetchall(
-            "SELECT * FROM event_queue WHERE status = 'pending' ORDER BY created_at LIMIT 50"
-        )
+        pending = self._db.fetchall("SELECT * FROM event_queue WHERE status = 'pending' ORDER BY created_at LIMIT 50")
 
         results = []
         for event in pending:

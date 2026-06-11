@@ -1,9 +1,12 @@
 """
 Tests para exportación e importación de Workflows (Mejora #3).
 """
+
 import json
+
 import pytest
-from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+
+from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
 
 class TestWorkflowExport:
@@ -12,14 +15,15 @@ class TestWorkflowExport:
     def test_export_workflow_json(self, db_manager):
         """Exporta un workflow y verifica estructura JSON."""
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name="Export Test",
-            description="Workflow para exportar",
-            trigger_type="schedule",
-            trigger_config={"frequency": "daily", "time": "08:00"},
-            steps=[{"id": 1, "tool": "crm", "action": "create_lead",
-                    "params": {"name": "Juan"}}],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name="Export Test",
+                description="Workflow para exportar",
+                trigger_type="schedule",
+                trigger_config={"frequency": "daily", "time": "08:00"},
+                steps=[{"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Juan"}}],
+            )
+        )
         exported = repo.export_workflow(wf.id)
         assert exported is not None
         assert exported["name"] == "Export Test"
@@ -59,13 +63,14 @@ class TestWorkflowExport:
     def test_export_json_serializable(self, db_manager):
         """El export debe ser 100% JSON serializable."""
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name="JSON Safe",
-            trigger_type="webhook",
-            trigger_config={"path": "test-hook"},
-            steps=[{"id": 1, "tool": "notification", "action": "send_email",
-                    "params": {"to": "test@test.com"}}],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name="JSON Safe",
+                trigger_type="webhook",
+                trigger_config={"path": "test-hook"},
+                steps=[{"id": 1, "tool": "notification", "action": "send_email", "params": {"to": "test@test.com"}}],
+            )
+        )
         exported = repo.export_workflow(wf.id)
         # Serializar y deserializar debe funcionar sin errores
         json_str = json.dumps(exported, ensure_ascii=False)
@@ -87,8 +92,7 @@ class TestWorkflowImport:
             "trigger_type": "manual",
             "trigger_config": {},
             "steps": [
-                {"id": 1, "tool": "crm", "action": "create_lead",
-                 "params": {"name": "Test"}},
+                {"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}},
             ],
         }
         imported = repo.import_workflow(data)
@@ -114,11 +118,13 @@ class TestWorkflowImport:
         """Steps debe ser una lista."""
         repo = WorkflowRepository()
         with pytest.raises(ValueError, match="steps"):
-            repo.import_workflow({
-                "name": "Bad",
-                "trigger_type": "manual",
-                "steps": "not_a_list",
-            })
+            repo.import_workflow(
+                {
+                    "name": "Bad",
+                    "trigger_type": "manual",
+                    "steps": "not_a_list",
+                }
+            )
 
     def test_import_with_executions_ignored(self, db_manager):
         """Las ejecuciones en el import no deben replicarse."""
@@ -158,8 +164,12 @@ class TestWorkflowImport:
             "trigger_type": "manual",
             "steps": [
                 {"id": 999, "tool": "crm", "action": "create_lead", "params": {}},
-                {"id": 1000, "tool": "notification", "action": "send_email",
-                 "params": {"to": "test@test.com", "subject": "Test", "body": "Body"}},
+                {
+                    "id": 1000,
+                    "tool": "notification",
+                    "action": "send_email",
+                    "params": {"to": "test@test.com", "subject": "Test", "body": "Body"},
+                },
             ],
         }
         imported = repo.import_workflow(data)
@@ -187,8 +197,7 @@ class TestWorkflowImport:
             "name": "Unknown Tools",
             "trigger_type": "manual",
             "steps": [
-                {"id": 1, "tool": "nonexistent_tool", "action": "do_something",
-                 "params": {}},
+                {"id": 1, "tool": "nonexistent_tool", "action": "do_something", "params": {}},
             ],
         }
         # Debe importar sin lanzar excepción

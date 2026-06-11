@@ -2,7 +2,8 @@
 Workflow Determinista — Tests del Notification Service
 Tests unitarios para el servicio de notificaciones: modelos, SMTP, plantillas, errores.
 """
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import MagicMock, patch
 
 
 class TestNotificationModels:
@@ -11,6 +12,7 @@ class TestNotificationModels:
     def test_notification_channels_defined(self):
         """Test: NOTIFICATION_CHANNELS contiene los canales correctos."""
         from src.tools.notification.models import NOTIFICATION_CHANNELS
+
         assert "email" in NOTIFICATION_CHANNELS
         assert "log" in NOTIFICATION_CHANNELS
         assert "slack" in NOTIFICATION_CHANNELS
@@ -19,6 +21,7 @@ class TestNotificationModels:
     def test_notification_statuses_defined(self):
         """Test: NOTIFICATION_STATUSES contiene los estados correctos."""
         from src.tools.notification.models import NOTIFICATION_STATUSES
+
         assert "pending" in NOTIFICATION_STATUSES
         assert "sent" in NOTIFICATION_STATUSES
         assert "failed" in NOTIFICATION_STATUSES
@@ -27,6 +30,7 @@ class TestNotificationModels:
     def test_email_templates_defined(self):
         """Test: EMAIL_TEMPLATES contiene las plantillas predefinidas."""
         from src.tools.notification.models import EMAIL_TEMPLATES
+
         assert "welcome" in EMAIL_TEMPLATES
         assert "invoice_created" in EMAIL_TEMPLATES
         assert "invoice_overdue" in EMAIL_TEMPLATES
@@ -36,6 +40,7 @@ class TestNotificationModels:
     def test_email_templates_have_subject_and_body(self):
         """Test: cada plantilla tiene subject y body."""
         from src.tools.notification.models import EMAIL_TEMPLATES
+
         for name, template in EMAIL_TEMPLATES.items():
             assert "subject" in template, f"Template '{name}' missing subject"
             assert "body" in template, f"Template '{name}' missing body"
@@ -125,6 +130,7 @@ class TestNotificationService:
             password="testpass",
         )
         import smtplib
+
         mock_smtp_class.side_effect = smtplib.SMTPException("SMTP server unavailable")
 
         result = notification_service.send_email(
@@ -138,6 +144,7 @@ class TestNotificationService:
     def test_template_rendering(self):
         """Test: las plantillas se renderizan correctamente con variables."""
         from src.tools.notification.models import EMAIL_TEMPLATES
+
         template = EMAIL_TEMPLATES["welcome"]
         rendered = template["body"].format(nombre="Carlos")
         assert "Carlos" in rendered
@@ -146,6 +153,7 @@ class TestNotificationService:
     def test_template_invoice_created_rendering(self):
         """Test: la plantilla invoice_created se renderiza con variables."""
         from src.tools.notification.models import EMAIL_TEMPLATES
+
         template = EMAIL_TEMPLATES["invoice_created"]
         rendered = template["body"].format(cliente="Ana", numero="FAC-2025-001", total="150.00")
         assert "Ana" in rendered
@@ -216,6 +224,7 @@ class TestNotificationService:
     def test_channel_validation(self):
         """Test: solo los canales definidos son válidos."""
         from src.tools.notification.models import NOTIFICATION_CHANNELS
+
         # Verify each expected channel
         for channel in ["email", "log", "slack", "sms"]:
             assert channel in NOTIFICATION_CHANNELS

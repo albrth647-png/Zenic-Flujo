@@ -11,17 +11,20 @@ Flujo:
 
 Determinista: mismos sinónimos → misma clasificación.
 """
+
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Synonym:
     """Un sinónimo aprendido."""
-    word: str           # la palabra nueva
-    synonym_of: str     # la palabra original que ya funciona
-    intent: str         # a qué intención pertenece
-    confidence: float   # 0.0–1.0, cuántas veces se usó
+
+    word: str  # la palabra nueva
+    synonym_of: str  # la palabra original que ya funciona
+    intent: str  # a qué intención pertenece
+    confidence: float  # 0.0-1.0, cuantas veces se uso
 
 
 class SynonymLearner:
@@ -129,23 +132,27 @@ class SynonymLearner:
         for existing in self._memory[intent]:
             if existing["word"] == word:
                 return
-        self._memory[intent].append({
-            "word": word,
-            "synonym_of": synonym_of,
-            "intent": intent,
-        })
+        self._memory[intent].append(
+            {
+                "word": word,
+                "synonym_of": synonym_of,
+                "intent": intent,
+            }
+        )
 
     def _memory_get_synonyms(self, intent: str | None) -> list[Synonym]:
         results: list[Synonym] = []
         intents_to_scan = [intent] if intent else list(self._memory.keys())
         for intent_key in intents_to_scan:
             for entry in self._memory.get(intent_key, []):
-                results.append(Synonym(
-                    word=entry["word"],
-                    synonym_of=entry["synonym_of"],
-                    intent=entry["intent"],
-                    confidence=1.0,
-                ))
+                results.append(
+                    Synonym(
+                        word=entry["word"],
+                        synonym_of=entry["synonym_of"],
+                        intent=entry["intent"],
+                        confidence=1.0,
+                    )
+                )
         return results
 
     def _memory_remove(self, word: str, intent: str) -> bool:

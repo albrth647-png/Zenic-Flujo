@@ -8,6 +8,7 @@ class TestQuantityExtractor:
 
     def test_simple_number(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         entities = ext.extract("10 unidades")
         assert len(entities) == 1
@@ -17,6 +18,7 @@ class TestQuantityExtractor:
 
     def test_more_than(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         entities = ext.extract("más de 50 unidades")
         qty = [e for e in entities if e.type == "qty"]
@@ -26,6 +28,7 @@ class TestQuantityExtractor:
 
     def test_less_than(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         entities = ext.extract("menos de 5 items")
         qty = [e for e in entities if e.type == "qty"]
@@ -33,6 +36,7 @@ class TestQuantityExtractor:
 
     def test_at_least(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         entities = ext.extract("al menos 100 unidades")
         qty = [e for e in entities if e.type == "qty"]
@@ -40,6 +44,7 @@ class TestQuantityExtractor:
 
     def test_greater_than_symbol(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         entities = ext.extract("stock > 10")
         qty = [e for e in entities if e.type == "qty"]
@@ -47,12 +52,14 @@ class TestQuantityExtractor:
 
     def test_no_qty(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         entities = ext.extract("hola mundo")
         assert len(entities) == 0
 
     def test_determinista(self):
         from src.nlu.entities.quantity import QuantityExtractor
+
         ext = QuantityExtractor()
         r1 = ext.extract("10 unidades")
         r2 = ext.extract("10 unidades")

@@ -2,6 +2,7 @@
 Workflow Determinista — AutoPilot Service
 Plantillas predefinidas de automatización para empezar rápido.
 """
+
 from src.nlu.intent_classifier import IntentClassifier
 from src.nlu.templates import TEMPLATES
 from src.utils.logger import setup_logging
@@ -22,28 +23,28 @@ class AutoPilotService:
                 None,
             )
             if template and im.score > 0.3:
-                results.append({
-                    "name": template["name"],
-                    "confidence": im.score,
-                    "trigger": template["trigger"],
-                    "steps": template["steps"],
-                    "description": template.get("description_es", ""),
-                })
+                results.append(
+                    {
+                        "name": template["name"],
+                        "confidence": im.score,
+                        "trigger": template["trigger"],
+                        "steps": template["steps"],
+                        "description": template.get("description_es", ""),
+                    }
+                )
         return results
 
     def get_quick_templates(self) -> list[dict]:
         return [
-            {"name": t["name"], "trigger_type": t["trigger"]["type"],
-             "step_count": len(t["steps"])}
-            for t in TEMPLATES
+            {"name": t["name"], "trigger_type": t["trigger"]["type"], "step_count": len(t["steps"])} for t in TEMPLATES
         ]
 
-    def create_from_template(self, template_name: str,
-                             params: dict | None = None) -> dict:
+    def create_from_template(self, template_name: str, params: dict | None = None) -> dict:
         template = next((t for t in TEMPLATES if t["name"] == template_name), None)
         if not template:
             raise ValueError(f"Template '{template_name}' no encontrado")
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
+
         repo = WorkflowRepository()
         wf = WorkflowDefinition(
             name=template.get("label", template_name),

@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════
+# Zenic-Flijo — Docker Ignore
+# Task IDs: 0-4, 0-7, 0-8
+# ═══════════════════════════════════════════════════════════
+
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Version control
+.git/
+.gitignore
+
+# Environment files (secrets must not be baked into images)
+.env
+.env.*
+!.env.example
+
+# Tests (not needed in production image)
+tests/
+test_*/
+*.test.py
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Node.js (frontend tooling, not needed in runtime)
+node_modules/
+package-lock.json
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Docker files (no recursion)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Media / binary files (not needed in image)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.mp4
+*.avi
+
+# Installer scripts (not needed in runtime)
+installer/
+
+# Nginx config (mounted via docker-compose volume)
+nginx/

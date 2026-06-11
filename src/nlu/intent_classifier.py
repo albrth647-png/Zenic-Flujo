@@ -7,13 +7,16 @@ Usa los lemas del Tokenizer (Etapa 2) en vez de substring matching.
 Mejoras vs. v1 (src/nlp/intent_classifier.py):
 - Usa tokens con lemas → tolera conjugaciones y plurales
 - TF-IDF ligero en vez de substring matching
-- Score normalizado 0.0–1.0 comparable entre intenciones
+- Score normalizado 0.0-1.0 comparable entre intenciones
 - Trazabilidad: cada match guarda la evidencia
 """
+
 from __future__ import annotations
+
 import math
 from collections import Counter
-from src.nlu.entities.base import Token, IntentMatch
+
+from src.nlu.entities.base import IntentMatch, Token
 
 
 class IntentClassifier:
@@ -35,8 +38,8 @@ class IntentClassifier:
         Normaliza las keywords (NFKD) para que coincidan con los lemas
         del tokenizer, que también normaliza por NFKD.
         """
-        from src.nlu.templates import TEMPLATES
         from src.nlu.normalizer import normalize
+        from src.nlu.templates import TEMPLATES
 
         # Colección de todos los documentos (lemas de keywords)
         all_terms: dict[str, set[str]] = {}
@@ -104,10 +107,7 @@ class IntentClassifier:
 
             # Normalizar por máximo posible
             max_possible = sum(idf_vector.values())
-            if max_possible > 0:
-                normalized = min(1.0, score / max_possible)
-            else:
-                normalized = 0.0
+            normalized = min(1.0, score / max_possible) if max_possible > 0 else 0.0
 
             if normalized >= threshold:
                 scored.append((normalized, intent_name, evidence))
@@ -115,10 +115,7 @@ class IntentClassifier:
         # Ordenar por score descendente
         scored.sort(key=lambda x: x[0], reverse=True)
 
-        results = tuple(
-            IntentMatch(intent=name, score=round(s, 4), evidence=ev)
-            for s, name, ev in scored
-        )
+        results = tuple(IntentMatch(intent=name, score=round(s, 4), evidence=ev) for s, name, ev in scored)
 
         return results
 
@@ -140,9 +137,9 @@ class IntentClassifier:
         Returns:
             Tupla de IntentMatch ordenados por score
         """
+        from src.nlu.language_router import LanguageRouter
         from src.nlu.normalizer import normalize
         from src.nlu.tokenizer import tokenize
-        from src.nlu.language_router import LanguageRouter
 
         normalized = normalize(text)
         if lang is None:

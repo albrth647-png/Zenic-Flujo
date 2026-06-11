@@ -2,22 +2,24 @@
 Workflow Determinista — LicenseValidator
 Valida License Keys y gestiona período de prueba (trial) de 30 días.
 """
-import hmac
-import hashlib
-from datetime import datetime, timedelta
 
-from src.data.database_manager import DatabaseManager
+import hashlib
+import hmac
+from datetime import datetime, timedelta
+from typing import ClassVar
+
 from src.config import LICENSE_SECRET_KEY, TRIAL_DAYS
+from src.data.database_manager import DatabaseManager
+from src.utils.logger import setup_logging
 
 # Caracteres permitidos en License Keys (sin vocales para evitar palabras)
 LICENSE_CHARSET = "BCDFGHJKLMNPQRSTVWXYZ23456789"
-from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
 
 class LicenseValidator:
-    LICENSE_TYPES = {"individual": 1, "reseller": 10, "enterprise": -1}
+    LICENSE_TYPES: ClassVar[dict[str, int]] = {"individual": 1, "reseller": 10, "enterprise": -1}
 
     def __init__(self):
         self._db = DatabaseManager()
@@ -46,9 +48,7 @@ class LicenseValidator:
                 return {"valid": False, "reason": "Fecha de expiración inválida"}
         # Verificar firma HMAC
         payload = f"{stored['type']}|{stored['client_name'] or ''}|{stored['expires_at'] or ''}"
-        expected_sig = hmac.new(
-            LICENSE_SECRET_KEY.encode(), payload.encode(), hashlib.sha256
-        ).hexdigest()[:12].upper()
+        expected_sig = hmac.new(LICENSE_SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()[:12].upper()
         stored_sig = "".join(parts[1:4])
         if not hmac.compare_digest(expected_sig, stored_sig):
             return {"valid": False, "reason": "Firma HMAC inválida — la key ha sido alterada"}
@@ -60,9 +60,7 @@ class LicenseValidator:
         }
 
     def get_trial_status(self) -> dict:
-        trial = self._db.fetchone(
-            "SELECT * FROM license WHERE is_trial = 1 ORDER BY trial_started_at DESC LIMIT 1"
-        )
+        trial = self._db.fetchone("SELECT * FROM license WHERE is_trial = 1 ORDER BY trial_started_at DESC LIMIT 1")
         if not trial:
             self._start_trial()
             return {"status": "active", "days_left": TRIAL_DAYS, "is_trial": True}
@@ -74,6 +72,7 @@ class LicenseValidator:
 
     def _start_trial(self):
         from datetime import datetime as dt
+
         now = dt.now().isoformat()
         self._db.execute(
             "INSERT INTO license (key, type, is_trial, trial_started_at) VALUES (?, 'trial', 1, ?)",
@@ -83,9 +82,7 @@ class LicenseValidator:
 
     def get_license_info(self) -> dict:
         # Primero buscar licencia paga activa (tiene prioridad sobre trial)
-        paid = self._db.fetchone(
-            "SELECT * FROM license WHERE is_trial = 0 ORDER BY issued_at DESC LIMIT 1"
-        )
+        paid = self._db.fetchone("SELECT * FROM license WHERE is_trial = 0 ORDER BY issued_at DESC LIMIT 1")
         if paid:
             # Verificar expiración
             if paid["expires_at"]:
@@ -114,8 +111,9 @@ class LicenseValidator:
             return {"type": "free", "is_trial": True, "days_left": trial["days_left"]}
         return {"type": "free", "is_trial": True, "days_left": TRIAL_DAYS}
 
-    def activate_key(self, key: str, license_type: str = "individual",
-                     client_name: str = "", days_valid: int = 365) -> dict:
+    def activate_key(
+        self, key: str, license_type: str = "individual", client_name: str = "", days_valid: int = 365
+    ) -> dict:
         expiry = (datetime.now() + timedelta(days=days_valid)).strftime("%Y-%m-%d") if days_valid else None
         self._db.execute(
             "INSERT OR REPLACE INTO license (key, type, client_name, expires_at) VALUES (?, ?, ?, ?)",

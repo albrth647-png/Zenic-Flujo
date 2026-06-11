@@ -7,16 +7,27 @@ existencia de tools, y detecta ciclos.
 
 Determinista: mismo workflow → mismos errores.
 """
+
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 # Tools conocidas por el sistema
 KNOWN_TOOLS = {
-    "crm", "invoice", "inventory", "notification",
-    "system", "autopilot", "logic_gate",
-    "api_connector", "data_keeper",
+    "crm",
+    "invoice",
+    "inventory",
+    "notification",
+    "system",
+    "autopilot",
+    "logic_gate",
+    "api_connector",
+    "data_keeper",
     "code_runner",
-    "gmail", "sheets", "telegram", "slack",
+    "gmail",
+    "sheets",
+    "telegram",
+    "slack",
 }
 
 VALID_TRIGGER_TYPES = {"event", "schedule", "webhook", "manual"}
@@ -42,6 +53,7 @@ VALID_ACTIONS_BY_TOOL: dict[str, set[str]] = {
 @dataclass(frozen=True)
 class ValidationResult:
     """Resultado de la validación de un workflow."""
+
     valid: bool
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -114,9 +126,7 @@ class WorkflowValidator:
             elif tool in VALID_ACTIONS_BY_TOOL:
                 valid_actions = VALID_ACTIONS_BY_TOOL[tool]
                 if action not in valid_actions:
-                    warnings.append(
-                        f"Paso {step_id}: action '{action}' no es estándar para '{tool}'"
-                    )
+                    warnings.append(f"Paso {step_id}: action '{action}' no es estándar para '{tool}'")
 
             # Validar params
             params = step.get("params", {})
@@ -172,9 +182,7 @@ class WorkflowValidator:
             if isinstance(params, dict):
                 for value in params.values():
                     if isinstance(value, str) and f"$steps.{step_id}" in value:
-                        errors.append(
-                            f"Paso {step_id}: auto-referencia detectada"
-                        )
+                        errors.append(f"Paso {step_id}: auto-referencia detectada")
 
     def validate_slot_completeness(
         self,
@@ -206,4 +214,3 @@ class WorkflowValidator:
             errors=tuple(errors),
             warnings=(),
         )
-

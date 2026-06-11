@@ -7,18 +7,29 @@ compatible con WorkflowDefinition (src/workflow/repository.py).
 
 Determinista: mismo intent + mismos slots + mismas entidades → mismo workflow.
 """
+
 from __future__ import annotations
-from src.nlu.entities.base import Slot, Entity, CompileResult
+
+from src.nlu.entities.base import CompileResult, Entity, Slot
 from src.nlu.fragments import get_fragments_by_intent
 from src.nlu.templates import TEMPLATES
 
 # Tools conocidas para validación suave
 KNOWN_TOOLS = {
-    "crm", "invoice", "inventory", "notification",
-    "system", "autopilot", "logic_gate",
-    "api_connector", "data_keeper",
+    "crm",
+    "invoice",
+    "inventory",
+    "notification",
+    "system",
+    "autopilot",
+    "logic_gate",
+    "api_connector",
+    "data_keeper",
     "code_runner",
-    "gmail", "sheets", "telegram", "slack",
+    "gmail",
+    "sheets",
+    "telegram",
+    "slack",
 }
 
 # Mapeo tipo trigger → trigger_type string
@@ -86,10 +97,7 @@ class WorkflowCompiler:
         required_slot_names: set[str] = set()
         for f in fragments:
             required_slot_names.update(f.requires_slots)
-        missing = tuple(
-            name for name in required_slot_names
-            if name not in slot_map or slot_map[name] is None
-        )
+        missing = tuple(name for name in required_slot_names if name not in slot_map or slot_map[name] is None)
         if missing:
             return CompileResult(
                 workflow={},
@@ -104,9 +112,7 @@ class WorkflowCompiler:
 
         if trigger_fragments:
             best_trigger = trigger_fragments[0]
-            trigger_type = TRIGGER_TYPE_MAP.get(
-                best_trigger.produces.get("type", ""), "manual"
-            )
+            trigger_type = TRIGGER_TYPE_MAP.get(best_trigger.produces.get("type", ""), "manual")
             trigger_config = dict(best_trigger.produces.get("config", {}))
             # Resolver $slot.xxx y $intent_event en trigger config
             trigger_config = self._resolve_slots(trigger_config, slot_map)
@@ -158,9 +164,7 @@ class WorkflowCompiler:
         }
 
         # 11. Generar explicación
-        explanation = self._generate_explanation(
-            template, trigger_type, trigger_config, steps, slot_map, lang
-        )
+        explanation = self._generate_explanation(template, trigger_type, trigger_config, steps, slot_map, lang)
 
         return CompileResult(
             workflow=workflow,
@@ -214,10 +218,7 @@ class WorkflowCompiler:
             elif isinstance(value, dict):
                 resolved[key] = self._resolve_slots(value, slot_map)
             elif isinstance(value, list):
-                resolved[key] = [
-                    self._resolve_slots(v, slot_map) if isinstance(v, dict) else v
-                    for v in value
-                ]
+                resolved[key] = [self._resolve_slots(v, slot_map) if isinstance(v, dict) else v for v in value]
             else:
                 resolved[key] = value
         return resolved
@@ -236,10 +237,7 @@ class WorkflowCompiler:
             elif isinstance(value, dict):
                 resolved[key] = self._resolve_intent_refs(value, intent_name)
             elif isinstance(value, list):
-                resolved[key] = [
-                    self._resolve_intent_refs(v, intent_name) if isinstance(v, dict) else v
-                    for v in value
-                ]
+                resolved[key] = [self._resolve_intent_refs(v, intent_name) if isinstance(v, dict) else v for v in value]
             else:
                 resolved[key] = value
         return resolved

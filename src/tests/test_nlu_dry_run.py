@@ -1,8 +1,10 @@
 """
 Tests para DryRunSimulator (Sprint 4, Tarea 1).
 """
+
 import pytest
-from src.nlu.dry_run import DryRunSimulator, DryRunResult
+
+from src.nlu.dry_run import DryRunResult, DryRunSimulator
 
 
 @pytest.fixture
@@ -17,16 +19,23 @@ def sample_workflow():
         "trigger_type": "event",
         "trigger_config": {"event": "crm.lead.created"},
         "steps": [
-            {"id": 1, "tool": "crm", "action": "create_lead",
-             "params": {"name": "$input.nombre", "email": "$input.email"}},
-            {"id": 2, "tool": "notification", "action": "send_email",
-             "params": {"to": "$input.email", "subject": "Bienvenida"}},
+            {
+                "id": 1,
+                "tool": "crm",
+                "action": "create_lead",
+                "params": {"name": "$input.nombre", "email": "$input.email"},
+            },
+            {
+                "id": 2,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {"to": "$input.email", "subject": "Bienvenida"},
+            },
         ],
     }
 
 
 class TestDryRunSimulator:
-
     def test_returns_dry_run_result(self, simulator, sample_workflow):
         result = simulator.simulate(sample_workflow)
         assert isinstance(result, DryRunResult)
@@ -84,8 +93,12 @@ class TestDryRunSimulator:
             "trigger_type": "manual",
             "trigger_config": {},
             "steps": [
-                {"id": 1, "tool": "crm", "action": "create_lead",
-                 "params": {"name": "$input.nombre", "email": "$output.1.email"}},
+                {
+                    "id": 1,
+                    "tool": "crm",
+                    "action": "create_lead",
+                    "params": {"name": "$input.nombre", "email": "$output.1.email"},
+                },
             ],
         }
         result = simulator.simulate(wf)
@@ -140,8 +153,7 @@ class TestDryRunSimulator:
             "trigger_type": "manual",
             "trigger_config": {},
             "steps": [
-                {"id": 1, "tool": "crm", "action": "create_lead",
-                 "params": {"name": "$input.nombre"}},
+                {"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "$input.nombre"}},
             ],
         }
         context = {"nombre": "Juan Pérez"}

@@ -8,6 +8,7 @@ class TestPipeline:
 
     def test_pipeline_basic(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("hola mundo")
 
@@ -18,6 +19,7 @@ class TestPipeline:
 
     def test_pipeline_detect_intent(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("Quiero registrar un nuevo cliente")
 
@@ -27,6 +29,7 @@ class TestPipeline:
 
     def test_pipeline_extract_email(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("enviar a juan@email.com")
 
@@ -36,6 +39,7 @@ class TestPipeline:
 
     def test_pipeline_tiene_traza(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("hola")
 
@@ -48,6 +52,7 @@ class TestPipeline:
 
     def test_pipeline_english(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("I want to register a new customer")
 
@@ -56,14 +61,16 @@ class TestPipeline:
 
     def test_pipeline_sin_intencion(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("xyz abc qwerty")
 
         assert result.confidence == 0.0
 
     def test_pipeline_entities_tuple(self):
-        from src.nlu.pipeline import Pipeline
         from src.nlu.entities.base import Entity
+        from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.process("mi email es test@test.com")
 
@@ -73,6 +80,7 @@ class TestPipeline:
 
     def test_pipeline_understand_helper(self):
         from src.nlu.pipeline import understand
+
         result = understand("Registrar cliente")
         assert result is not None
         assert len(result.intents) > 0

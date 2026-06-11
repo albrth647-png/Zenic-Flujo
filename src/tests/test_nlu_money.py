@@ -8,6 +8,7 @@ class TestMoneyExtractor:
 
     def test_simple_dollar(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("$500")
         assert len(entities) == 1
@@ -17,6 +18,7 @@ class TestMoneyExtractor:
 
     def test_pesos(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("500 pesos")
         assert len(entities) == 1
@@ -24,6 +26,7 @@ class TestMoneyExtractor:
 
     def test_more_than(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("más de $500")
         assert len(entities) >= 1
@@ -33,6 +36,7 @@ class TestMoneyExtractor:
 
     def test_less_than(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("menos de 1000 pesos")
         assert len(entities) >= 1
@@ -42,6 +46,7 @@ class TestMoneyExtractor:
 
     def test_greater_than_symbol(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("> $300")
         assert len(entities) >= 1
@@ -50,6 +55,7 @@ class TestMoneyExtractor:
 
     def test_usd_prefix(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("USD 500")
         assert len(entities) == 1
@@ -57,6 +63,7 @@ class TestMoneyExtractor:
 
     def test_determinista(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         r1 = ext.extract("$500")
         r2 = ext.extract("$500")
@@ -65,12 +72,14 @@ class TestMoneyExtractor:
 
     def test_no_money(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("hola mundo")
         assert len(entities) == 0
 
     def test_at_least(self):
         from src.nlu.entities.money import MoneyExtractor
+
         ext = MoneyExtractor()
         entities = ext.extract("al menos $1000")
         money = [e for e in entities if e.type == "money"]

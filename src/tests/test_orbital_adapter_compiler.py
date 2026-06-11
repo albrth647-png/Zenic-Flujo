@@ -10,8 +10,10 @@ Ejecutar con: pytest src/tests/test_orbital_adapter_compiler.py -v
 
 import os
 import sys
-import pytest
+from typing import ClassVar
 from unittest.mock import MagicMock
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -19,10 +21,10 @@ from src.orbital.context import OrbitalContext
 from src.orbital.orbital_adapter import OrbitalAdapter, OrbitalToolResult
 from src.orbital.orbital_compiler import OrbitalCompiler
 
-
 # ══════════════════════════════════════════════════════════════
 # FIXTURES
 # ══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture(autouse=True)
 def reset_singletons():
@@ -60,6 +62,7 @@ def compiler():
 # TESTS: OrbitalAdapter
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalAdapter:
     def test_register_tool(self, adapter):
         adapter.register_tool("crm", MagicMock())
@@ -94,6 +97,7 @@ class TestOrbitalAdapter:
         # Crear tool real sin la accion (no MagicMock que crea attrs)
         class RealTool:
             pass
+
         adapter.register_tool("crm", RealTool())
         result = adapter.execute_action("crm", "nonexistent_action", {})
         assert result.status == "failed"
@@ -147,10 +151,11 @@ class TestOrbitalAdapter:
 # TESTS: OrbitalCompiler — 50+ frases
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalCompilerPhrases:
     """Tests de compilación con 50+ frases en español e inglés."""
 
-    PHRASES_REGISTRO = [
+    PHRASES_REGISTRO: ClassVar[list[str]] = [
         "Registrar un cliente nuevo",
         "Quiero agregar un lead",
         "Guardar contacto de Juan",
@@ -163,7 +168,7 @@ class TestOrbitalCompilerPhrases:
         "Add a new contact",
     ]
 
-    PHRASES_FACTURA = [
+    PHRASES_FACTURA: ClassVar[list[str]] = [
         "Generar una factura",
         "Facturar al cliente por servicios",
         "Crear invoice para el pedido",
@@ -175,7 +180,7 @@ class TestOrbitalCompilerPhrases:
         "Issue an invoice for the order",
     ]
 
-    PHRASES_STOCK = [
+    PHRASES_STOCK: ClassVar[list[str]] = [
         "Alerta de stock bajo",
         "El inventario está agotado",
         "Reabastecer producto",
@@ -185,7 +190,7 @@ class TestOrbitalCompilerPhrases:
         "Reorder product when low",
     ]
 
-    PHRASES_NOTIFICACION = [
+    PHRASES_NOTIFICACION: ClassVar[list[str]] = [
         "Enviar email de bienvenida",
         "Notificar al cliente",
         "Mandar mensaje al equipo",
@@ -196,7 +201,7 @@ class TestOrbitalCompilerPhrases:
         "Send confirmation message",
     ]
 
-    PHRASES_MIXED = [
+    PHRASES_MIXED: ClassVar[list[str]] = [
         "Quiero automatizar mi negocio",
         "Hacer un workflow de ventas",
         "Crear automatización diaria",
@@ -209,14 +214,14 @@ class TestOrbitalCompilerPhrases:
         "Build an automation for invoices",
     ]
 
-    PHRASES_STOCK_EXTRA = [
+    PHRASES_STOCK_EXTRA: ClassVar[list[str]] = [
         "Need to restock product",
         "Product is out of stock",
         "Refill inventory supplies",
         "Low inventory alert trigger",
     ]
 
-    PHRASES_NOTIFICACION_EXTRA = [
+    PHRASES_NOTIFICACION_EXTRA: ClassVar[list[str]] = [
         "Mandar email al equipo de ventas",
         "Notify admin about new order",
         "Send alert to support team",
@@ -224,7 +229,7 @@ class TestOrbitalCompilerPhrases:
         "Reminder email to client",
     ]
 
-    PHRASES_MIXED_EXTRA = [
+    PHRASES_MIXED_EXTRA: ClassVar[list[str]] = [
         "Crear un reporte diario de ventas",
         "Set up automatic billing",
         "Build a client onboarding flow",
@@ -232,9 +237,14 @@ class TestOrbitalCompilerPhrases:
     ]
 
     ALL_PHRASES = (
-        PHRASES_REGISTRO + PHRASES_FACTURA + PHRASES_STOCK +
-        PHRASES_NOTIFICACION + PHRASES_MIXED +
-        PHRASES_STOCK_EXTRA + PHRASES_NOTIFICACION_EXTRA + PHRASES_MIXED_EXTRA
+        PHRASES_REGISTRO
+        + PHRASES_FACTURA
+        + PHRASES_STOCK
+        + PHRASES_NOTIFICACION
+        + PHRASES_MIXED
+        + PHRASES_STOCK_EXTRA
+        + PHRASES_NOTIFICACION_EXTRA
+        + PHRASES_MIXED_EXTRA
     )
 
     @pytest.mark.parametrize("phrase", ALL_PHRASES, ids=range(len(ALL_PHRASES)))

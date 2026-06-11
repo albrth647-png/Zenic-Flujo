@@ -5,12 +5,14 @@ Persistencia para colecciones dinámicas de datos.
 Cada colección se almacena como una tabla SQLite separada creada dinámicamente.
 La tabla data_keeper_collections guarda el catálogo de colecciones.
 """
+
 import json
 import sqlite3
 from datetime import datetime
+
 from src.data.database_manager import DatabaseManager
+from src.tools.data_keeper.models import validate_name, validate_schema
 from src.utils.logger import setup_logging
-from src.tools.data_keeper.models import validate_schema, validate_name
 
 logger = setup_logging(__name__)
 
@@ -70,9 +72,7 @@ class DataKeeperRepository:
     def list_collections(self) -> list[dict]:
         """Lista todas las colecciones."""
         self._init_collections_catalog()
-        rows = self._db.fetchall(
-            "SELECT id, name, schema, created_at FROM data_keeper_collections ORDER BY name"
-        )
+        rows = self._db.fetchall("SELECT id, name, schema, created_at FROM data_keeper_collections ORDER BY name")
         result = []
         for row in rows:
             collection = dict(row)
@@ -111,9 +111,11 @@ class DataKeeperRepository:
         }
 
         # Construir columnas
-        columns = ["id INTEGER PRIMARY KEY AUTOINCREMENT",
-                   "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-                   "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"]
+        columns = [
+            "id INTEGER PRIMARY KEY AUTOINCREMENT",
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        ]
 
         for field_name, field_type in schema.items():
             sql_type = type_map.get(field_type, "TEXT")
@@ -135,6 +137,7 @@ class DataKeeperRepository:
 
         # Filtrar solo campos del schema (quitar id, created_at, etc.)
         from src.tools.data_keeper.models import validate_record
+
         validate_record(data, collection["schema"])
 
         allowed_fields = [k for k in data if k in collection["schema"]]
@@ -163,8 +166,7 @@ class DataKeeperRepository:
         """
         converted = dict(record)
         for field_name, field_type in schema.items():
-            if field_name in converted and field_type == "boolean" \
-                    and converted[field_name] is not None:
+            if field_name in converted and field_type == "boolean" and converted[field_name] is not None:
                 converted[field_name] = bool(converted[field_name])
         return converted
 
@@ -188,18 +190,15 @@ class DataKeeperRepository:
 
             # PRAGMA table_info retorna: cid, name, type, notnull, dflt_value, pk
             # desc[1] = name (nombre de columna)
-            columns = [desc[1] for desc in conn.execute(
-                f"PRAGMA table_info({table_name})"
-            ).fetchall()]
+            columns = [desc[1] for desc in conn.execute(f"PRAGMA table_info({table_name})").fetchall()]
 
-            result = dict(zip(columns, row))
+            result = dict(zip(columns, row, strict=False))
             return self._convert_types(result, collection["schema"])
 
         except sqlite3.OperationalError:
             return None
 
-    def query(self, collection_name: str, filters: dict | None = None,
-              limit: int = 100, offset: int = 0) -> list[dict]:
+    def query(self, collection_name: str, filters: dict | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
         """Consulta registros con filtros opcionales."""
         collection = self.get_collection(collection_name)
         if not collection:
@@ -228,20 +227,14 @@ class DataKeeperRepository:
             values.extend([limit, offset])
 
             rows = conn.execute(sql, values).fetchall()
-            columns = [desc[1] for desc in conn.execute(
-                f"PRAGMA table_info({table_name})"
-            ).fetchall()]
+            columns = [desc[1] for desc in conn.execute(f"PRAGMA table_info({table_name})").fetchall()]
 
-            return [
-                self._convert_types(dict(zip(columns, row)), collection["schema"])
-                for row in rows
-            ]
+            return [self._convert_types(dict(zip(columns, row, strict=False)), collection["schema"]) for row in rows]
 
         except sqlite3.OperationalError:
             return []
 
-    def update(self, collection_name: str, record_id: int,
-               data: dict) -> dict | None:
+    def update(self, collection_name: str, record_id: int, data: dict) -> dict | None:
         """Actualiza un registro."""
         collection = self.get_collection(collection_name)
         if not collection:
@@ -262,7 +255,7 @@ class DataKeeperRepository:
         if not set_clauses:
             return self.get(collection_name, record_id)
 
-        set_clauses.append('updated_at = CURRENT_TIMESTAMP')
+        set_clauses.append("updated_at = CURRENT_TIMESTAMP")
         set_sql = ", ".join(set_clauses)
         values.append(record_id)
 

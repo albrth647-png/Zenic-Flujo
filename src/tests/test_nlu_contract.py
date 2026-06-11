@@ -4,6 +4,7 @@ DDE v3 — Tests del Contrato de Datos
 Verifica que las dataclasses frozen son inmutables y
 que todas las estructuras tienen los campos correctos.
 """
+
 import pytest
 
 
@@ -12,6 +13,7 @@ class TestTokenContract:
 
     def test_token_creation(self):
         from src.nlu.entities.base import Token
+
         t = Token(raw="clientes", lemma="cliente", pos=0)
         assert t.raw == "clientes"
         assert t.lemma == "cliente"
@@ -19,12 +21,14 @@ class TestTokenContract:
 
     def test_token_is_frozen(self):
         from src.nlu.entities.base import Token
+
         t = Token(raw="test", lemma="test", pos=0)
-        with pytest.raises(Exception):
+        with pytest.raises(AttributeError):
             t.raw = "otro"  # type: ignore
 
     def test_token_hashable(self):
         from src.nlu.entities.base import Token
+
         t1 = Token(raw="test", lemma="test", pos=0)
         t2 = Token(raw="test", lemma="test", pos=0)
         assert hash(t1) == hash(t2)
@@ -35,6 +39,7 @@ class TestEntityContract:
 
     def test_entity_creation(self):
         from src.nlu.entities.base import Entity
+
         e = Entity(type="email", value="a@b.com", raw="a@b.com", span=(0, 7), score=1.0)
         assert e.type == "email"
         assert e.value == "a@b.com"
@@ -43,8 +48,9 @@ class TestEntityContract:
 
     def test_entity_frozen(self):
         from src.nlu.entities.base import Entity
+
         e = Entity(type="email", value="a@b.com", raw="a@b.com", span=(0, 7), score=1.0)
-        with pytest.raises(Exception):
+        with pytest.raises(AttributeError):
             e.type = "phone"  # type: ignore
 
 
@@ -53,6 +59,7 @@ class TestIntentMatchContract:
 
     def test_intent_match_creation(self):
         from src.nlu.entities.base import IntentMatch
+
         im = IntentMatch(intent="registro_cliente", score=0.85, evidence=["registr", "client"])
         assert im.intent == "registro_cliente"
         assert im.score == 0.85
@@ -64,6 +71,7 @@ class TestSlotContract:
 
     def test_slot_creation(self):
         from src.nlu.entities.base import Slot
+
         s = Slot(name="email", required=True, filled=True, value="a@b.com", source="entity")
         assert s.name == "email"
         assert s.required is True
@@ -72,6 +80,7 @@ class TestSlotContract:
 
     def test_slot_empty(self):
         from src.nlu.entities.base import Slot
+
         s = Slot(name="email", required=True, filled=False, value=None, source="entity")
         assert s.filled is False
         assert s.value is None
@@ -81,7 +90,8 @@ class TestNLUResultContract:
     """Tests para la dataclass NLUResult."""
 
     def test_nlu_result_creation(self):
-        from src.nlu.entities.base import Token, IntentMatch, Slot, NLUResult
+        from src.nlu.entities.base import IntentMatch, NLUResult, Slot, Token
+
         result = NLUResult(
             text="hola",
             lang="es",
@@ -103,6 +113,7 @@ class TestStepFragmentContract:
 
     def test_fragment_creation(self):
         from src.nlu.entities.base import StepFragment
+
         f = StepFragment(
             kind="step",
             intent_tags=("registro_cliente",),
@@ -119,6 +130,7 @@ class TestCompileResultContract:
 
     def test_compile_result_ready(self):
         from src.nlu.entities.base import CompileResult
+
         cr = CompileResult(
             workflow={"name": "test"},
             explanation="Test workflow",

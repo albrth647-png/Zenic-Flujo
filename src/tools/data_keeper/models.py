@@ -3,11 +3,10 @@ Workflow Determinista — Data Keeper Modelos
 Define las estructuras de datos para colecciones dinámicas.
 """
 
+import re
+
 # Tipos de datos soportados para los campos de una colección
 SUPPORTED_TYPES = {"string", "number", "boolean", "text", "date"}
-
-
-import re
 
 
 def validate_name(name: str) -> None:
@@ -17,11 +16,8 @@ def validate_name(name: str) -> None:
     """
     if not name or not isinstance(name, str):
         raise ValueError("El nombre no puede estar vacío")
-    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
-        raise ValueError(
-            f"Nombre inválido: '{name}'. Solo letras, números y guión bajo. "
-            "No puede empezar con número."
-        )
+    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name):
+        raise ValueError(f"Nombre inválido: '{name}'. Solo letras, números y guión bajo. No puede empezar con número.")
 
 
 def validate_schema(schema: dict) -> None:
@@ -45,6 +41,5 @@ def validate_record(record: dict, schema: dict) -> None:
             continue
         if field_name not in schema:
             raise ValueError(
-                f"Campo '{field_name}' no está en el schema de la colección. "
-                f"Campos permitidos: {list(schema.keys())}"
+                f"Campo '{field_name}' no está en el schema de la colección. Campos permitidos: {list(schema.keys())}"
             )

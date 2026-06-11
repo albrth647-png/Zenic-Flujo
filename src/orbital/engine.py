@@ -35,21 +35,21 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from src.orbital.models import (
-    VariableOrbital,
-    CicloOrbital,
-    OrbitalResult,
-    EspectroEstado,
-    DEFAULT_AMPLITUDE,
-    DEFAULT_VELOCITY,
-    DEFAULT_THRESHOLD,
-    RETROFEEDBACK_DAMPING,
-)
-from src.orbital.ovc import OVC
-from src.orbital.tor import TOR
-from src.orbital.rcc import RCC
 from src.orbital.cod import COD
 from src.orbital.espectro import EspectroOrbital
+from src.orbital.models import (
+    DEFAULT_AMPLITUDE,
+    DEFAULT_THRESHOLD,
+    DEFAULT_VELOCITY,
+    RETROFEEDBACK_DAMPING,
+    CicloOrbital,
+    EspectroEstado,
+    OrbitalResult,
+    VariableOrbital,
+)
+from src.orbital.ovc import OVC
+from src.orbital.rcc import RCC
+from src.orbital.tor import TOR
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -97,7 +97,9 @@ class OrbitalEngine:
         self._tor = tor if tor is not None else TOR(self._ovc)
         self._rcc = rcc if rcc is not None else RCC(self._ovc, self._tor)
         self._cod = cod if cod is not None else COD(self._ovc, self._tor, self._rcc)
-        self._espectro = espectro if espectro is not None else EspectroOrbital(self._ovc, self._tor, self._rcc, self._cod)
+        self._espectro = (
+            espectro if espectro is not None else EspectroOrbital(self._ovc, self._tor, self._rcc, self._cod)
+        )
         self._owns_pillars = ovc is None  # True si creamos nuestras propias instancias
         self._global_tick: int = 0
         self._execution_history: list[OrbitalResult] = []
@@ -241,9 +243,7 @@ class OrbitalEngine:
         # 4. COD: Colapsar cada ciclo (con retroalimentacion)
         cod_results = []
         for cycle in self._rcc._cycles.values():
-            cod_result = self._cod.collapse_with_retrofeedback(
-                cycle, retrofeed_damping=retrofeed_damping, dt=dt
-            )
+            cod_result = self._cod.collapse_with_retrofeedback(cycle, retrofeed_damping=retrofeed_damping, dt=dt)
             cod_results.append(cod_result)
 
         # 5. Espectro: Generar salida multimodal para cada ciclo
@@ -272,8 +272,9 @@ class OrbitalEngine:
 
         return result
 
-    def run_ticks(self, n: int, dt: float = 1.0,
-                  retrofeed_damping: float = RETROFEEDBACK_DAMPING) -> list[OrbitalResult]:
+    def run_ticks(
+        self, n: int, dt: float = 1.0, retrofeed_damping: float = RETROFEEDBACK_DAMPING
+    ) -> list[OrbitalResult]:
         """
         Ejecuta N ticks orbitales consecutivos.
 
@@ -343,10 +344,7 @@ class OrbitalEngine:
     # ── Representacion ─────────────────────────────────────
 
     def __repr__(self) -> str:
-        return (
-            f"OrbitalEngine(tick={self._global_tick}, "
-            f"variables={self.variable_count}, cycles={self.cycle_count})"
-        )
+        return f"OrbitalEngine(tick={self._global_tick}, variables={self.variable_count}, cycles={self.cycle_count})"
 
     def status_summary(self) -> str:
         """Retorna un resumen completo del estado del motor ORBITAL."""

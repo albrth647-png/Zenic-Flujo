@@ -14,14 +14,16 @@ Ejecutar:
 
 """
 
-import time
 import math
+import time
+
 import pytest
+
 from src.orbital.context import OrbitalContext
 from src.orbital.models import MAX_COD_ITERATIONS
 
-
 # ── Fixtures ───────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def reset_context():
@@ -32,7 +34,6 @@ def reset_context():
 def _setup_large_system(ctx, n_vars=10, n_cycles=3):
     """Crea un sistema orbital con N variables y M ciclos."""
     engine = ctx.engine
-    specs = []
     for i in range(n_vars):
         theta = (i / n_vars) * 2 * math.pi
         amp = 10 + (i * 5)
@@ -48,6 +49,7 @@ def _setup_large_system(ctx, n_vars=10, n_cycles=3):
 
 
 # ── Benchmark 1: Tiempo de tick orbital ────────────────────
+
 
 def test_benchmark_tick_time():
     """Mide el tiempo promedio de un tick orbital completo."""
@@ -71,13 +73,14 @@ def test_benchmark_tick_time():
     print(f"\n  Ticks: {len(times)}")
     print(f"  Promedio: {avg_ms:.2f}ms")
     print(f"  Min: {min_ms:.2f}ms | Max: {max_ms:.2f}ms")
-    print(f"  Throughput: {1000/avg_ms:.1f} ticks/s")
+    print(f"  Throughput: {1000 / avg_ms:.1f} ticks/s")
 
     # Debe ejecutar un tick en menos de 500ms
     assert avg_ms < 500, f"Tick promedio demasiado lento: {avg_ms:.2f}ms"
 
 
 # ── Benchmark 2: Throughput multi-tick ─────────────────────
+
 
 def test_benchmark_throughput():
     """Mide cuantos ticks puede ejecutar en 2 segundos."""
@@ -99,6 +102,7 @@ def test_benchmark_throughput():
 
 
 # ── Benchmark 3: Convergencia COD ──────────────────────────
+
 
 def test_benchmark_cod_convergence():
     """Mide cuantas iteraciones toma el COD en converger con amplitudes variadas."""
@@ -122,13 +126,20 @@ def test_benchmark_cod_convergence():
         cod_result = result.cod_results[0] if result.cod_results else None
 
         if cod_result:
-            results.append({
-                "amplitude": amp,
-                "converged": cod_result.converged,
-                "iterations": cod_result.iterations,
-                "delta": cod_result.convergence_delta,
-            })
-            print(f"\n  Amplitud {amp:6d}: convergio={cod_result.converged} iter={cod_result.iterations} delta={cod_result.convergence_delta:.6f}")
+            results.append(
+                {
+                    "amplitude": amp,
+                    "converged": cod_result.converged,
+                    "iterations": cod_result.iterations,
+                    "delta": cod_result.convergence_delta,
+                }
+            )
+            print(
+                f"\n  Amplitud {amp:6d}: "
+                f"convergio={cod_result.converged} "
+                f"iter={cod_result.iterations} "
+                f"delta={cod_result.convergence_delta:.6f}"
+            )
         else:
             print(f"\n  Amplitud {amp:6d}: SIN resultado COD")
 
@@ -142,11 +153,13 @@ def test_benchmark_cod_convergence():
         small_iter = results[0]["iterations"]
         large_iter = results[-1]["iterations"]
         print(f"\n  Iteraciones: pequeña={small_iter} grande={large_iter}")
-        assert large_iter <= max(MAX_COD_ITERATIONS, small_iter * 3), \
+        assert large_iter <= max(MAX_COD_ITERATIONS, small_iter * 3), (
             f"Amplitud grande toma demasiadas iteraciones: {large_iter} vs {small_iter}"
+        )
 
 
 # ── Benchmark 4: Cache de TOR ──────────────────────────────
+
 
 def test_benchmark_tor_cache():
     """Mide la efectividad del cache de TOR."""
@@ -166,4 +179,4 @@ def test_benchmark_tor_cache():
     print(f"  Despues de tick 2: hits={stats2['hits']} misses={stats2['misses']} rate={stats2['hit_rate']}")
 
     # El hit rate debe mejorar con el tiempo
-    assert stats2['hit_rate'] >= stats1['hit_rate'], "El hit rate del cache de TOR no mejoro"
+    assert stats2["hit_rate"] >= stats1["hit_rate"], "El hit rate del cache de TOR no mejoro"

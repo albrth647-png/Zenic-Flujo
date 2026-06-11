@@ -31,11 +31,11 @@ from __future__ import annotations
 import math
 
 from src.orbital.models import (
-    CicloOrbital,
-    EspectroEstado,
-    CODResult,
-    RCCResult,
     TWO_PI,
+    CicloOrbital,
+    CODResult,
+    EspectroEstado,
+    RCCResult,
 )
 from src.utils.logger import setup_logging
 
@@ -100,9 +100,7 @@ class EspectroOrbital:
         rcc_result = self._rcc.detect(cycle)
 
         # 2. Colapsar (con retroalimentacion)
-        cod_result = self._cod.collapse_with_retrofeedback(
-            cycle, retrofeed_damping=retrofeed_damping
-        )
+        cod_result = self._cod.collapse_with_retrofeedback(cycle, retrofeed_damping=retrofeed_damping)
 
         # 3. Generar modos del espectro
         modes = self._generate_modes(cycle, cod_result, rcc_result)
@@ -111,9 +109,7 @@ class EspectroOrbital:
         primary_mode = self._select_primary_mode(modes, rcc_result)
 
         # 5. Calcular retroalimentacion
-        retrofeedback = self._calculate_retrofeedback(
-            cod_result, rcc_result, retrofeed_damping
-        )
+        retrofeedback = self._calculate_retrofeedback(cod_result, rcc_result, retrofeed_damping)
 
         # 6. Crear estado del espectro
         estado = EspectroEstado(
@@ -209,9 +205,7 @@ class EspectroOrbital:
 
         return modes
 
-    def _select_primary_mode(
-        self, modes: list[dict[str, float]], rcc_result: RCCResult
-    ) -> int:
+    def _select_primary_mode(self, modes: list[dict[str, float]], rcc_result: RCCResult) -> int:
         """
         Selecciona el modo primario del espectro.
 
@@ -230,9 +224,7 @@ class EspectroOrbital:
                 continue
             energy = sum(abs(v) for v in mode.values())
             # Bonus para el modo de maxima resonancia (ultimo si hay resonancia)
-            bonus = rcc_result.resonance_strength if (
-                i == len(modes) - 1 and rcc_result.is_resonant
-            ) else 0.0
+            bonus = rcc_result.resonance_strength if (i == len(modes) - 1 and rcc_result.is_resonant) else 0.0
             score = energy + bonus * 10  # peso fuerte a la resonancia
             if score > best_score:
                 best_score = score

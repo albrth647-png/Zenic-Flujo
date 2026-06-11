@@ -10,6 +10,7 @@ Integra con Telegram Bot API para:
 
 Autenticación: Bot Token (guardado cifrado en DB)
 """
+
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 
@@ -253,43 +254,51 @@ class TelegramService:
                     "name": "Enviar mensaje",
                     "description": "Envía un mensaje de texto a un chat",
                     "params": [
-                        {"name": "chat_id", "type": "string", "required": True,
-                         "label": "Chat ID", "placeholder": "123456789"},
-                        {"name": "text", "type": "string", "required": True,
-                         "label": "Mensaje", "placeholder": "Hola, esto es un workflow"},
-                        {"name": "parse_mode", "type": "select",
-                         "options": ["", "HTML", "Markdown"],
-                         "required": False, "label": "Formato"},
+                        {
+                            "name": "chat_id",
+                            "type": "string",
+                            "required": True,
+                            "label": "Chat ID",
+                            "placeholder": "123456789",
+                        },
+                        {
+                            "name": "text",
+                            "type": "string",
+                            "required": True,
+                            "label": "Mensaje",
+                            "placeholder": "Hola, esto es un workflow",
+                        },
+                        {
+                            "name": "parse_mode",
+                            "type": "select",
+                            "options": ["", "HTML", "Markdown"],
+                            "required": False,
+                            "label": "Formato",
+                        },
                     ],
                 },
                 "send_photo": {
                     "name": "Enviar foto",
                     "description": "Envía una foto a un chat",
                     "params": [
-                        {"name": "chat_id", "type": "string", "required": True,
-                         "label": "Chat ID"},
-                        {"name": "photo", "type": "string", "required": True,
-                         "label": "URL de la foto"},
-                        {"name": "caption", "type": "string", "required": False,
-                         "label": "Pie de foto"},
+                        {"name": "chat_id", "type": "string", "required": True, "label": "Chat ID"},
+                        {"name": "photo", "type": "string", "required": True, "label": "URL de la foto"},
+                        {"name": "caption", "type": "string", "required": False, "label": "Pie de foto"},
                     ],
                 },
                 "get_updates": {
                     "name": "Obtener updates",
                     "description": "Obtiene actualizaciones pendientes del bot",
                     "params": [
-                        {"name": "offset", "type": "number", "required": False,
-                         "default": 0, "label": "Offset"},
-                        {"name": "limit", "type": "number", "required": False,
-                         "default": 100, "label": "Límite"},
+                        {"name": "offset", "type": "number", "required": False, "default": 0, "label": "Offset"},
+                        {"name": "limit", "type": "number", "required": False, "default": 100, "label": "Límite"},
                     ],
                 },
                 "get_chat": {
                     "name": "Info del chat",
                     "description": "Obtiene información de un chat",
                     "params": [
-                        {"name": "chat_id", "type": "string", "required": True,
-                         "label": "Chat ID"},
+                        {"name": "chat_id", "type": "string", "required": True, "label": "Chat ID"},
                     ],
                 },
             },

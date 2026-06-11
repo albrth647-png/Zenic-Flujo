@@ -2,6 +2,7 @@
 Workflow Determinista — Tests del Invoice Service
 Tests unitarios para el servicio de facturación: crear, listar, pagar, cancelar, cálculos.
 """
+
 from datetime import datetime
 
 
@@ -11,6 +12,7 @@ class TestInvoiceModels:
     def test_invoice_statuses_defined(self):
         """Test: INVOICE_STATUSES contiene los estados correctos."""
         from src.tools.invoice.models import INVOICE_STATUSES
+
         assert "pending" in INVOICE_STATUSES
         assert "paid" in INVOICE_STATUSES
         assert "overdue" in INVOICE_STATUSES
@@ -19,6 +21,7 @@ class TestInvoiceModels:
     def test_invoice_statuses_count(self):
         """Test: hay exactamente 4 estados de factura."""
         from src.tools.invoice.models import INVOICE_STATUSES
+
         assert len(INVOICE_STATUSES) == 4
 
 
@@ -82,7 +85,7 @@ class TestInvoiceService:
 
     def test_list_invoices_by_status(self, invoice_service):
         """Test: filtrar facturas por estado."""
-        inv1 = invoice_service.create_invoice(
+        _ = invoice_service.create_invoice(
             client_name="Pending One",
             items=[{"description": "P1", "quantity": 1, "unit_price": 50.0}],
         )

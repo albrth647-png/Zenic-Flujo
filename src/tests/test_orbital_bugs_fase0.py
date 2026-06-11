@@ -12,9 +12,9 @@ Verifica la corrección de los 7 bugs identificados por MiroFish:
 Ejecutar con: pytest src/tests/test_orbital_bugs_fase0.py -v
 """
 
+import math
 import os
 import sys
-import math
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -23,12 +23,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 # BUG #4: Secrets hardcodeados
 # ══════════════════════════════════════════════════════════════
 
+
 class TestBug4SecretsHardcodeados:
     """Verifica que no hay secrets hardcodeados en producción."""
 
     def test_config_no_secret_key_hardcoded(self):
         """SECRET_KEY no debe ser un valor hardcodeado conocido."""
         from src.config import SESSION_SECRET
+
         insecure_defaults = [
             "REDACTED_generar_aleatorio_64chars",
             "super_secret_key",
@@ -36,13 +38,12 @@ class TestBug4SecretsHardcodeados:
             "changeme",
             "test_secret",
         ]
-        assert SESSION_SECRET not in insecure_defaults, (
-            f"SESSION_SECRET usa valor inseguro: {SESSION_SECRET}"
-        )
+        assert SESSION_SECRET not in insecure_defaults, f"SESSION_SECRET usa valor inseguro: {SESSION_SECRET}"
 
     def test_config_no_license_secret_hardcoded(self):
         """LICENSE_SECRET_KEY no debe ser un valor hardcodeado conocido."""
         from src.config import LICENSE_SECRET_KEY
+
         insecure_defaults = [
             "REDACTED_clave_maestra_hmac",
             "license_secret",
@@ -56,30 +57,30 @@ class TestBug4SecretsHardcodeados:
     def test_session_secret_has_minimum_length(self):
         """SESSION_SECRET debe tener al menos 32 caracteres."""
         from src.config import SESSION_SECRET
-        assert len(SESSION_SECRET) >= 32, (
-            f"SESSION_SECRET muy corto: {len(SESSION_SECRET)} chars"
-        )
+
+        assert len(SESSION_SECRET) >= 32, f"SESSION_SECRET muy corto: {len(SESSION_SECRET)} chars"
 
     def test_license_secret_has_minimum_length(self):
         """LICENSE_SECRET_KEY debe tener al menos 32 caracteres."""
         from src.config import LICENSE_SECRET_KEY
-        assert len(LICENSE_SECRET_KEY) >= 32, (
-            f"LICENSE_SECRET_KEY muy corto: {len(LICENSE_SECRET_KEY)} chars"
-        )
+
+        assert len(LICENSE_SECRET_KEY) >= 32, f"LICENSE_SECRET_KEY muy corto: {len(LICENSE_SECRET_KEY)} chars"
 
     def test_config_validate_returns_warnings_for_defaults(self):
         """validate_config debe detectar secrets por defecto en dev mode."""
         from src.config import validate_config
+
         warnings = validate_config()
         # En dev mode, los secrets son aleatorios, no los defaults
         # Si no hay warnings, los secrets son seguros
-        for w in warnings:
-            assert "valor por defecto inseguro" not in w or True  # Solo verificamos que no crashea
+        for _w in warnings:
+            assert True  # Solo verificamos que no crashea
 
 
 # ══════════════════════════════════════════════════════════════
 # BUG #7: eval() en código de producción
 # ══════════════════════════════════════════════════════════════
+
 
 class TestBug7NoEvalEnProduccion:
     """Verifica que no hay eval() en código de producción."""
@@ -87,7 +88,7 @@ class TestBug7NoEvalEnProduccion:
     def _scan_file_for_eval(self, filepath: str) -> list[str]:
         """Escanea un archivo buscando llamadas a eval() que no sean protegidas."""
         violations = []
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+        with open(filepath, encoding="utf-8", errors="ignore") as f:
             for i, line in enumerate(f, 1):
                 stripped = line.strip()
                 # Ignorar comentarios
@@ -96,18 +97,23 @@ class TestBug7NoEvalEnProduccion:
                 # Ignorar strings que mencionan eval como palabra bloqueada
                 if "eval(" in stripped:
                     # Permitir en: strings de bloqueo (sandbox), tests, docstrings
-                    if any(known in stripped for known in [
-                        '"eval("', "'eval('",  # strings que mencionan eval
-                        "blocks_eval", "test_blocks_eval",  # tests de sandbox
-                        "BLOCKED_BUILTINS",  # bloqueo de sandbox
-                        "eval_ast",  # AST evaluator seguro
-                        "NUNCA",  # comentarios que dicen NUNCA usar eval
-                        "test_safe_eval",  # tests de evaluador seguro
-                        "NO usa eval",  # docstrings que dicen que NO usan eval
-                        "no eval()",  # docstrings que mencionan no usar eval
-                        "def eval_condition",  # metodo seguro de evaluacion
-                        "CRÍTICO: NO",  # advertencias de que NO se usa eval
-                    ]):
+                    if any(
+                        known in stripped
+                        for known in [
+                            '"eval("',
+                            "'eval('",  # strings que mencionan eval
+                            "blocks_eval",
+                            "test_blocks_eval",  # tests de sandbox
+                            "BLOCKED_BUILTINS",  # bloqueo de sandbox
+                            "eval_ast",  # AST evaluator seguro
+                            "NUNCA",  # comentarios que dicen NUNCA usar eval
+                            "test_safe_eval",  # tests de evaluador seguro
+                            "NO usa eval",  # docstrings que dicen que NO usan eval
+                            "no eval()",  # docstrings que mencionan no usar eval
+                            "def eval_condition",  # metodo seguro de evaluacion
+                            "CRÍTICO: NO",  # advertencias de que NO se usa eval
+                        ]
+                    ):
                         continue
                     violations.append(f"Line {i}: {stripped}")
         return violations
@@ -158,15 +164,16 @@ class TestBug7NoEvalEnProduccion:
 # BUG #2: COD convergencia con amplitudes grandes
 # ══════════════════════════════════════════════════════════════
 
+
 class TestBug2CODConvergencia:
     """Verifica que el COD converge con amplitudes de cualquier magnitud."""
 
     def _test_cod_convergence(self, amplitude: float, name: str = "Test"):
         """Helper: crea variables con amplitud dada y verifica convergencia."""
-        from src.orbital.ovc import OVC
-        from src.orbital.tor import TOR
-        from src.orbital.rcc import RCC
         from src.orbital.cod import COD
+        from src.orbital.ovc import OVC
+        from src.orbital.rcc import RCC
+        from src.orbital.tor import TOR
 
         ovc = OVC()
         ovc.create_variable(f"{name}_A", theta=0.0, amplitude=amplitude, velocity=0.01)
@@ -176,9 +183,7 @@ class TestBug2CODConvergencia:
         cod = COD(ovc, tor, rcc)
         cod.configure(epsilon=1e-4, max_iterations=500, convergence_scale=0.001)
 
-        cycle = rcc.register_cycle_from_names(
-            f"cycle_{name}", [f"{name}_A", f"{name}_B"], threshold=0.01
-        )
+        cycle = rcc.register_cycle_from_names(f"cycle_{name}", [f"{name}_A", f"{name}_B"], threshold=0.01)
         result = cod.collapse(cycle)
         return result
 
@@ -218,10 +223,10 @@ class TestBug2CODConvergencia:
 
     def test_cod_does_not_saturate_tanh(self):
         """El COD normaliza la tension para evitar saturación de tanh."""
-        from src.orbital.ovc import OVC
-        from src.orbital.tor import TOR
-        from src.orbital.rcc import RCC
         from src.orbital.cod import COD
+        from src.orbital.ovc import OVC
+        from src.orbital.rcc import RCC
+        from src.orbital.tor import TOR
 
         ovc = OVC()
         ovc.create_variable("Big_A", theta=0.0, amplitude=5000.0, velocity=0.01)
@@ -242,6 +247,7 @@ class TestBug2CODConvergencia:
 # ══════════════════════════════════════════════════════════════
 # BUG #3: OrbitalCompiler usa OrbitalContext
 # ══════════════════════════════════════════════════════════════
+
 
 class TestBug3OrbitalCompilerContext:
     """Verifica que OrbitalCompiler usa OrbitalContext (OVC compartido)."""
@@ -271,9 +277,7 @@ class TestBug3OrbitalCompilerContext:
         compiler = OrbitalCompiler()
 
         # El OVC del compiler debe ser el mismo objeto que el del context
-        assert id(compiler._ctx.ovc) == id(ctx.ovc), (
-            "OrbitalCompiler debe compartir OVC con OrbitalContext"
-        )
+        assert id(compiler._ctx.ovc) == id(ctx.ovc), "OrbitalCompiler debe compartir OVC con OrbitalContext"
 
         OrbitalContext._reset()
 

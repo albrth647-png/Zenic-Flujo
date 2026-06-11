@@ -6,9 +6,10 @@ Decide si preguntar al usuario o elegir la mejor.
 
 Determinista: mismo Δscore → misma decisión.
 """
-from __future__ import annotations
-from src.nlu.entities.base import IntentMatch
 
+from __future__ import annotations
+
+from src.nlu.entities.base import IntentMatch
 
 # Umbral: si la diferencia entre el mejor y segundo es menor a esto, hay ambigüedad
 AMBIGUITY_THRESHOLD = 0.1

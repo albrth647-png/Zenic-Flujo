@@ -10,7 +10,9 @@ Integra con Google Sheets API v4 para:
 
 Autenticación: Service Account (credenciales guardadas en DB)
 """
+
 import json
+
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 
@@ -238,56 +240,79 @@ class SheetsService:
                     "name": "Leer hoja",
                     "description": "Lee datos de una hoja de cálculo",
                     "params": [
-                        {"name": "spreadsheet_id", "type": "string",
-                         "required": True, "label": "ID de la hoja",
-                         "placeholder": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"},
-                        {"name": "range", "type": "string", "required": False,
-                         "default": "A1:Z1000", "label": "Rango",
-                         "placeholder": "Hoja1!A1:D10"},
+                        {
+                            "name": "spreadsheet_id",
+                            "type": "string",
+                            "required": True,
+                            "label": "ID de la hoja",
+                            "placeholder": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
+                        },
+                        {
+                            "name": "range",
+                            "type": "string",
+                            "required": False,
+                            "default": "A1:Z1000",
+                            "label": "Rango",
+                            "placeholder": "Hoja1!A1:D10",
+                        },
                     ],
                 },
                 "write_sheet": {
                     "name": "Escribir hoja",
                     "description": "Escribe datos en una hoja de cálculo",
                     "params": [
-                        {"name": "spreadsheet_id", "type": "string",
-                         "required": True, "label": "ID de la hoja"},
-                        {"name": "range", "type": "string", "required": True,
-                         "label": "Rango destino", "placeholder": "Hoja1!A1"},
-                        {"name": "values", "type": "array", "required": True,
-                         "label": "Datos (matriz)"},
+                        {"name": "spreadsheet_id", "type": "string", "required": True, "label": "ID de la hoja"},
+                        {
+                            "name": "range",
+                            "type": "string",
+                            "required": True,
+                            "label": "Rango destino",
+                            "placeholder": "Hoja1!A1",
+                        },
+                        {"name": "values", "type": "array", "required": True, "label": "Datos (matriz)"},
                     ],
                 },
                 "append_row": {
                     "name": "Agregar fila",
                     "description": "Agrega una fila al final de los datos",
                     "params": [
-                        {"name": "spreadsheet_id", "type": "string",
-                         "required": True, "label": "ID de la hoja"},
-                        {"name": "sheet_name", "type": "string", "required": True,
-                         "label": "Nombre de la hoja", "default": "Hoja1"},
-                        {"name": "values", "type": "array", "required": True,
-                         "label": "Valores de la fila"},
+                        {"name": "spreadsheet_id", "type": "string", "required": True, "label": "ID de la hoja"},
+                        {
+                            "name": "sheet_name",
+                            "type": "string",
+                            "required": True,
+                            "label": "Nombre de la hoja",
+                            "default": "Hoja1",
+                        },
+                        {"name": "values", "type": "array", "required": True, "label": "Valores de la fila"},
                     ],
                 },
                 "update_cell": {
                     "name": "Actualizar celda",
                     "description": "Actualiza una celda específica",
                     "params": [
-                        {"name": "spreadsheet_id", "type": "string",
-                         "required": True, "label": "ID de la hoja"},
-                        {"name": "range", "type": "string", "required": True,
-                         "label": "Celda", "placeholder": "Hoja1!B3"},
-                        {"name": "value", "type": "string", "required": True,
-                         "label": "Nuevo valor"},
+                        {"name": "spreadsheet_id", "type": "string", "required": True, "label": "ID de la hoja"},
+                        {
+                            "name": "range",
+                            "type": "string",
+                            "required": True,
+                            "label": "Celda",
+                            "placeholder": "Hoja1!B3",
+                        },
+                        {"name": "value", "type": "string", "required": True, "label": "Nuevo valor"},
                     ],
                 },
                 "create_spreadsheet": {
                     "name": "Crear hoja",
                     "description": "Crea una nueva hoja de cálculo",
                     "params": [
-                        {"name": "title", "type": "string", "required": True,
-                         "label": "Título", "placeholder": "Reporte mensual"},
+                        {
+                            "name": "title",
+                            "type": "string",
+                            "required": True,
+                            "label": "Título",
+                            "placeholder": "Reporte mensual",
+                        },
                     ],
                 },
             },

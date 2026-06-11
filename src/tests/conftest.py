@@ -2,9 +2,11 @@
 Workflow Determinista — Test Fixtures Compartidas
 Fixtures de pytest compartidas por todos los tests.
 """
+
 import sys
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Asegurar que src/ está en el path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -23,6 +25,7 @@ def db_manager(db_path, monkeypatch):
     Usa monkeypatch para redirigir DB_PATH al archivo temporal.
     """
     from src import config
+
     monkeypatch.setattr(config, "DB_PATH", db_path)
     monkeypatch.setattr(config, "DATA_DIR", db_path.parent)
 
@@ -40,6 +43,7 @@ def db_manager(db_path, monkeypatch):
     DatabaseManager._instance = None
     WorkflowEngine._reset()
     from src.orbital.context import OrbitalContext
+
     OrbitalContext._reset()
     dm = DatabaseManager()
     yield dm
@@ -59,10 +63,18 @@ def sample_workflow():
         "trigger_type": "event",
         "trigger_config": {"event": "test.trigger"},
         "steps": [
-            {"id": 1, "tool": "crm", "action": "create_lead",
-             "params": {"name": "$input.nombre", "email": "$input.email"}},
-            {"id": 2, "tool": "notification", "action": "send_email",
-             "params": {"to": "$input.email", "subject": "Test", "body": "Hola"}},
+            {
+                "id": 1,
+                "tool": "crm",
+                "action": "create_lead",
+                "params": {"name": "$input.nombre", "email": "$input.email"},
+            },
+            {
+                "id": 2,
+                "tool": "notification",
+                "action": "send_email",
+                "params": {"to": "$input.email", "subject": "Test", "body": "Hola"},
+            },
         ],
     }
 
@@ -81,6 +93,7 @@ def sample_context():
 def crm_service(db_manager):
     """Provee un CRMService con base de datos temporal."""
     from src.tools.crm.service import CRMService
+
     return CRMService()
 
 
@@ -88,6 +101,7 @@ def crm_service(db_manager):
 def invoice_service(db_manager):
     """Provee un InvoiceService con base de datos temporal."""
     from src.tools.invoice.service import InvoiceService
+
     return InvoiceService()
 
 
@@ -95,6 +109,7 @@ def invoice_service(db_manager):
 def inventory_service(db_manager):
     """Provee un InventoryService con base de datos temporal."""
     from src.tools.inventory.service import InventoryService
+
     return InventoryService()
 
 
@@ -102,6 +117,7 @@ def inventory_service(db_manager):
 def notification_service(db_manager):
     """Provee un NotificationService con base de datos temporal."""
     from src.tools.notification.service import NotificationService
+
     return NotificationService()
 
 
@@ -109,6 +125,7 @@ def notification_service(db_manager):
 def license_generator():
     """Provee un LicenseGenerator."""
     from src.license.generator import LicenseGenerator
+
     return LicenseGenerator()
 
 
@@ -116,6 +133,7 @@ def license_generator():
 def license_validator(db_manager):
     """Provee un LicenseValidator con base de datos temporal."""
     from src.license.validator import LicenseValidator
+
     return LicenseValidator()
 
 
@@ -123,6 +141,7 @@ def license_validator(db_manager):
 def condition_evaluator():
     """Provee un ConditionEvaluator."""
     from src.workflow.condition_evaluator import ConditionEvaluator
+
     return ConditionEvaluator()
 
 
@@ -130,6 +149,7 @@ def condition_evaluator():
 def branch_handler():
     """Provee un BranchHandler."""
     from src.workflow.branch_handler import BranchHandler
+
     return BranchHandler()
 
 
@@ -137,6 +157,7 @@ def branch_handler():
 def loop_handler():
     """Provee un LoopHandler."""
     from src.workflow.loop_handler import LoopHandler
+
     return LoopHandler()
 
 
@@ -144,4 +165,5 @@ def loop_handler():
 def error_handler():
     """Provee un ErrorHandler."""
     from src.workflow.error_handler import ErrorHandler
+
     return ErrorHandler()

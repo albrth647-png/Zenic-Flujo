@@ -23,12 +23,12 @@ from __future__ import annotations
 
 import threading
 
-from src.orbital.ovc import OVC
-from src.orbital.tor import TOR
-from src.orbital.rcc import RCC
 from src.orbital.cod import COD
-from src.orbital.espectro import EspectroOrbital
 from src.orbital.engine import OrbitalEngine
+from src.orbital.espectro import EspectroOrbital
+from src.orbital.ovc import OVC
+from src.orbital.rcc import RCC
+from src.orbital.tor import TOR
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -54,10 +54,10 @@ class OrbitalContext:
     Todo lo que un componente hace en el OVC, todos los demas lo ven.
     """
 
-    _instance: "OrbitalContext | None" = None
+    _instance: OrbitalContext | None = None
     _lock = threading.RLock()
 
-    def __new__(cls) -> "OrbitalContext":
+    def __new__(cls) -> OrbitalContext:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -155,7 +155,7 @@ class OrbitalContext:
             "ovc_phases": self._ovc.get_phase_snapshot(),
             "ovc_values": self._ovc.get_value_snapshot(),
             "tor_matrix_size": len(self._tor.calculate_matrix()) if self._ovc.variable_count >= 2 else 0,
-            "rcc_cycles": len(self._rcc._cycles) if hasattr(self._rcc, '_cycles') else 0,
+            "rcc_cycles": len(self._rcc._cycles) if hasattr(self._rcc, "_cycles") else 0,
             "engine_tick": self._engine.tick,
         }
 

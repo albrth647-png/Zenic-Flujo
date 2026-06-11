@@ -8,22 +8,16 @@ class TestWorkflowCompiler:
 
     def test_compile_registro_cliente(self):
         from src.nlu.compiler import WorkflowCompiler
-        from src.nlu.entities.base import Slot, Entity
+        from src.nlu.entities.base import Entity, Slot
 
         compiler = WorkflowCompiler()
         # Los fragmentos de registro_cliente requieren: nombre, email_destino
         slots = (
-            Slot(name="nombre", required=True, filled=True,
-                 value="Juan Pérez", source="entity"),
-            Slot(name="email_destino", required=True, filled=True,
-                 value="juan@email.com", source="entity"),
-            Slot(name="telefono", required=False, filled=True,
-                 value="555-1234", source="entity"),
+            Slot(name="nombre", required=True, filled=True, value="Juan Pérez", source="entity"),
+            Slot(name="email_destino", required=True, filled=True, value="juan@email.com", source="entity"),
+            Slot(name="telefono", required=False, filled=True, value="555-1234", source="entity"),
         )
-        entities = (
-            Entity(type="email", value="juan@email.com", raw="juan@email.com",
-                   span=(0, 15), score=1.0),
-        )
+        entities = (Entity(type="email", value="juan@email.com", raw="juan@email.com", span=(0, 15), score=1.0),)
         result = compiler.compile("registro_cliente", slots, entities, "es")
 
         assert result.status == "ready"
@@ -39,8 +33,7 @@ class TestWorkflowCompiler:
         compiler = WorkflowCompiler()
         slots = (
             Slot(name="nombre", required=True, filled=False, value=None, source="entity"),
-            Slot(name="email_destino", required=True, filled=False, value=None,
-                 source="entity"),
+            Slot(name="email_destino", required=True, filled=False, value=None, source="entity"),
         )
         entities = ()
         result = compiler.compile("registro_cliente", slots, entities, "es")
@@ -65,12 +58,9 @@ class TestWorkflowCompiler:
         compiler = WorkflowCompiler()
         # El fragmento trigger de schedule requiere 'frecuencia'
         slots = (
-            Slot(name="frecuencia", required=True, filled=True,
-                 value="0 9 * * *", source="entity"),
-            Slot(name="email_admin", required=False, filled=True,
-                 value="admin@corp.com", source="default"),
-            Slot(name="umbral_stock", required=False, filled=True,
-                 value="10", source="default"),
+            Slot(name="frecuencia", required=True, filled=True, value="0 9 * * *", source="entity"),
+            Slot(name="email_admin", required=False, filled=True, value="admin@corp.com", source="default"),
+            Slot(name="umbral_stock", required=False, filled=True, value="10", source="default"),
         )
         entities = ()
         result = compiler.compile("alerta_stock_bajo", slots, entities, "es")
@@ -85,12 +75,9 @@ class TestWorkflowCompiler:
         compiler = WorkflowCompiler()
         # Todos los slots requeridos por fragmentos + telefono (usado en params)
         slots = (
-            Slot(name="nombre", required=True, filled=True,
-                 value="Juan Pérez", source="entity"),
-            Slot(name="email_destino", required=True, filled=True,
-                 value="juan@email.com", source="entity"),
-            Slot(name="telefono", required=False, filled=True,
-                 value="555-1234", source="entity"),
+            Slot(name="nombre", required=True, filled=True, value="Juan Pérez", source="entity"),
+            Slot(name="email_destino", required=True, filled=True, value="juan@email.com", source="entity"),
+            Slot(name="telefono", required=False, filled=True, value="555-1234", source="entity"),
         )
         entities = ()
         result = compiler.compile("registro_cliente", slots, entities, "es")
@@ -110,10 +97,8 @@ class TestWorkflowCompiler:
 
         compiler = WorkflowCompiler()
         slots = (
-            Slot(name="nombre", required=True, filled=True,
-                 value="Juan", source="entity"),
-            Slot(name="email_destino", required=True, filled=True,
-                 value="juan@test.com", source="entity"),
+            Slot(name="nombre", required=True, filled=True, value="Juan", source="entity"),
+            Slot(name="email_destino", required=True, filled=True, value="juan@test.com", source="entity"),
         )
         entities = ()
         result = compiler.compile("registro_cliente", slots, entities, "es")
@@ -134,10 +119,8 @@ class TestWorkflowCompiler:
         # alerta_stock_bajo requiere 'frecuencia' del trigger fragment
         # y tiene default email_admin=$settings.admin_email
         slots = (
-            Slot(name="frecuencia", required=True, filled=True,
-                 value="0 9 * * *", source="entity"),
-            Slot(name="email_admin", required=False, filled=True,
-                 value="$settings.admin_email", source="default"),
+            Slot(name="frecuencia", required=True, filled=True, value="0 9 * * *", source="entity"),
+            Slot(name="email_admin", required=False, filled=True, value="$settings.admin_email", source="default"),
         )
         entities = ()
         result = compiler.compile("alerta_stock_bajo", slots, entities, "es")
@@ -153,10 +136,7 @@ class TestWorkflowCompiler:
         from src.nlu.entities.base import Slot
 
         compiler = WorkflowCompiler()
-        slots = (
-            Slot(name="email_destino", required=True, filled=True,
-                 value="test@test.com", source="entity"),
-        )
+        slots = (Slot(name="email_destino", required=True, filled=True, value="test@test.com", source="entity"),)
         entities = ()
         r1 = compiler.compile("registro_cliente", slots, entities, "es")
         r2 = compiler.compile("registro_cliente", slots, entities, "es")

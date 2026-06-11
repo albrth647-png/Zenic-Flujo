@@ -37,11 +37,11 @@ import math
 import time
 
 from src.orbital.models import (
-    CicloOrbital,
-    CODResult,
     DEFAULT_EPSILON,
     MAX_COD_ITERATIONS,
     TWO_PI,
+    CicloOrbital,
+    CODResult,
 )
 from src.utils.logger import setup_logging
 
@@ -309,8 +309,7 @@ class COD:
                 retrofeed_values[var_name] = value * retrofeed_damping * 0.01
             self._ovc.retrofeed(retrofeed_values, retrofeed_damping)
             logger.info(
-                f"COD: Retroalimentacion aplicada a {len(retrofeed_values)} variables "
-                f"(damping={retrofeed_damping})"
+                f"COD: Retroalimentacion aplicada a {len(retrofeed_values)} variables (damping={retrofeed_damping})"
             )
 
         return result

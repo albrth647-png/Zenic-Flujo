@@ -2,11 +2,12 @@
 Workflow Determinista — FileWatcher
 Monitorea cambios en directorios del sistema de archivos.
 """
+
 import os
-import time
 import threading
+import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from src.utils.logger import setup_logging
 
@@ -16,7 +17,7 @@ logger = setup_logging(__name__)
 class FileWatcher(threading.Thread):
     """
     Monitorea un directorio en busca de archivos nuevos o modificados.
-    
+
     Cuando detecta cambios, emite eventos a través de un callback.
     """
 
@@ -36,7 +37,7 @@ class FileWatcher(threading.Thread):
     def watch(self, directory: str, pattern: str = "*", recursive: bool = False) -> None:
         """
         Comienza a monitorear un directorio.
-        
+
         Args:
             directory: Ruta del directorio a monitorear
             pattern: Patrón de archivos ("*.csv", "*.txt")
@@ -92,7 +93,6 @@ class FileWatcher(threading.Thread):
     def _snapshot(self, directory: str, pattern: str, recursive: bool) -> dict[str, float]:
         """Toma una instantánea del estado actual de los archivos."""
         snapshot = {}
-        method = os.walk if recursive else [([], [], os.listdir(directory))]
 
         if recursive:
             for root, _, files in os.walk(directory):
@@ -126,21 +126,27 @@ class FileWatcher(threading.Thread):
         for fpath in current:
             if fpath not in baseline:
                 logger.info(f"Archivo nuevo detectado: {fpath}")
-                self._emit("file.created", {
-                    "path": fpath,
-                    "filename": os.path.basename(fpath),
-                    "size": os.path.getsize(fpath) if os.path.exists(fpath) else 0,
-                    "extension": os.path.splitext(fpath)[1],
-                })
+                self._emit(
+                    "file.created",
+                    {
+                        "path": fpath,
+                        "filename": os.path.basename(fpath),
+                        "size": os.path.getsize(fpath) if os.path.exists(fpath) else 0,
+                        "extension": os.path.splitext(fpath)[1],
+                    },
+                )
 
         # Archivos modificados
         for fpath, mtime in current.items():
             if fpath in baseline and mtime != baseline.get(fpath):
                 logger.info(f"Archivo modificado detectado: {fpath}")
-                self._emit("file.modified", {
-                    "path": fpath,
-                    "filename": os.path.basename(fpath),
-                })
+                self._emit(
+                    "file.modified",
+                    {
+                        "path": fpath,
+                        "filename": os.path.basename(fpath),
+                    },
+                )
 
         # Actualizar baseline
         self._baselines[directory] = current
@@ -150,6 +156,7 @@ class FileWatcher(threading.Thread):
         if pattern == "*":
             return True
         import fnmatch
+
         return fnmatch.fnmatch(filename, pattern)
 
     def _emit(self, event_type: str, data: dict) -> None:

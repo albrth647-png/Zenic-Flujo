@@ -5,13 +5,14 @@ math functions, aggregators, y StepExecutor system action integration.
 """
 
 import pytest
-from src.workflow.workflow_variables import WorkflowVariables
-from src.workflow.step_executor import StepExecutor
 
+from src.workflow.step_executor import StepExecutor
+from src.workflow.workflow_variables import WorkflowVariables
 
 # ===================================================================
 # WorkflowVariables — Variable Operations
 # ===================================================================
+
 
 class TestVariableOperations:
     """Tests para set, get, delete, exists."""
@@ -110,6 +111,7 @@ class TestVariableOperations:
 # WorkflowVariables — Transform Functions
 # ===================================================================
 
+
 class TestTransformFunctions:
     """Tests para transform functions: upper, lower, trim, replace,
     split, join, substring, length."""
@@ -195,6 +197,7 @@ class TestTransformFunctions:
 # WorkflowVariables — Math Functions
 # ===================================================================
 
+
 class TestMathFunctions:
     """Tests para math: add, subtract, multiply, divide, floor, ceil,
     round, abs, min, max, power, sqrt, modulo."""
@@ -278,6 +281,7 @@ class TestMathFunctions:
 # WorkflowVariables — Aggregators
 # ===================================================================
 
+
 class TestAggregators:
     """Tests para aggregate: sum, avg, count, min, max."""
 
@@ -327,6 +331,7 @@ class TestAggregators:
 # WorkflowVariables — Dispatch (execute)
 # ===================================================================
 
+
 class TestDispatch:
     """Tests para el dispatcher WorkflowVariables.execute()."""
 
@@ -355,36 +360,29 @@ class TestDispatch:
         assert r2["exists"] is False
 
     def test_dispatch_transform_upper(self):
-        r = WorkflowVariables.execute(
-            {"operation": "transform", "transform": "upper", "value": "hello"}, {})
+        r = WorkflowVariables.execute({"operation": "transform", "transform": "upper", "value": "hello"}, {})
         assert r["result"] == "HELLO"
 
     def test_dispatch_transform_split(self):
         r = WorkflowVariables.execute(
-            {"operation": "transform", "transform": "split",
-             "value": "a,b,c", "delimiter": ","}, {})
+            {"operation": "transform", "transform": "split", "value": "a,b,c", "delimiter": ","}, {}
+        )
         assert r["result"] == ["a", "b", "c"]
 
     def test_dispatch_math_add(self):
-        r = WorkflowVariables.execute(
-            {"operation": "math", "math": "add", "a": 10, "b": 20}, {})
+        r = WorkflowVariables.execute({"operation": "math", "math": "add", "a": 10, "b": 20}, {})
         assert r["result"] == 30.0
 
     def test_dispatch_math_sqrt(self):
-        r = WorkflowVariables.execute(
-            {"operation": "math", "math": "sqrt", "a": 16}, {})
+        r = WorkflowVariables.execute({"operation": "math", "math": "sqrt", "a": 16}, {})
         assert r["result"] == 4.0
 
     def test_dispatch_aggregate_sum(self):
-        r = WorkflowVariables.execute(
-            {"operation": "aggregate", "aggregate": "sum",
-             "values": [1, 2, 3, 4, 5]}, {})
+        r = WorkflowVariables.execute({"operation": "aggregate", "aggregate": "sum", "values": [1, 2, 3, 4, 5]}, {})
         assert r["result"] == 15.0
 
     def test_dispatch_aggregate_avg(self):
-        r = WorkflowVariables.execute(
-            {"operation": "aggregate", "aggregate": "avg",
-             "values": [10, 20, 30]}, {})
+        r = WorkflowVariables.execute({"operation": "aggregate", "aggregate": "avg", "values": [10, 20, 30]}, {})
         assert r["result"] == 20.0
 
     def test_dispatch_unknown_operation(self):
@@ -393,25 +391,21 @@ class TestDispatch:
 
     def test_dispatch_unknown_transform(self):
         with pytest.raises(ValueError, match="Transform desconocido"):
-            WorkflowVariables.execute(
-                {"operation": "transform", "transform": "invalid",
-                 "value": "test"}, {})
+            WorkflowVariables.execute({"operation": "transform", "transform": "invalid", "value": "test"}, {})
 
     def test_dispatch_unknown_math(self):
         with pytest.raises(ValueError, match="Math desconocido"):
-            WorkflowVariables.execute(
-                {"operation": "math", "math": "invalid", "a": 1}, {})
+            WorkflowVariables.execute({"operation": "math", "math": "invalid", "a": 1}, {})
 
     def test_dispatch_unknown_aggregate(self):
         with pytest.raises(ValueError, match="Aggregate desconocido"):
-            WorkflowVariables.execute(
-                {"operation": "aggregate", "aggregate": "invalid",
-                 "values": []}, {})
+            WorkflowVariables.execute({"operation": "aggregate", "aggregate": "invalid", "values": []}, {})
 
 
 # ===================================================================
 # StepExecutor — System Action Integration
 # ===================================================================
+
 
 class TestStepExecutorIntegration:
     """Tests para la integración con StepExecutor system action."""
@@ -510,15 +504,18 @@ class TestStepExecutorIntegration:
         context = {}
 
         # Set name
-        step1 = {"id": 1, "tool": "system", "action": "variable",
-                 "params": {"operation": "set", "name": "user", "value": "Ana"}}
+        step1 = {
+            "id": 1,
+            "tool": "system",
+            "action": "variable",
+            "params": {"operation": "set", "name": "user", "value": "Ana"},
+        }
         r1 = executor.execute(step1, context)
         assert r1.status == "completed"
         assert context["user"] == "Ana"
 
         # Get name should see it
-        step2 = {"id": 2, "tool": "system", "action": "variable",
-                 "params": {"operation": "get", "name": "user"}}
+        step2 = {"id": 2, "tool": "system", "action": "variable", "params": {"operation": "get", "name": "user"}}
         r2 = executor.execute(step2, context)
         assert r2.status == "completed"
         assert r2.output_data.get("value") == "Ana"
@@ -530,17 +527,26 @@ class TestStepExecutorIntegration:
 
         # Set raw name
         executor.execute(
-            {"id": 1, "tool": "system", "action": "variable",
-             "params": {"operation": "set", "name": "raw", "value": "  Juan Pérez  "}},
-            context)
+            {
+                "id": 1,
+                "tool": "system",
+                "action": "variable",
+                "params": {"operation": "set", "name": "raw", "value": "  Juan Pérez  "},
+            },
+            context,
+        )
         assert context["raw"] == "  Juan Pérez  "
 
         # Transform upper
         r = executor.execute(
-            {"id": 2, "tool": "system", "action": "variable",
-             "params": {"operation": "transform", "transform": "upper",
-                        "value": "  Juan Pérez  "}},
-            context)
+            {
+                "id": 2,
+                "tool": "system",
+                "action": "variable",
+                "params": {"operation": "transform", "transform": "upper", "value": "  Juan Pérez  "},
+            },
+            context,
+        )
         assert r.output_data.get("result") == "  JUAN PÉREZ  "
 
     def test_variable_error_propagates(self):

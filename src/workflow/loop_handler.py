@@ -13,10 +13,11 @@ Compatibilidad: mantiene la misma API que LoopHandler.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 
-from src.orbital.models import TWO_PI, DEFAULT_THRESHOLD, DEFAULT_EPSILON
 from src.orbital.context import OrbitalContext
+from src.orbital.models import DEFAULT_EPSILON, DEFAULT_THRESHOLD, TWO_PI
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -25,8 +26,7 @@ logger = setup_logging(__name__)
 class LoopResult:
     """Resultado de la ejecucion de un bucle."""
 
-    def __init__(self, iterations: int, outputs: list[dict],
-                 converged: bool = False, convergence_delta: float = 0.0):
+    def __init__(self, iterations: int, outputs: list[dict], converged: bool = False, convergence_delta: float = 0.0):
         self.iterations = iterations
         self.outputs = outputs
         self.converged = converged
@@ -67,8 +67,9 @@ class LoopHandler:
         inner_steps = step.get("steps", [])
         max_iter = step.get("max_iterations", self.MAX_ITERATIONS_DEFAULT)
 
-        from src.utils.helpers import resolve_variables, safe_get
         import json
+
+        from src.utils.helpers import resolve_variables, safe_get
 
         collection_str = resolve_variables(collection_ref, context)
         collection = collection_str
@@ -77,10 +78,8 @@ class LoopHandler:
                 path = collection_ref.lstrip("$")
                 collection = safe_get(context, path, None)
             else:
-                try:
+                with contextlib.suppress(json.JSONDecodeError, TypeError):
                     collection = json.loads(collection_str)
-                except (json.JSONDecodeError, TypeError):
-                    pass
 
         if not isinstance(collection, (list, tuple)):
             path = collection_ref.lstrip("$")
@@ -107,11 +106,13 @@ class LoopHandler:
                 loop_var.advance(dt=1.0)
 
             iteration_results = self._execute_inner_steps(inner_steps, iter_context, step_executor)
-            outputs.append({
-                "index": idx,
-                item_var: item,
-                "results": iteration_results,
-            })
+            outputs.append(
+                {
+                    "index": idx,
+                    item_var: item,
+                    "results": iteration_results,
+                }
+            )
 
         logger.info(f"OrbitalConvergence: Foreach completado — {len(outputs)} iteraciones")
         return LoopResult(iterations=len(outputs), outputs=outputs)
@@ -145,11 +146,13 @@ class LoopHandler:
                 loop_var.advance(dt=1.0)
 
             iteration_results = self._execute_inner_steps(inner_steps, iter_context, step_executor)
-            outputs.append({
-                "index": count,
-                "value": i,
-                "results": iteration_results,
-            })
+            outputs.append(
+                {
+                    "index": count,
+                    "value": i,
+                    "results": iteration_results,
+                }
+            )
 
             i += step_size
             count += 1
@@ -171,6 +174,7 @@ class LoopHandler:
         if len(all_vars) >= 2:
             try:
                 from src.orbital.models import CicloOrbital
+
                 cycle = CicloOrbital(
                     name=f"while_cycle_{step.get('id', 0)}",
                     variable_ids=all_vars[:5],
@@ -187,6 +191,7 @@ class LoopHandler:
         convergence_delta = float("inf")
 
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
 
         while count < max_iter:
@@ -203,10 +208,12 @@ class LoopHandler:
                 loop_var.advance(dt=1.0)
 
             iteration_results = self._execute_inner_steps(inner_steps, context, step_executor)
-            outputs.append({
-                "index": count,
-                "results": iteration_results,
-            })
+            outputs.append(
+                {
+                    "index": count,
+                    "results": iteration_results,
+                }
+            )
 
             # Verificar convergencia orbital (COD compartido)
             current_values = self._ctx.ovc.get_value_snapshot()
@@ -244,12 +251,14 @@ class LoopHandler:
         results = []
         for inner_step in steps:
             result = step_executor.execute(inner_step, context)
-            results.append({
-                "step_id": inner_step.get("id"),
-                "status": result.status,
-                "output": result.output_data,
-                "error": result.error_message,
-            })
+            results.append(
+                {
+                    "step_id": inner_step.get("id"),
+                    "status": result.status,
+                    "output": result.output_data,
+                    "error": result.error_message,
+                }
+            )
             if result.status == "failed":
                 break
         return results

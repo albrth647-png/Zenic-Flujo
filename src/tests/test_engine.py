@@ -2,8 +2,10 @@
 Workflow Determinista — Tests del WorkflowEngine
 Tests unitarios para el motor de workflows: ciclo de vida, ejecución, pausa, reanudación.
 """
-import pytest
+
 from unittest.mock import MagicMock
+
+import pytest
 
 
 class TestWorkflowEngine:
@@ -12,16 +14,18 @@ class TestWorkflowEngine:
     def test_execute_simple_workflow(self, db_manager, sample_workflow, sample_context):
         """Test: ejecutar un workflow simple de principio a fin."""
         from src.workflow.engine import WorkflowEngine
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name=sample_workflow["name"],
-            description=sample_workflow["description"],
-            trigger_type=sample_workflow["trigger_type"],
-            trigger_config=sample_workflow["trigger_config"],
-            steps=sample_workflow["steps"],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name=sample_workflow["name"],
+                description=sample_workflow["description"],
+                trigger_type=sample_workflow["trigger_type"],
+                trigger_config=sample_workflow["trigger_config"],
+                steps=sample_workflow["steps"],
+            )
+        )
 
         engine = WorkflowEngine()
 
@@ -51,16 +55,18 @@ class TestWorkflowEngine:
     def test_pause_and_resume_workflow(self, db_manager, sample_workflow):
         """Test: pausar y reanudar un workflow cambia su estado correctamente."""
         from src.workflow.engine import WorkflowEngine
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name=sample_workflow["name"],
-            description=sample_workflow["description"],
-            trigger_type=sample_workflow["trigger_type"],
-            trigger_config=sample_workflow["trigger_config"],
-            steps=sample_workflow["steps"],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name=sample_workflow["name"],
+                description=sample_workflow["description"],
+                trigger_type=sample_workflow["trigger_type"],
+                trigger_config=sample_workflow["trigger_config"],
+                steps=sample_workflow["steps"],
+            )
+        )
 
         engine = WorkflowEngine()
 
@@ -77,16 +83,18 @@ class TestWorkflowEngine:
     def test_archive_workflow(self, db_manager, sample_workflow):
         """Test: archivar un workflow cambia su estado a archived."""
         from src.workflow.engine import WorkflowEngine
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name=sample_workflow["name"],
-            description=sample_workflow["description"],
-            trigger_type=sample_workflow["trigger_type"],
-            trigger_config=sample_workflow["trigger_config"],
-            steps=sample_workflow["steps"],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name=sample_workflow["name"],
+                description=sample_workflow["description"],
+                trigger_type=sample_workflow["trigger_type"],
+                trigger_config=sample_workflow["trigger_config"],
+                steps=sample_workflow["steps"],
+            )
+        )
 
         engine = WorkflowEngine()
         assert engine.archive(wf.id) is True
@@ -96,16 +104,18 @@ class TestWorkflowEngine:
     def test_get_status(self, db_manager, sample_workflow):
         """Test: get_status retorna la información correcta del workflow."""
         from src.workflow.engine import WorkflowEngine
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name=sample_workflow["name"],
-            description=sample_workflow["description"],
-            trigger_type=sample_workflow["trigger_type"],
-            trigger_config=sample_workflow["trigger_config"],
-            steps=sample_workflow["steps"],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name=sample_workflow["name"],
+                description=sample_workflow["description"],
+                trigger_type=sample_workflow["trigger_type"],
+                trigger_config=sample_workflow["trigger_config"],
+                steps=sample_workflow["steps"],
+            )
+        )
 
         engine = WorkflowEngine()
         status = engine.get_status(wf.id)
@@ -115,16 +125,18 @@ class TestWorkflowEngine:
     def test_execute_with_step_failure(self, db_manager, sample_workflow, sample_context):
         """Test: un workflow con un paso que falla debe marcar la ejecución como failed."""
         from src.workflow.engine import WorkflowEngine
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name=sample_workflow["name"],
-            description=sample_workflow["description"],
-            trigger_type=sample_workflow["trigger_type"],
-            trigger_config=sample_workflow["trigger_config"],
-            steps=sample_workflow["steps"],
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name=sample_workflow["name"],
+                description=sample_workflow["description"],
+                trigger_type=sample_workflow["trigger_type"],
+                trigger_config=sample_workflow["trigger_config"],
+                steps=sample_workflow["steps"],
+            )
+        )
 
         engine = WorkflowEngine()
 
@@ -150,22 +162,28 @@ class TestWorkflowEngine:
     def test_execute_conditional_step(self, db_manager, sample_context):
         """Test: un paso con condición que evalúa a False se omite."""
         from src.workflow.engine import WorkflowEngine
-        from src.workflow.repository import WorkflowRepository, WorkflowDefinition
+        from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 
         steps = [
-            {"id": 1, "tool": "crm", "action": "create_lead",
-             "params": {"name": "$input.nombre"},
-             "condition": "1 == 2"},  # Always false
+            {
+                "id": 1,
+                "tool": "crm",
+                "action": "create_lead",
+                "params": {"name": "$input.nombre"},
+                "condition": "1 == 2",
+            },  # Always false
         ]
 
         repo = WorkflowRepository()
-        wf = repo.create(WorkflowDefinition(
-            name="Conditional WF",
-            description="Test conditional",
-            trigger_type="manual",
-            trigger_config={},
-            steps=steps,
-        ))
+        wf = repo.create(
+            WorkflowDefinition(
+                name="Conditional WF",
+                description="Test conditional",
+                trigger_type="manual",
+                trigger_config={},
+                steps=steps,
+            )
+        )
 
         engine = WorkflowEngine()
         mock_crm = MagicMock()

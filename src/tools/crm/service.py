@@ -1,9 +1,10 @@
 """
 Workflow Determinista — CRM Service
 """
-from src.tools.crm.models import STAGES, STAGE_ORDER
-from src.tools.crm.repository import CRMRepository
+
 from src.events.bus import EventBus
+from src.tools.crm.models import STAGE_ORDER, STAGES
+from src.tools.crm.repository import CRMRepository
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -16,10 +17,16 @@ class CRMService:
         self._repo = CRMRepository()
         self._event_bus = EventBus()
 
-    def create_lead(self, name: str, email: str | None = None,
-                    phone: str | None = None, company: str | None = None,
-                    source: str = "manual", notes: str | None = None,
-                    user_id: int | None = None) -> dict:
+    def create_lead(
+        self,
+        name: str,
+        email: str | None = None,
+        phone: str | None = None,
+        company: str | None = None,
+        source: str = "manual",
+        notes: str | None = None,
+        user_id: int | None = None,
+    ) -> dict:
         lead = self._repo.create_lead(name, email, phone, company, source, notes, user_id)
         self._event_bus.publish("crm.lead.created", dict(lead))
         logger.info(f"Lead creado: {lead.get('name')} (ID: {lead.get('id')})")
@@ -29,18 +36,22 @@ class CRMService:
         old = self._repo.get_lead(lead_id)
         lead = self._repo.update_lead(lead_id, **fields)
         if lead and old and "stage" in fields and old["stage"] != lead["stage"]:
-            self._event_bus.publish("crm.lead.stage_changed", {
-                "lead_id": lead_id,
-                "from_stage": old["stage"],
-                "to_stage": lead["stage"],
-            })
+            self._event_bus.publish(
+                "crm.lead.stage_changed",
+                {
+                    "lead_id": lead_id,
+                    "from_stage": old["stage"],
+                    "to_stage": lead["stage"],
+                },
+            )
         return lead
 
     def get_lead(self, lead_id: int) -> dict | None:
         return self._repo.get_lead(lead_id)
 
-    def list_leads(self, stage: str | None = None, limit: int = 50, offset: int = 0,
-                    user_id: int | None = None) -> list[dict]:
+    def list_leads(
+        self, stage: str | None = None, limit: int = 50, offset: int = 0, user_id: int | None = None
+    ) -> list[dict]:
         return self._repo.list_leads(stage, limit, offset, user_id)
 
     def delete_lead(self, lead_id: int) -> bool:

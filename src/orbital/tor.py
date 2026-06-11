@@ -33,7 +33,7 @@ from __future__ import annotations
 import math
 from itertools import combinations
 
-from src.orbital.models import VariableOrbital, TORResult
+from src.orbital.models import TORResult, VariableOrbital
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
@@ -119,8 +119,7 @@ class TOR:
 
         return self._compute_tor(var_i, var_j, threshold)
 
-    def _compute_tor(self, var_i: VariableOrbital, var_j: VariableOrbital,
-                     threshold: float = 0.0) -> TORResult:
+    def _compute_tor(self, var_i: VariableOrbital, var_j: VariableOrbital, threshold: float = 0.0) -> TORResult:
         """
         Calculo interno de TOR entre dos VariableOrbital con cache.
 
@@ -138,7 +137,7 @@ class TOR:
 
         # Cache lookup
         if pair_key in self._cache:
-            cached_hash, cached_value, cached_alignment, cached_resonant = self._cache[pair_key]
+            cached_hash, _cached_value, cached_alignment, _cached_resonant = self._cache[pair_key]
             if cached_hash == phase_hash:
                 self._cache_hits += 1
                 # Amplitudes pueden cambiar aunque las fases no
@@ -173,8 +172,7 @@ class TOR:
         )
 
         logger.debug(
-            f"TOR({var_i.name}, {var_j.name}) = {tor_value:.4f} "
-            f"(alineacion={alignment:.4f}, resonante={is_resonant})"
+            f"TOR({var_i.name}, {var_j.name}) = {tor_value:.4f} (alineacion={alignment:.4f}, resonante={is_resonant})"
         )
 
         return result
@@ -204,8 +202,7 @@ class TOR:
         logger.info(f"TOR: Matriz calculada — {len(results)} parejas de {len(variables)} variables")
         return results
 
-    def calculate_for_cycle(self, variable_names: list[str],
-                            threshold: float = 0.0) -> list[TORResult]:
+    def calculate_for_cycle(self, variable_names: list[str], threshold: float = 0.0) -> list[TORResult]:
         """
         Calcula TOR solo para las variables de un ciclo especifico.
 
@@ -262,8 +259,7 @@ class TOR:
 
     # ── Aplicacion de tensiones ────────────────────────────
 
-    def apply_tensions_to_ovc(self, tor_results: list[TORResult],
-                               dt: float = 1.0, scale: float = 0.01) -> None:
+    def apply_tensions_to_ovc(self, tor_results: list[TORResult], dt: float = 1.0, scale: float = 0.01) -> None:
         """
         Aplica los resultados TOR como tensiones moduladoras al OVC.
 
@@ -308,5 +304,9 @@ class TOR:
             lines.append(f"  Max: TOR({max_r.variable_i}, {max_r.variable_j}) = {max_r.tor_value:.4f}")
             for r in sorted(results, key=lambda x: abs(x.tor_value), reverse=True):
                 resonant = " ★" if r.is_resonant else ""
-                lines.append(f"    TOR({r.variable_i}, {r.variable_j}) = {r.tor_value:8.4f} alineacion={r.alignment:+.4f}{resonant}")
+                lines.append(
+                    f"    TOR({r.variable_i}, {r.variable_j}) = "
+                    f"{r.tor_value:8.4f} alineacion={r.alignment:+.4f}"
+                    f"{resonant}"
+                )
         return "\n".join(lines)

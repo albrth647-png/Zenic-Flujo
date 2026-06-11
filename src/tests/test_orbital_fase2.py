@@ -13,19 +13,21 @@ Tests para:
 Skills: test-driven-development, doubt-driven-development
 MCPs: analyzer (cobertura), expert-mcp (edge cases)
 """
+
 import math
-import pytest
 import os
 import sys
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from src.orbital.context import OrbitalContext
 
-
 # ══════════════════════════════════════════════════════════════
 # FIXTURES
 # ══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture(autouse=True)
 def reset_context():
@@ -40,10 +42,13 @@ def mock_crm():
     class MockCRM:
         def create_lead(self, name="", email=""):
             return {"id": 1, "name": name, "email": email}
+
         def update_lead(self, lead_id=0, **kwargs):
             return {"id": lead_id, "updated": True}
+
         def list_leads(self, stage=None):
             return [{"id": 1, "name": "Test"}]
+
     return MockCRM()
 
 
@@ -52,8 +57,10 @@ def mock_notification():
     class MockNotification:
         def send_email(self, to="", subject="", body=""):
             return {"status": "sent", "to": to}
+
         def send_whatsapp(self, to="", message=""):
             return {"status": "sent", "to": to}
+
     return MockNotification()
 
 
@@ -62,8 +69,10 @@ def mock_invoice():
     class MockInvoice:
         def create_invoice(self, client_name="", items=None, **kwargs):
             return {"id": 1, "number": "INV-001", "total": 100.0}
+
         def list_invoices(self, status=None):
             return [{"id": 1, "number": "INV-001"}]
+
     return MockInvoice()
 
 
@@ -71,12 +80,14 @@ def mock_invoice():
 # 2.3: COD con amplitudes extremas
 # ══════════════════════════════════════════════════════════════
 
+
 class TestCODExtremeAmplitudes:
     """Verificar que COD converge SIEMPRE sin importar la escala de amplitudes."""
 
     def _run_cod_with_amplitude(self, amplitude: float, name: str = "Test"):
         """Helper: crear engine con amplitud dada y ejecutar un tick."""
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable(f"{name}_A", theta=0.0, amplitude=amplitude, velocity=0.1)
         engine.create_variable(f"{name}_B", theta=0.5, amplitude=amplitude, velocity=0.1)
@@ -85,12 +96,12 @@ class TestCODExtremeAmplitudes:
         return result, engine
 
     def test_cod_converge_amplitude_1(self):
-        result, engine = self._run_cod_with_amplitude(1.0, "A1")
+        result, _engine = self._run_cod_with_amplitude(1.0, "A1")
         assert result is not None
         assert len(result.cod_results) > 0
 
     def test_cod_converge_amplitude_10(self):
-        result, engine = self._run_cod_with_amplitude(10.0, "A10")
+        result, _engine = self._run_cod_with_amplitude(10.0, "A10")
         assert result is not None
         assert len(result.cod_results) > 0
 
@@ -120,6 +131,7 @@ class TestCODExtremeAmplitudes:
     def test_cod_converge_mixed_amplitudes(self):
         """Amplitudes muy diferentes entre sí — sistema heterogéneo."""
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("big", theta=0.0, amplitude=10000.0, velocity=0.1)
         engine.create_variable("small", theta=0.5, amplitude=0.001, velocity=0.1)
@@ -133,13 +145,14 @@ class TestCODExtremeAmplitudes:
     def test_cod_multiple_ticks_stability(self):
         """10 ticks consecutivos — el sistema debe permanecer estable."""
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("X", theta=0.0, amplitude=500.0, velocity=0.1)
         engine.create_variable("Y", theta=1.0, amplitude=500.0, velocity=0.1)
         engine.create_cycle("stab", ["X", "Y"], threshold=0.5)
 
         for i in range(10):
-            result = engine.run_tick()
+            _result = engine.run_tick()
             snap = engine.get_value_snapshot()
             for name, val in snap.items():
                 assert abs(val) < 1e6, f"Tick {i}: variable {name} divergió: {val}"
@@ -149,23 +162,27 @@ class TestCODExtremeAmplitudes:
 # 2.4: OrbitalAdapter con tools mockeadas
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalAdapterMocks:
     """Tests del adaptador orbital con herramientas mockeadas."""
 
     def test_register_tool(self):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
-        adapter.register_tool("crm", mock_crm := type("", (), {"create_lead": lambda self, **kw: {"ok": True}})())
+        adapter.register_tool("crm", _mock_crm := type("", (), {"create_lead": lambda self, **kw: {"ok": True}})())
         assert "crm" in adapter._tools
 
     def test_register_tools_batch(self):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tools_batch({"crm": object(), "notification": object()})
         assert len(adapter._tools) == 2
 
     def test_execute_success(self, mock_crm):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         result = adapter.execute_action("crm", "create_lead", {"name": "Juan"})
@@ -174,6 +191,7 @@ class TestOrbitalAdapterMocks:
 
     def test_execute_failure(self):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", object())  # sin create_lead
         result = adapter.execute_action("crm", "create_lead", {})
@@ -182,6 +200,7 @@ class TestOrbitalAdapterMocks:
 
     def test_execute_unregistered_tool(self):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         result = adapter.execute_action("nonexistent", "action", {})
         assert result.status == "failed"
@@ -189,6 +208,7 @@ class TestOrbitalAdapterMocks:
 
     def test_execute_missing_action(self):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", type("", (), {})())
         result = adapter.execute_action("crm", "nonexistent_action", {})
@@ -196,6 +216,7 @@ class TestOrbitalAdapterMocks:
 
     def test_orbital_variable_created(self, mock_crm):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         adapter.execute_action("crm", "create_lead", {"name": "Test"})
@@ -204,6 +225,7 @@ class TestOrbitalAdapterMocks:
 
     def test_phase_advances_on_success(self, mock_crm):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         adapter.execute_action("crm", "create_lead", {"name": "A"})
@@ -214,6 +236,7 @@ class TestOrbitalAdapterMocks:
 
     def test_tool_alignment(self, mock_crm, mock_notification):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         adapter.register_tool("notification", mock_notification)
@@ -223,6 +246,7 @@ class TestOrbitalAdapterMocks:
 
     def test_orbital_snapshot(self, mock_crm):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         snapshot = adapter.get_orbital_snapshot()
@@ -232,6 +256,7 @@ class TestOrbitalAdapterMocks:
 
     def test_recommendations(self, mock_crm, mock_notification):
         from src.orbital.orbital_adapter import OrbitalAdapter
+
         adapter = OrbitalAdapter()
         adapter.register_tool("crm", mock_crm)
         adapter.register_tool("notification", mock_notification)
@@ -245,11 +270,13 @@ class TestOrbitalAdapterMocks:
 # 2.5: OrbitalCompiler con 50+ frases
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalCompilerPhrases:
     """Verificar compilación correcta con 50+ frases en español e inglés."""
 
     def _compile(self, text):
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         return compiler.compile(text)
 
@@ -419,6 +446,7 @@ class TestOrbitalCompilerPhrases:
     # ── Determinismo ──
     def test_determinism_same_text(self):
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         r1 = compiler.compile("registrar cliente nuevo")
         r2 = compiler.compile("registrar cliente nuevo")
@@ -426,6 +454,7 @@ class TestOrbitalCompilerPhrases:
 
     def test_compilation_count(self):
         from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         assert compiler.compilation_count == 0
         compiler.compile("test")
@@ -438,11 +467,13 @@ class TestOrbitalCompilerPhrases:
 # 2.6: EventBus orbital
 # ══════════════════════════════════════════════════════════════
 
+
 class TestEventBusOrbital:
     """Tests del EventBus con OrbitalContext."""
 
     def test_event_creates_orbital_variable(self):
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         bus._ensure_orbital_variable("test.event")
@@ -453,6 +484,7 @@ class TestEventBusOrbital:
 
     def test_event_phase_deterministic(self):
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         bus._ensure_orbital_variable("crm.lead.created")
@@ -463,6 +495,7 @@ class TestEventBusOrbital:
 
     def test_event_resonance(self):
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         bus._ensure_orbital_variable("crm.lead.created")
@@ -474,6 +507,7 @@ class TestEventBusOrbital:
 
     def test_orbital_snapshot(self):
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         bus._ensure_orbital_variable("test.event")
@@ -486,6 +520,7 @@ class TestEventBusOrbital:
 
     def test_system_events(self):
         from src.events.bus import EventBus
+
         EventBus._reset()
         bus = EventBus()
         events = bus.get_system_events()
@@ -497,11 +532,13 @@ class TestEventBusOrbital:
 # 2.2: Integración ORBITAL ↔ WorkflowEngine
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalWorkflowIntegration:
     """Tests de integración entre motor ORBITAL y WorkflowEngine."""
 
     def test_orbital_engine_completo(self):
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("var_a", theta=0.0, amplitude=1.0, velocity=0.1)
         engine.create_variable("var_b", theta=1.5, amplitude=1.0, velocity=0.1)
@@ -512,8 +549,9 @@ class TestOrbitalWorkflowIntegration:
         assert result.espectro is not None
 
     def test_compiler_adapter_integration(self, mock_crm, mock_notification):
-        from src.orbital.orbital_compiler import OrbitalCompiler
         from src.orbital.orbital_adapter import OrbitalAdapter
+        from src.orbital.orbital_compiler import OrbitalCompiler
+
         compiler = OrbitalCompiler()
         compile_result = compiler.compile("registrar cliente nuevo")
         assert compile_result.status == "ready"
@@ -527,18 +565,21 @@ class TestOrbitalWorkflowIntegration:
 
     def test_determinismo_multiples_ticks(self):
         from src.orbital.engine import OrbitalEngine
+
         def run_engine():
             engine = OrbitalEngine()
             engine.create_variable("x", theta=0.5, amplitude=1.0, velocity=0.1)
             engine.create_variable("y", theta=1.5, amplitude=2.0, velocity=0.2)
             engine.create_cycle("c1", ["x", "y"], threshold=0.3)
             return engine.run_tick()
+
         r1 = run_engine()
         r2 = run_engine()
         assert math.isclose(r1.tor_results[0].tor_value, r2.tor_results[0].tor_value, abs_tol=1e-10)
 
     def test_retroalimentacion_circular(self):
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("var_a", theta=0.0, amplitude=1.0, velocity=0.1, orbit_group="test")
         engine.create_variable("var_b", theta=1.0, amplitude=1.0, velocity=0.1, orbit_group="test")
@@ -555,6 +596,7 @@ class TestOrbitalWorkflowIntegration:
 
     def test_cod_convergence(self):
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("stable_a", theta=0.0, amplitude=1.0, velocity=0.01)
         engine.create_variable("stable_b", theta=0.5, amplitude=1.0, velocity=0.01)
@@ -567,6 +609,7 @@ class TestOrbitalWorkflowIntegration:
 
     def test_espectro_multimodal(self):
         from src.orbital.engine import OrbitalEngine
+
         engine = OrbitalEngine()
         engine.create_variable("mode_a", theta=0.0, amplitude=2.0, velocity=0.1)
         engine.create_variable("mode_b", theta=1.0, amplitude=1.5, velocity=0.1)
@@ -578,6 +621,7 @@ class TestOrbitalWorkflowIntegration:
 
     def test_step_executor_orbital(self, mock_crm):
         from src.workflow.step_executor import StepExecutor
+
         executor = StepExecutor()
         executor.register_tool("crm", mock_crm)
         step = {"id": 1, "tool": "crm", "action": "create_lead", "params": {"name": "Test"}}
@@ -588,6 +632,7 @@ class TestOrbitalWorkflowIntegration:
 
     def test_condition_evaluator(self):
         from src.workflow.condition_evaluator import ConditionEvaluator
+
         evaluator = ConditionEvaluator()
         assert evaluator.evaluate("5 < 10", {}) is True
         assert evaluator.evaluate("stock < 10", {"stock": 5}) is True

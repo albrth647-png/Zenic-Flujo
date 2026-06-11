@@ -2,6 +2,7 @@
 Workflow Determinista — Tests del ConditionEvaluator
 Tests unitarios para el evaluador de condiciones: operadores, variables, paréntesis, errores.
 """
+
 import pytest
 
 
@@ -40,50 +41,34 @@ class TestConditionEvaluator:
 
     def test_and_operator(self, condition_evaluator):
         """Test: AND lógico combina dos condiciones."""
-        result = condition_evaluator.evaluate(
-            "stock < 10 AND precio > 100",
-            {"stock": 5, "precio": 150}
-        )
+        result = condition_evaluator.evaluate("stock < 10 AND precio > 100", {"stock": 5, "precio": 150})
         assert result is True
 
     def test_and_operator_false(self, condition_evaluator):
         """Test: AND lógico con una condición falsa retorna False."""
-        result = condition_evaluator.evaluate(
-            "stock < 10 AND precio > 100",
-            {"stock": 5, "precio": 50}
-        )
+        result = condition_evaluator.evaluate("stock < 10 AND precio > 100", {"stock": 5, "precio": 50})
         assert result is False
 
     def test_or_operator(self, condition_evaluator):
         """Test: OR lógico con al menos una condición verdadera retorna True."""
-        result = condition_evaluator.evaluate(
-            "stock < 10 OR precio > 100",
-            {"stock": 50, "precio": 150}
-        )
+        result = condition_evaluator.evaluate("stock < 10 OR precio > 100", {"stock": 50, "precio": 150})
         assert result is True
 
     def test_or_operator_both_false(self, condition_evaluator):
         """Test: OR lógico con ambas falsas retorna False."""
-        result = condition_evaluator.evaluate(
-            "stock < 10 OR precio > 100",
-            {"stock": 50, "precio": 50}
-        )
+        result = condition_evaluator.evaluate("stock < 10 OR precio > 100", {"stock": 50, "precio": 50})
         assert result is False
 
     def test_parentheses(self, condition_evaluator):
         """Test: paréntesis controlan precedencia."""
         result = condition_evaluator.evaluate(
-            "(stock < 10 OR precio > 100) AND activo == 'si'",
-            {"stock": 50, "precio": 150, "activo": "si"}
+            "(stock < 10 OR precio > 100) AND activo == 'si'", {"stock": 50, "precio": 150, "activo": "si"}
         )
         assert result is True
 
     def test_dollar_variable(self, condition_evaluator):
         """Test: $input.valor resuelve desde contexto."""
-        result = condition_evaluator.evaluate(
-            "$input.stock < 10",
-            {"input": {"stock": 5}}
-        )
+        result = condition_evaluator.evaluate("$input.stock < 10", {"input": {"stock": 5}})
         assert result is True
 
     def test_bare_word_variable(self, condition_evaluator):
@@ -93,10 +78,7 @@ class TestConditionEvaluator:
 
     def test_contains_operator(self, condition_evaluator):
         """Test: contains verifica si un texto contiene otro."""
-        result = condition_evaluator.evaluate(
-            "nombre contains 'Juan'",
-            {"nombre": "Juan Pérez"}
-        )
+        result = condition_evaluator.evaluate("nombre contains 'Juan'", {"nombre": "Juan Pérez"})
         assert result is True
 
     def test_in_operator(self, condition_evaluator):
@@ -104,8 +86,7 @@ class TestConditionEvaluator:
         # The tokenizer doesn't support list literal syntax like ['a', 'b'],
         # but 'in' works when the right-hand side resolves to a list from context.
         result = condition_evaluator.evaluate(
-            "estado in estados",
-            {"estado": "activo", "estados": ["activo", "pendiente"]}
+            "estado in estados", {"estado": "activo", "estados": ["activo", "pendiente"]}
         )
         assert result is True
 
@@ -154,15 +135,16 @@ class TestConditionEvaluator:
     def test_no_eval_used(self):
         """Test: verificar que NUNCA se usa eval()."""
         import inspect
+
         from src.workflow.condition_evaluator import ConditionEvaluator
 
         source = inspect.getsource(ConditionEvaluator)
         # Check that 'eval(' is not in the source (except in comments)
-        lines = source.split('\n')
+        lines = source.split("\n")
         for line in lines:
             stripped = line.strip()
-            if stripped.startswith('#') or stripped.startswith('"""') or stripped.startswith("'''"):
+            if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
                 continue
             # Allow the word "eval" in comments/strings but not as a function call
-            if 'eval(' in stripped and 'NUNCA' not in stripped and 'eval_ast' not in stripped:
+            if "eval(" in stripped and "NUNCA" not in stripped and "eval_ast" not in stripped:
                 pytest.fail(f"Found eval() call in ConditionEvaluator: {stripped}")

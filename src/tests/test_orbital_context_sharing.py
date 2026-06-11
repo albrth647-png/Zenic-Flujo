@@ -13,18 +13,19 @@ Ejecutar con: pytest src/tests/test_orbital_context_sharing.py -v
 """
 
 import math
-import pytest
 import os
 import sys
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from src.orbital.context import OrbitalContext
 
-
 # ══════════════════════════════════════════════════════════════
 # FIXTURES
 # ══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture(autouse=True)
 def reset_orbital_context():
@@ -49,12 +50,13 @@ def ctx():
 # TESTS: Bug #1 — OrbitalContext comparte OVC correctamente
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalContextOVCParsing:
     """Verifica que ctx.ovc y ctx.engine._ovc son la MISMA instancia."""
 
     def test_ovc_same_instance_as_engine_ovc(self, ctx):
         """CRITICO: id(ctx.ovc) DEBE ser igual a id(ctx.engine._ovc).
-        
+
         Si falla, el Bug #1 de MiroFish NO esta corregido.
         """
         assert id(ctx.ovc) == id(ctx.engine._ovc), (
@@ -65,32 +67,25 @@ class TestOrbitalContextOVCParsing:
 
     def test_tor_same_instance(self, ctx):
         """TOR compartido: ctx.tor debe ser el mismo que el engine usa."""
-        assert id(ctx.tor) == id(ctx.engine._tor), (
-            "TOR no compartido entre context y engine"
-        )
+        assert id(ctx.tor) == id(ctx.engine._tor), "TOR no compartido entre context y engine"
 
     def test_rcc_same_instance(self, ctx):
         """RCC compartido: ctx.rcc debe ser el mismo que el engine usa."""
-        assert id(ctx.rcc) == id(ctx.engine._rcc), (
-            "RCC no compartido entre context y engine"
-        )
+        assert id(ctx.rcc) == id(ctx.engine._rcc), "RCC no compartido entre context y engine"
 
     def test_cod_same_instance(self, ctx):
         """COD compartido: ctx.cod debe ser el mismo que el engine usa."""
-        assert id(ctx.cod) == id(ctx.engine._cod), (
-            "COD no compartido entre context y engine"
-        )
+        assert id(ctx.cod) == id(ctx.engine._cod), "COD no compartido entre context y engine"
 
     def test_espectro_same_instance(self, ctx):
         """Espectro compartido: ctx.espectro debe ser el mismo que el engine usa."""
-        assert id(ctx.espectro) == id(ctx.engine._espectro), (
-            "EspectroOrbital no compartido entre context y engine"
-        )
+        assert id(ctx.espectro) == id(ctx.engine._espectro), "EspectroOrbital no compartido entre context y engine"
 
 
 # ══════════════════════════════════════════════════════════════
 # TESTS: Variables creadas en ctx son visibles en engine
 # ══════════════════════════════════════════════════════════════
+
 
 class TestVariableVisibility:
     """Verifica que las variables son visibles entre componentes."""
@@ -115,9 +110,7 @@ class TestVariableVisibility:
 
         # Verificar que engine ve el cambio
         engine_var = ctx.engine.get_variable("Demanda")
-        assert engine_var.theta == 1.5, (
-            "Cambio de fase en ctx.ovc no se refleja en engine"
-        )
+        assert engine_var.theta == 1.5, "Cambio de fase en ctx.ovc no se refleja en engine"
 
     def test_phase_modification_in_engine_reflected_in_ctx(self, ctx):
         """Cambiar fase en engine debe reflejarse en ctx.ovc."""
@@ -125,14 +118,13 @@ class TestVariableVisibility:
         engine_var.theta = 2.0
 
         ctx_var = ctx.ovc.get_variable("Precio")
-        assert ctx_var.theta == 2.0, (
-            "Cambio de fase en engine no se refleja en ctx.ovc"
-        )
+        assert ctx_var.theta == 2.0, "Cambio de fase en engine no se refleja en ctx.ovc"
 
 
 # ══════════════════════════════════════════════════════════════
 # TESTS: Ciclo completo OVC → TOR → RCC → COD → Espectro → Retro
 # ══════════════════════════════════════════════════════════════
+
 
 class TestOrbitalCycleCompleteness:
     """Verifica que el ciclo orbital completo funciona con OVC compartido."""
@@ -154,8 +146,7 @@ class TestOrbitalCycleCompleteness:
         post_phases = ctx.ovc.get_phase_snapshot()
 
         # Al menos una fase debe haber cambiado
-        changed = [k for k in pre_phases
-                   if not math.isclose(pre_phases[k], post_phases[k], abs_tol=1e-6)]
+        changed = [k for k in pre_phases if not math.isclose(pre_phases[k], post_phases[k], abs_tol=1e-6)]
         assert len(changed) > 0, "Ninguna fase cambió después de un tick"
 
     def test_multiple_ticks_increment_engine_tick(self, ctx):
@@ -176,14 +167,14 @@ class TestOrbitalCycleCompleteness:
         post_phases = ctx.ovc.get_phase_snapshot()
 
         # Verificar que las fases cambiaron
-        changed = [k for k in pre_phases
-                   if not math.isclose(pre_phases[k], post_phases[k], abs_tol=1e-6)]
+        changed = [k for k in pre_phases if not math.isclose(pre_phases[k], post_phases[k], abs_tol=1e-6)]
         assert len(changed) > 0, "Retroalimentación no modificó las fases del OVC"
 
 
 # ══════════════════════════════════════════════════════════════
 # TESTS: Singleton behavior
 # ══════════════════════════════════════════════════════════════
+
 
 class TestOrbitalContextSingleton:
     """Verifica que OrbitalContext es un singleton correcto."""
@@ -221,6 +212,7 @@ class TestOrbitalContextSingleton:
 # TESTS: Snapshot y estado
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalContextState:
     """Verifica que el estado del OrbitalContext es consistente."""
 
@@ -249,6 +241,7 @@ class TestOrbitalContextState:
 # TESTS: Thread safety del singleton
 # ══════════════════════════════════════════════════════════════
 
+
 class TestOrbitalContextThreadSafety:
     """Verifica que el singleton es seguro en multihilo."""
 
@@ -271,6 +264,4 @@ class TestOrbitalContextThreadSafety:
             t.join()
 
         # Todos deben tener la misma id
-        assert len(set(instances)) == 1, (
-            f"Singleton thread-unsafe: {len(set(instances))} instancias diferentes"
-        )
+        assert len(set(instances)) == 1, f"Singleton thread-unsafe: {len(set(instances))} instancias diferentes"

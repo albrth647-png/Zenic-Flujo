@@ -2,11 +2,13 @@
 Workflow Determinista — BackupEngine
 Backup automático programado con soporte para directorios externos (USB).
 """
+
 import datetime
 import os
 import sqlite3
 import threading
 from pathlib import Path
+
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 
@@ -16,7 +18,7 @@ logger = setup_logging(__name__)
 class BackupEngine:
     """
     Gestiona backups automáticos de la base de datos.
-    
+
     Soporta:
     - Backup programado (cada N horas)
     - Backup a USB / directorio externo
@@ -31,15 +33,16 @@ class BackupEngine:
     def backup_now(self, dest_path: str | Path | None = None) -> str:
         """
         Realiza un backup inmediato de la base de datos.
-        
+
         Args:
             dest_path: Directorio destino. Si es None, usa DATA_DIR/backups/
-        
+
         Returns:
             Ruta del archivo de backup creado
         """
         if dest_path is None:
             from src.config import DATA_DIR
+
             dest_path = DATA_DIR / "backups"
 
         dest = Path(dest_path)
@@ -52,7 +55,7 @@ class BackupEngine:
     def start_auto_backup(self, interval_hours: int = 24) -> None:
         """
         Inicia el backup automático programado.
-        
+
         Args:
             interval_hours: Intervalo entre backups en horas
         """
@@ -83,6 +86,7 @@ class BackupEngine:
         try:
             # Usar directorio configurado o por defecto
             from src.config import DATA_DIR
+
             backup_dir = DATA_DIR / "backups"
             backup_dir.mkdir(parents=True, exist_ok=True)
 
@@ -99,7 +103,7 @@ class BackupEngine:
     def _cleanup_old_backups(self, backup_dir: Path, max_backups: int = 10) -> None:
         """
         Elimina backups antiguos manteniendo solo los más recientes.
-        
+
         Args:
             backup_dir: Directorio de backups
             max_backups: Número máximo de backups a conservar
@@ -115,6 +119,7 @@ class BackupEngine:
     def get_backup_info(self) -> dict:
         """Retorna información sobre los backups disponibles."""
         from src.config import DATA_DIR
+
         backup_dir = DATA_DIR / "backups"
 
         if not backup_dir.exists():
@@ -129,9 +134,7 @@ class BackupEngine:
                     "path": str(f),
                     "name": f.name,
                     "size_mb": round(f.stat().st_size / (1024 * 1024), 2),
-                    "created_at": datetime.datetime.fromtimestamp(
-                        f.stat().st_mtime
-                    ).isoformat(),
+                    "created_at": datetime.datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
                 }
                 for f in backups[:20]
             ],

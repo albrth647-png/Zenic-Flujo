@@ -12,13 +12,16 @@ Uso:
 
 Determinista: mismo workflow + mismos datos → mismo resultado de simulación.
 """
+
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class DryRunStep:
     """Resultado de simular un paso individual."""
+
     step_id: int
     tool: str
     action: str
@@ -32,6 +35,7 @@ class DryRunStep:
 @dataclass(frozen=True)
 class DryRunResult:
     """Resultado completo de la simulación."""
+
     workflow_name: str
     trigger_type: str
     trigger_config: dict
@@ -125,9 +129,15 @@ SIMULATED_OUTPUTS: dict[str, dict[str, dict]] = {
 }
 
 KNOWN_TOOLS = {
-    "crm", "invoice", "inventory", "notification",
-    "system", "autopilot", "logic_gate",
-    "api_connector", "data_keeper",
+    "crm",
+    "invoice",
+    "inventory",
+    "notification",
+    "system",
+    "autopilot",
+    "logic_gate",
+    "api_connector",
+    "data_keeper",
 }
 
 
@@ -215,17 +225,13 @@ class DryRunSimulator:
         sim_output = tool_sims.get(action)
 
         if sim_output is None:
-            warnings.append(
-                f"Paso {step_id}: acción '{action}' no tiene simulación conocida"
-            )
+            warnings.append(f"Paso {step_id}: acción '{action}' no tiene simulación conocida")
             sim_output = {"status": "simulated_no_data"}
 
         # Verificar variables sin resolver
         unresolved = self._check_unresolved_refs(params)
         if unresolved:
-            warnings.append(
-                f"Paso {step_id}: variables sin resolver: {', '.join(unresolved)}"
-            )
+            warnings.append(f"Paso {step_id}: variables sin resolver: {', '.join(unresolved)}")
 
         return DryRunStep(
             step_id=step_id,
@@ -238,9 +244,7 @@ class DryRunSimulator:
             error=None,
         )
 
-    def _validate_trigger(
-        self, trigger_type: str, config: dict
-    ) -> list[str]:
+    def _validate_trigger(self, trigger_type: str, config: dict) -> list[str]:
         """Valida la configuración del trigger."""
         warnings: list[str] = []
 
@@ -289,7 +293,4 @@ class DryRunSimulator:
         if total == 0:
             return f"'{name}': sin pasos definidos."
         status = "✅ factible" if feasible else "❌ tiene problemas"
-        return (
-            f"'{name}': {total} pasos simulados, "
-            f"{success} ok, {fail} fallarían. {status}."
-        )
+        return f"'{name}': {total} pasos simulados, {success} ok, {fail} fallarían. {status}."

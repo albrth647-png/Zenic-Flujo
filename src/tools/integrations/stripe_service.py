@@ -9,8 +9,8 @@ Requiere STRIPE_SECRET_KEY configurada en Settings.
 
 from __future__ import annotations
 
-import time
 import base64
+import time
 
 from src.utils.logger import setup_logging
 
@@ -47,18 +47,19 @@ class StripeService:
     @staticmethod
     def _auth_header(secret_key: str) -> dict:
         """Genera header de autenticación Basic con la secret key."""
-        encoded = base64.b64encode(
-            f"{secret_key}:".encode()
-        ).decode()
+        encoded = base64.b64encode(f"{secret_key}:".encode()).decode()
         return {"Authorization": f"Basic {encoded}"}
 
-    def create_payment_intent(self, secret_key: str = "",
-                              amount: int = 0,
-                              currency: str = "usd",
-                              customer_id: str | None = None,
-                              description: str = "",
-                              metadata: dict | None = None,
-                              timeout: int = 30) -> dict:
+    def create_payment_intent(
+        self,
+        secret_key: str = "",
+        amount: int = 0,
+        currency: str = "usd",
+        customer_id: str | None = None,
+        description: str = "",
+        metadata: dict | None = None,
+        timeout: int = 30,
+    ) -> dict:
         """
         Crea una intención de pago.
 
@@ -93,6 +94,7 @@ class StripeService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self.API_BASE}/payment_intents",
                 headers=self._auth_header(secret_key),
@@ -102,9 +104,7 @@ class StripeService:
 
             if resp.status_code != 200:
                 error_body = resp.json()
-                return self._error(
-                    error_body.get("error", {}).get("message", str(resp.text))
-                )
+                return self._error(error_body.get("error", {}).get("message", str(resp.text)))
 
             pi = resp.json()
             return {
@@ -126,9 +126,7 @@ class StripeService:
             logger.error(f"Stripe PI error: {e}")
             return self._error(str(e))
 
-    def retrieve_payment_intent(self, secret_key: str = "",
-                                 payment_intent_id: str = "",
-                                 timeout: int = 15) -> dict:
+    def retrieve_payment_intent(self, secret_key: str = "", payment_intent_id: str = "", timeout: int = 15) -> dict:
         """
         Consulta el estado de una intención de pago.
 
@@ -146,6 +144,7 @@ class StripeService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self.API_BASE}/payment_intents/{payment_intent_id}",
                 headers=self._auth_header(secret_key),
@@ -172,12 +171,15 @@ class StripeService:
         except Exception as e:
             return self._error(str(e))
 
-    def create_customer(self, secret_key: str = "",
-                        email: str = "",
-                        name: str = "",
-                        description: str = "",
-                        metadata: dict | None = None,
-                        timeout: int = 15) -> dict:
+    def create_customer(
+        self,
+        secret_key: str = "",
+        email: str = "",
+        name: str = "",
+        description: str = "",
+        metadata: dict | None = None,
+        timeout: int = 15,
+    ) -> dict:
         """
         Crea un cliente en Stripe.
 
@@ -208,6 +210,7 @@ class StripeService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self.API_BASE}/customers",
                 headers=self._auth_header(secret_key),
@@ -217,9 +220,7 @@ class StripeService:
 
             if resp.status_code != 200:
                 error_body = resp.json()
-                return self._error(
-                    error_body.get("error", {}).get("message", str(resp.text))
-                )
+                return self._error(error_body.get("error", {}).get("message", str(resp.text)))
 
             c = resp.json()
             return {
@@ -236,10 +237,9 @@ class StripeService:
             logger.error(f"Stripe customer error: {e}")
             return self._error(str(e))
 
-    def list_customers(self, secret_key: str = "",
-                       limit: int = 10,
-                       email: str | None = None,
-                       timeout: int = 15) -> dict:
+    def list_customers(
+        self, secret_key: str = "", limit: int = 10, email: str | None = None, timeout: int = 15
+    ) -> dict:
         """
         Lista clientes en Stripe.
 
@@ -260,6 +260,7 @@ class StripeService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self.API_BASE}/customers",
                 headers=self._auth_header(secret_key),
@@ -288,12 +289,15 @@ class StripeService:
             logger.error(f"Stripe list customers error: {e}")
             return self._error(str(e))
 
-    def create_subscription(self, secret_key: str = "",
-                            customer_id: str = "",
-                            price_id: str = "",
-                            trial_days: int = 0,
-                            metadata: dict | None = None,
-                            timeout: int = 30) -> dict:
+    def create_subscription(
+        self,
+        secret_key: str = "",
+        customer_id: str = "",
+        price_id: str = "",
+        trial_days: int = 0,
+        metadata: dict | None = None,
+        timeout: int = 30,
+    ) -> dict:
         """
         Crea una suscripción para un cliente.
 
@@ -326,6 +330,7 @@ class StripeService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self.API_BASE}/subscriptions",
                 headers=self._auth_header(secret_key),
@@ -335,9 +340,7 @@ class StripeService:
 
             if resp.status_code != 200:
                 error_body = resp.json()
-                return self._error(
-                    error_body.get("error", {}).get("message", str(resp.text))
-                )
+                return self._error(error_body.get("error", {}).get("message", str(resp.text)))
 
             s = resp.json()
             return {
@@ -356,10 +359,9 @@ class StripeService:
             logger.error(f"Stripe subscription error: {e}")
             return self._error(str(e))
 
-    def list_invoices(self, secret_key: str = "",
-                      customer_id: str | None = None,
-                      limit: int = 10,
-                      timeout: int = 15) -> dict:
+    def list_invoices(
+        self, secret_key: str = "", customer_id: str | None = None, limit: int = 10, timeout: int = 15
+    ) -> dict:
         """
         Lista facturas de Stripe.
 
@@ -380,6 +382,7 @@ class StripeService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self.API_BASE}/invoices",
                 headers=self._auth_header(secret_key),
@@ -413,13 +416,16 @@ class StripeService:
             logger.error(f"Stripe invoices error: {e}")
             return self._error(str(e))
 
-    def create_payment_link(self, secret_key: str = "",
-                            amount: int = 0,
-                            currency: str = "usd",
-                            description: str = "",
-                            quantity: int = 1,
-                            metadata: dict | None = None,
-                            timeout: int = 30) -> dict:
+    def create_payment_link(
+        self,
+        secret_key: str = "",
+        amount: int = 0,
+        currency: str = "usd",
+        description: str = "",
+        quantity: int = 1,
+        metadata: dict | None = None,
+        timeout: int = 30,
+    ) -> dict:
         """
         Crea un link de pago (vía price + payment link).
 
@@ -454,9 +460,7 @@ class StripeService:
                 timeout=timeout,
             )
             if product_resp.status_code != 200:
-                return self._error(
-                    f"Error creating product: {product_resp.text}"
-                )
+                return self._error(f"Error creating product: {product_resp.text}")
             product = product_resp.json()
             product_id = product["id"]
 
@@ -472,9 +476,7 @@ class StripeService:
                 timeout=timeout,
             )
             if price_resp.status_code != 200:
-                return self._error(
-                    f"Error creating price: {price_resp.text}"
-                )
+                return self._error(f"Error creating price: {price_resp.text}")
             price = price_resp.json()
             price_id = price["id"]
 
@@ -495,9 +497,7 @@ class StripeService:
             )
 
             if pl_resp.status_code != 200:
-                return self._error(
-                    f"Error creating payment link: {pl_resp.text}"
-                )
+                return self._error(f"Error creating payment link: {pl_resp.text}")
 
             payment_link = pl_resp.json()
             return {
@@ -533,26 +533,21 @@ class StripeService:
                 "create_payment_intent": {
                     "name": "Crear pago",
                     "params": [
-                        {"name": "amount", "type": "number", "required": True,
-                         "label": "Monto (centavos)"},
-                        {"name": "currency", "type": "string",
-                         "default": "usd", "label": "Moneda"},
+                        {"name": "amount", "type": "number", "required": True, "label": "Monto (centavos)"},
+                        {"name": "currency", "type": "string", "default": "usd", "label": "Moneda"},
                     ],
                 },
                 "list_customers": {
                     "name": "Listar clientes",
                     "params": [
-                        {"name": "limit", "type": "number",
-                         "default": 10, "label": "Límite"},
+                        {"name": "limit", "type": "number", "default": 10, "label": "Límite"},
                     ],
                 },
                 "create_subscription": {
                     "name": "Crear suscripción",
                     "params": [
-                        {"name": "customer_id", "type": "string",
-                         "required": True, "label": "Cliente ID"},
-                        {"name": "price_id", "type": "string",
-                         "required": True, "label": "Price ID"},
+                        {"name": "customer_id", "type": "string", "required": True, "label": "Cliente ID"},
+                        {"name": "price_id", "type": "string", "required": True, "label": "Price ID"},
                     ],
                 },
             },

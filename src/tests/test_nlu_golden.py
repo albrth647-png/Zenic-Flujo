@@ -4,12 +4,16 @@ DDE v3 — Golden Tests (30+ frases)
 Verifica que el pipeline NLU produce los resultados esperados
 para un conjunto fijo de frases de prueba. Determinismo verificado.
 """
+
+from typing import ClassVar
+
 from src.nlu.entities.base import NLUResult
 
 
 def run(text: str) -> NLUResult:
     """Helper: ejecuta el pipeline y retorna el resultado."""
     from src.nlu.pipeline import Pipeline
+
     return Pipeline().process(text)
 
 
@@ -115,6 +119,7 @@ class TestGoldenCompilacion:
 
     def test_compile_registro_cliente(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.compile("Quiero registrar un nuevo cliente con email juan@test.com")
 
@@ -126,6 +131,7 @@ class TestGoldenCompilacion:
 
     def test_compile_factura_vencida(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.compile("Factura vencida en cobranza")
 
@@ -137,6 +143,7 @@ class TestGoldenCompilacion:
 
     def test_compile_alerta_stock(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.compile("Alerta de inventario bajo")
 
@@ -146,6 +153,7 @@ class TestGoldenCompilacion:
 
     def test_compile_unknown_intent(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         # Query sin keywords que matcheen ninguna intencion
         result = pipe.compile("zzzzzzz xxxxx qqqqqq mmmmmm")
@@ -154,6 +162,7 @@ class TestGoldenCompilacion:
 
     def test_compile_explanation_not_empty(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         result = pipe.compile("Alerta de inventario bajo")
 
@@ -161,6 +170,7 @@ class TestGoldenCompilacion:
 
     def test_compile_determinista(self):
         from src.nlu.pipeline import Pipeline
+
         pipe = Pipeline()
         r1 = pipe.compile("Quiero registrar un nuevo cliente con email test@test.com")
         r2 = pipe.compile("Quiero registrar un nuevo cliente con email test@test.com")
@@ -400,7 +410,7 @@ class TestGoldenVariacionesEN:
 class TestGoldenDeterminismo:
     """Verifica que el pipeline es determinista con 200+ frases."""
 
-    GOLDEN_PHRASES = [
+    GOLDEN_PHRASES: ClassVar[list[str]] = [
         # ES - registro_cliente
         "Quiero registrar un nuevo cliente",
         "Agregar un lead nuevo",
@@ -521,8 +531,9 @@ class TestGoldenDeterminismo:
             result1 = run(phrase)
             result2 = run(phrase)
             assert result1.confidence == result2.confidence, f"Determinismo falló: {phrase}"
-            assert [i.intent for i in result1.intents] == [i.intent for i in result2.intents], \
+            assert [i.intent for i in result1.intents] == [i.intent for i in result2.intents], (
                 f"Intents cambiaron: {phrase}"
+            )
 
     def test_100_plus_phrases_have_intents(self):
         """Verifica que la mayoría de frases detectan al menos una intención con score > 0."""

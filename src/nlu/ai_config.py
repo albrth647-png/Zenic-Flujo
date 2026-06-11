@@ -7,16 +7,19 @@ Fallback: si ningún proveedor está disponible, usa el compilador determinista.
 
 NO envía datos a terceros a menos que el usuario active un proveedor cloud.
 """
+
 import os
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
+
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
 
-class AIProvider(str, Enum):
+class AIProvider(StrEnum):
     """Proveedores de IA soportados."""
+
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -26,6 +29,7 @@ class AIProvider(str, Enum):
 @dataclass
 class ProviderConfig:
     """Configuración de un proveedor de IA."""
+
     provider: AIProvider
     enabled: bool
     api_key: str = ""
@@ -115,8 +119,7 @@ class AIConfig:
         """True si hay un proveedor IA configurado y habilitado."""
         return self.active_provider != AIProvider.NONE
 
-    def set_provider(self, provider: AIProvider, enabled: bool,
-                     api_key: str = "", model: str = "") -> None:
+    def set_provider(self, provider: AIProvider, enabled: bool, api_key: str = "", model: str = "") -> None:
         """Actualiza la configuración de un proveedor (para Settings UI)."""
         config = self.providers.get(provider)
         if config:

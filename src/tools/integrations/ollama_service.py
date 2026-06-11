@@ -41,16 +41,18 @@ class OllamaService:
     }
     """
 
-    def __init__(self, base_url: str | None = None,
-                 default_model: str | None = None):
+    def __init__(self, base_url: str | None = None, default_model: str | None = None):
         self._base_url = (base_url or OLLAMA_BASE_URL).rstrip("/")
         self._default_model = default_model or OLLAMA_MODEL
 
-    def chat(self, messages: list[dict],
-             model: str | None = None,
-             temperature: float = 0.7,
-             stream: bool = False,
-             timeout: int | None = None) -> dict:
+    def chat(
+        self,
+        messages: list[dict],
+        model: str | None = None,
+        temperature: float = 0.7,
+        stream: bool = False,
+        timeout: int | None = None,
+    ) -> dict:
         """
         Chat con modelo local vía Ollama.
 
@@ -70,6 +72,7 @@ class OllamaService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self._base_url}/api/chat",
                 json={
@@ -84,9 +87,7 @@ class OllamaService:
             )
 
             if resp.status_code != 200:
-                return self._error(
-                    f"Ollama error {resp.status_code}: {resp.text}"
-                )
+                return self._error(f"Ollama error {resp.status_code}: {resp.text}")
 
             data = resp.json()
 
@@ -109,18 +110,19 @@ class OllamaService:
         except ImportError:
             return self._error("requests library no instalada")
         except requests.exceptions.ConnectionError:
-            return self._error(
-                f"No se pudo conectar a Ollama en {self._base_url}. "
-                "¿Está Ollama corriendo?"
-            )
+            return self._error(f"No se pudo conectar a Ollama en {self._base_url}. ¿Está Ollama corriendo?")
         except Exception as e:
             logger.error(f"Ollama chat error: {e}")
             return self._error(str(e))
 
-    def generate(self, prompt: str, model: str | None = None,
-                 system: str | None = None,
-                 temperature: float = 0.7,
-                 timeout: int | None = None) -> dict:
+    def generate(
+        self,
+        prompt: str,
+        model: str | None = None,
+        system: str | None = None,
+        temperature: float = 0.7,
+        timeout: int | None = None,
+    ) -> dict:
         """
         Generación de texto simple (sin historial de chat).
 
@@ -140,6 +142,7 @@ class OllamaService:
 
         try:
             import requests
+
             payload = {
                 "model": model,
                 "prompt": prompt,
@@ -155,9 +158,7 @@ class OllamaService:
             )
 
             if resp.status_code != 200:
-                return self._error(
-                    f"Ollama error {resp.status_code}: {resp.text}"
-                )
+                return self._error(f"Ollama error {resp.status_code}: {resp.text}")
 
             data = resp.json()
             return {
@@ -172,16 +173,12 @@ class OllamaService:
         except ImportError:
             return self._error("requests library no instalada")
         except requests.exceptions.ConnectionError:
-            return self._error(
-                f"No se pudo conectar a Ollama en {self._base_url}"
-            )
+            return self._error(f"No se pudo conectar a Ollama en {self._base_url}")
         except Exception as e:
             logger.error(f"Ollama generate error: {e}")
             return self._error(str(e))
 
-    def embeddings(self, input_text: str | list[str],
-                   model: str | None = None,
-                   timeout: int | None = None) -> dict:
+    def embeddings(self, input_text: str | list[str], model: str | None = None, timeout: int | None = None) -> dict:
         """
         Genera embeddings usando Ollama.
 
@@ -200,6 +197,7 @@ class OllamaService:
 
         try:
             import requests
+
             embeddings_list = []
             for text in inputs:
                 resp = requests.post(
@@ -208,9 +206,7 @@ class OllamaService:
                     timeout=timeout,
                 )
                 if resp.status_code != 200:
-                    return self._error(
-                        f"Ollama embeddings error: {resp.text}"
-                    )
+                    return self._error(f"Ollama embeddings error: {resp.text}")
                 data = resp.json()
                 embeddings_list.append(data.get("embedding", []))
 
@@ -225,9 +221,7 @@ class OllamaService:
         except ImportError:
             return self._error("requests library no instalada")
         except requests.exceptions.ConnectionError:
-            return self._error(
-                f"No se pudo conectar a Ollama en {self._base_url}"
-            )
+            return self._error(f"No se pudo conectar a Ollama en {self._base_url}")
         except Exception as e:
             logger.error(f"Ollama embeddings error: {e}")
             return self._error(str(e))
@@ -241,6 +235,7 @@ class OllamaService:
         """
         try:
             import requests
+
             resp = requests.get(
                 f"{self._base_url}/api/tags",
                 timeout=timeout,
@@ -250,9 +245,7 @@ class OllamaService:
 
             data = resp.json()
             models = [
-                {"name": m["name"],
-                 "modified_at": m.get("modified_at", ""),
-                 "size": m.get("size", 0)}
+                {"name": m["name"], "modified_at": m.get("modified_at", ""), "size": m.get("size", 0)}
                 for m in data.get("models", [])
             ]
             return {"models": models, "count": len(models)}
@@ -277,6 +270,7 @@ class OllamaService:
         """
         try:
             import requests
+
             resp = requests.post(
                 f"{self._base_url}/api/pull",
                 json={"name": model},
@@ -308,9 +302,9 @@ class OllamaService:
         url = (base_url or OLLAMA_BASE_URL).rstrip("/")
         try:
             import requests
+
             resp = requests.get(f"{url}/api/tags", timeout=5)
-            return {"status": "ok" if resp.status_code == 200 else "error",
-                    "base_url": url}
+            return {"status": "ok" if resp.status_code == 200 else "error", "base_url": url}
         except ImportError:
             return {"status": "error", "message": "requests no instalada"}
         except Exception as e:
@@ -327,30 +321,24 @@ class OllamaService:
                     "name": "Chat",
                     "description": "Chat con modelo local",
                     "params": [
-                        {"name": "messages", "type": "list", "required": True,
-                         "label": "Mensajes"},
-                        {"name": "model", "type": "string",
-                         "default": "llama3.2", "label": "Modelo"},
-                        {"name": "temperature", "type": "number",
-                         "default": 0.7, "label": "Temperatura"},
+                        {"name": "messages", "type": "list", "required": True, "label": "Mensajes"},
+                        {"name": "model", "type": "string", "default": "llama3.2", "label": "Modelo"},
+                        {"name": "temperature", "type": "number", "default": 0.7, "label": "Temperatura"},
                     ],
                 },
                 "generate": {
                     "name": "Generar texto",
                     "description": "Generación de texto simple",
                     "params": [
-                        {"name": "prompt", "type": "string", "required": True,
-                         "label": "Prompt"},
-                        {"name": "model", "type": "string",
-                         "default": "llama3.2", "label": "Modelo"},
+                        {"name": "prompt", "type": "string", "required": True, "label": "Prompt"},
+                        {"name": "model", "type": "string", "default": "llama3.2", "label": "Modelo"},
                     ],
                 },
                 "embeddings": {
                     "name": "Embeddings",
                     "description": "Embeddings locales",
                     "params": [
-                        {"name": "input_text", "type": "string",
-                         "required": True, "label": "Texto"},
+                        {"name": "input_text", "type": "string", "required": True, "label": "Texto"},
                     ],
                 },
             },

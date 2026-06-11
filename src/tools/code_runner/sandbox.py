@@ -7,55 +7,91 @@ Ejecuta código Python de forma segura con:
 - Sin acceso a red, filesystem, subprocess
 - Variables del contexto disponibles como inputs
 """
-import sys
-import io
+
 import ast
-import time
+import io
 import signal
+import sys
+import time
 from dataclasses import dataclass
+
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
 # ── Límites de seguridad ──────────────────────────────────
-MAX_EXECUTION_TIME = 10       # segundos
-MAX_MEMORY_MB = 50            # MB
+MAX_EXECUTION_TIME = 10  # segundos
+MAX_MEMORY_MB = 50  # MB
 MAX_OUTPUT_SIZE = 1024 * 1024  # 1MB
 
 # ── Imports bloqueados (Python) ───────────────────────────
 BLOCKED_MODULES = {
-    "os", "sys", "subprocess", "socket", "http", "urllib",
-    "requests", "shutil", "pathlib", "glob", "pickle",
-    "shelve", "dbm", "sqlite3", "ctypes", "signal",
-    "multiprocessing", "threading", "asyncio", "xmlrpc",
+    "os",
+    "sys",
+    "subprocess",
+    "socket",
+    "http",
+    "urllib",
+    "requests",
+    "shutil",
+    "pathlib",
+    "glob",
+    "pickle",
+    "shelve",
+    "dbm",
+    "sqlite3",
+    "ctypes",
+    "signal",
+    "multiprocessing",
+    "threading",
+    "asyncio",
+    "xmlrpc",
     "importlib",
 }
 
 # ── Imports seguros permitidos ──────────────────────────
 SAFE_MODULES = {
-    "math", "json", "datetime", "re", "collections",
-    "itertools", "functools", "string", "textwrap",
-    "random", "decimal", "fractions", "statistics",
-    "copy", "pprint",
+    "math",
+    "json",
+    "datetime",
+    "re",
+    "collections",
+    "itertools",
+    "functools",
+    "string",
+    "textwrap",
+    "random",
+    "decimal",
+    "fractions",
+    "statistics",
+    "copy",
+    "pprint",
 }
 
 # ── Builtins peligrosos bloqueados ────────────────────────
 # Nota: __import__ se provee restringido via _make_safe_import()
 BLOCKED_BUILTINS = {
-    "eval", "exec", "compile",
-    "open", "breakpoint", "exit", "quit",
-    "input", "globals", "locals",
+    "eval",
+    "exec",
+    "compile",
+    "open",
+    "breakpoint",
+    "exit",
+    "quit",
+    "input",
+    "globals",
+    "locals",
 }
-
 
 
 @dataclass
 class SandboxResult:
     """Resultado de la ejecución en sandbox."""
+
     success: bool
-    output: dict          # Variables de salida
-    stdout: str           # Salida estándar
-    error: str | None     # Error si falló
+    output: dict  # Variables de salida
+    stdout: str  # Salida estándar
+    error: str | None  # Error si falló
     execution_time_ms: int
 
 
@@ -83,8 +119,10 @@ class CodeSandbox:
     def _make_timeout_handler(self):
         """Crea handler de timeout con referencia al timeout configurado."""
         timeout = self.timeout
+
         def handler(signum, frame):
             raise TimeoutError(f"Código excedió el timeout de {timeout}s")
+
         return handler
 
     def execute_python(
@@ -129,8 +167,14 @@ class CodeSandbox:
         # Agregar variables de input ANTES de __builtins__ para no sobreescribir
         # y validar que no contengan keys reservadas
         reserved_keys = {
-            "__builtins__", "__name__", "__doc__", "__file__",
-            "__import__", "eval", "exec", "compile",
+            "__builtins__",
+            "__name__",
+            "__doc__",
+            "__file__",
+            "__import__",
+            "eval",
+            "exec",
+            "compile",
         }
         if input_vars:
             for key, value in input_vars.items():
@@ -218,7 +262,6 @@ class CodeSandbox:
             except (ValueError, OSError):
                 pass
 
-
     def _validate_source(self, code: str) -> str | None:
         """
         Valida el código fuente antes de ejecutar.
@@ -249,18 +292,18 @@ class CodeSandbox:
         except SyntaxError:
             pass
 
-
-
         # Verificar patrones peligrosos
         dangerous_patterns = [
-            "eval(", "exec(",
-            "open(", "os.", "sys.", "subprocess.",
+            "eval(",
+            "exec(",
+            "open(",
+            "os.",
+            "sys.",
+            "subprocess.",
         ]
         for pattern in dangerous_patterns:
             if pattern in code:
                 return f"Patrón prohibido: {pattern}"
-
-
 
         return None
 
@@ -268,6 +311,7 @@ class CodeSandbox:
     def _make_safe_import():
         """Crea una función __import__ restringida a módulos seguros."""
         import builtins as _builtins
+
         _real_import = _builtins.__import__
 
         def safe_import(name, *args, **kwargs):
@@ -275,8 +319,7 @@ class CodeSandbox:
             if root in SAFE_MODULES:
                 return _real_import(name, *args, **kwargs)
             raise ImportError(
-                f"Import no permitido: {name} "
-                f"(solo módulos permitidos: {', '.join(sorted(SAFE_MODULES))})"
+                f"Import no permitido: {name} (solo módulos permitidos: {', '.join(sorted(SAFE_MODULES))})"
             )
 
         return safe_import
@@ -285,6 +328,7 @@ class CodeSandbox:
     def _get_safe_builtins() -> dict:
         """Retorna builtins seguros (sin eval, exec, open, etc.)."""
         import builtins
+
         safe = {}
         for name in dir(builtins):
             if name.startswith("_") and name != "__name__":

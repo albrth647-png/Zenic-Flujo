@@ -9,9 +9,11 @@ Integra con Gmail API v1 para:
 
 Autenticación: OAuth2 (credenciales guardadas cifradas en DB)
 """
+
 import json
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
 
@@ -165,11 +167,13 @@ class GmailService:
 
     def configure(self, client_id: str, client_secret: str, refresh_token: str) -> bool:
         """Guarda credenciales OAuth2 de Gmail."""
-        creds = json.dumps({
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "refresh_token": refresh_token,
-        })
+        creds = json.dumps(
+            {
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
+            }
+        )
         self._db.set_setting("gmail_credentials", creds)
         logger.info("Gmail: Credenciales OAuth2 guardadas")
         return True
@@ -219,36 +223,57 @@ class GmailService:
                     "name": "Enviar email",
                     "description": "Envía un email vía Gmail",
                     "params": [
-                        {"name": "to", "type": "string", "required": True,
-                         "label": "Para", "placeholder": "usuario@ejemplo.com"},
-                        {"name": "subject", "type": "string", "required": True,
-                         "label": "Asunto", "placeholder": "Asunto del email"},
-                        {"name": "body", "type": "string", "required": True,
-                         "label": "Cuerpo", "placeholder": "Contenido del email"},
-                        {"name": "html", "type": "boolean", "required": False,
-                         "default": False, "label": "Es HTML"},
-                        {"name": "cc", "type": "string", "required": False,
-                         "label": "CC"},
-                        {"name": "bcc", "type": "string", "required": False,
-                         "label": "CCO"},
+                        {
+                            "name": "to",
+                            "type": "string",
+                            "required": True,
+                            "label": "Para",
+                            "placeholder": "usuario@ejemplo.com",
+                        },
+                        {
+                            "name": "subject",
+                            "type": "string",
+                            "required": True,
+                            "label": "Asunto",
+                            "placeholder": "Asunto del email",
+                        },
+                        {
+                            "name": "body",
+                            "type": "string",
+                            "required": True,
+                            "label": "Cuerpo",
+                            "placeholder": "Contenido del email",
+                        },
+                        {"name": "html", "type": "boolean", "required": False, "default": False, "label": "Es HTML"},
+                        {"name": "cc", "type": "string", "required": False, "label": "CC"},
+                        {"name": "bcc", "type": "string", "required": False, "label": "CCO"},
                     ],
                 },
                 "search_emails": {
                     "name": "Buscar emails",
                     "description": "Busca emails con la query syntax de Gmail",
                     "params": [
-                        {"name": "query", "type": "string", "required": True,
-                         "label": "Query", "placeholder": "from:admin@ejemplo.com"},
-                        {"name": "max_results", "type": "number", "required": False,
-                         "default": 10, "label": "Máximo resultados"},
+                        {
+                            "name": "query",
+                            "type": "string",
+                            "required": True,
+                            "label": "Query",
+                            "placeholder": "from:admin@ejemplo.com",
+                        },
+                        {
+                            "name": "max_results",
+                            "type": "number",
+                            "required": False,
+                            "default": 10,
+                            "label": "Máximo resultados",
+                        },
                     ],
                 },
                 "get_message": {
                     "name": "Obtener mensaje",
                     "description": "Obtiene un email completo por ID",
                     "params": [
-                        {"name": "message_id", "type": "string", "required": True,
-                         "label": "ID del mensaje"},
+                        {"name": "message_id", "type": "string", "required": True, "label": "ID del mensaje"},
                     ],
                 },
                 "list_labels": {

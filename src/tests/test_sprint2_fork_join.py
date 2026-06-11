@@ -2,19 +2,25 @@
 Tests para Sprint 2 del Roadmap Competitivo.
 Cubre: ForkHandler (parallel, fork), JoinHandler (all, any, race).
 """
+
 import time
+
 import pytest
+
 from src.workflow.fork_handler import ForkHandler, ForkResult, JoinHandler
 from src.workflow.step_executor import StepExecutor
 
 
 class MockTool:
     """Mock para simular herramientas en los tests."""
+
     def echo(self, message=""):
         return {"echoed": message}
+
     def slow(self, delay=0.1):
         time.sleep(delay)
         return {"delayed": True}
+
     def fail(self):
         raise ValueError("Simulated failure")
 
@@ -55,17 +61,11 @@ class TestForkHandler:
             "branches": [
                 {
                     "name": "branch_a",
-                    "steps": [
-                        {"id": 2, "tool": "test_tool", "action": "echo",
-                         "params": {"message": "hello from A"}}
-                    ],
+                    "steps": [{"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "hello from A"}}],
                 },
                 {
                     "name": "branch_b",
-                    "steps": [
-                        {"id": 3, "tool": "test_tool", "action": "echo",
-                         "params": {"message": "hello from B"}}
-                    ],
+                    "steps": [{"id": 3, "tool": "test_tool", "action": "echo", "params": {"message": "hello from B"}}],
                 },
             ],
             "merge_strategy": "all",
@@ -82,12 +82,11 @@ class TestForkHandler:
         step = {
             "id": 1,
             "branches": [
-                {"name": "good", "steps": [
-                    {"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "ok"}}
-                ]},
-                {"name": "bad", "steps": [
-                    {"id": 3, "tool": "test_tool", "action": "fail", "params": {}}
-                ]},
+                {
+                    "name": "good",
+                    "steps": [{"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "ok"}}],
+                },
+                {"name": "bad", "steps": [{"id": 3, "tool": "test_tool", "action": "fail", "params": {}}]},
             ],
             "merge_strategy": "all",
         }
@@ -99,9 +98,10 @@ class TestForkHandler:
         step = {
             "id": 1,
             "branches": [
-                {"name": "fast", "steps": [
-                    {"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "fast"}}
-                ]},
+                {
+                    "name": "fast",
+                    "steps": [{"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "fast"}}],
+                },
             ],
             "merge_strategy": "any",
         }
@@ -111,9 +111,10 @@ class TestForkHandler:
     def test_parallel_max_branches(self, fork_handler):
         """Parallel limita a MAX_BRANCHES (50)."""
         many_branches = [
-            {"name": f"b{i}", "steps": [
-                {"id": i, "tool": "test_tool", "action": "echo", "params": {"message": f"msg{i}"}}
-            ]}
+            {
+                "name": f"b{i}",
+                "steps": [{"id": i, "tool": "test_tool", "action": "echo", "params": {"message": f"msg{i}"}}],
+            }
             for i in range(60)
         ]
         step = {"id": 1, "branches": many_branches, "merge_strategy": "all"}
@@ -125,9 +126,7 @@ class TestForkHandler:
         step = {
             "id": 1,
             "branches": [
-                {"name": "slow", "steps": [
-                    {"id": 2, "tool": "test_tool", "action": "slow", "params": {"delay": 2.0}}
-                ]},
+                {"name": "slow", "steps": [{"id": 2, "tool": "test_tool", "action": "slow", "params": {"delay": 2.0}}]},
             ],
             "merge_strategy": "all",
             "timeout": 1,
@@ -149,10 +148,7 @@ class TestForkHandlerFork:
             "type": "fork",
             "collection": [{"val": 1}, {"val": 2}, {"val": 3}],
             "item_var": "item",
-            "steps": [
-                {"id": 2, "tool": "test_tool", "action": "echo",
-                 "params": {"message": "$item.val"}}
-            ],
+            "steps": [{"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "$item.val"}}],
             "merge_strategy": "all",
         }
         result = fork_handler.execute_fork(step, {})
@@ -178,16 +174,13 @@ class TestForkHandlerFork:
             "id": 1,
             "collection": [{"n": i} for i in range(20)],
             "item_var": "item",
-            "steps": [
-                {"id": 2, "tool": "test_tool", "action": "echo",
-                 "params": {"message": "$item.n"}}
-            ],
+            "steps": [{"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "$item.n"}}],
             "merge_strategy": "all",
             "max_concurrency": 5,
         }
         t0 = time.time()
         result = fork_handler.execute_fork(step, {})
-        elapsed = time.time() - t0
+        _elapsed = time.time() - t0
         assert result.status == "completed"
         assert len(result.branches) == 20
 
@@ -197,9 +190,7 @@ class TestForkHandlerFork:
             "id": 1,
             "collection": list(range(150)),
             "item_var": "item",
-            "steps": [
-                {"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "$item"}}
-            ],
+            "steps": [{"id": 2, "tool": "test_tool", "action": "echo", "params": {"message": "$item"}}],
             "merge_strategy": "all",
         }
         result = fork_handler.execute_fork(step, {})
@@ -214,10 +205,8 @@ class TestJoinHandler:
         fork_result = ForkResult(
             status="completed",
             branches=[
-                {"name": "A", "status": "completed",
-                 "steps": [{"step_id": 1, "output": {"data": "from_a"}}]},
-                {"name": "B", "status": "completed",
-                 "steps": [{"step_id": 2, "output": {"data": "from_b"}}]},
+                {"name": "A", "status": "completed", "steps": [{"step_id": 1, "output": {"data": "from_a"}}]},
+                {"name": "B", "status": "completed", "steps": [{"step_id": 2, "output": {"data": "from_b"}}]},
             ],
             merge_strategy="all",
         )
@@ -235,8 +224,7 @@ class TestJoinHandler:
         fork_result = ForkResult(
             status="completed",
             branches=[
-                {"name": "A", "status": "completed",
-                 "steps": [{"step_id": 1, "output": {"data": "first"}}]},
+                {"name": "A", "status": "completed", "steps": [{"step_id": 1, "output": {"data": "first"}}]},
             ],
             merge_strategy="any",
         )
@@ -250,8 +238,7 @@ class TestJoinHandler:
         fork_result = ForkResult(
             status="completed",
             branches=[
-                {"name": "winner", "status": "completed",
-                 "steps": [{"step_id": 1, "output": {"data": "win"}}]},
+                {"name": "winner", "status": "completed", "steps": [{"step_id": 1, "output": {"data": "win"}}]},
             ],
             merge_strategy="race",
         )

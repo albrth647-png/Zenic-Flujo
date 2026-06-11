@@ -16,9 +16,12 @@ fpdf2>=2.8.7
 bcrypt>=4.1.0
 cryptography>=41.0.0
 passlib>=1.7.4
+pyotp>=2.9.0
+qrcode>=7.4
 
 # HTTP & APIs
 httpx>=0.28.0
+xmltodict>=0.13.0
 
 # FastAPI / ASGI (orbital)
 fastapi>=0.115.0
@@ -47,6 +50,17 @@ watchdog>=4.0.0
 
 # OAuth
 oauthlib>=3.2.2
+
+# SSO / SAML (Phase 1)
+python3-saml>=1.16.0
+authlib>=1.3.0
+
+# Observability (Phase 1)
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-exporter-prometheus>=0.41b0
+opentelemetry-exporter-jaeger>=1.21.0
+prometheus-client>=0.20.0
 
 # Testing
 pytest>=8.0.0

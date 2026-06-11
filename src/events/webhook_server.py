@@ -3,14 +3,16 @@ Workflow Determinista — WebhookServer
 Servidor HTTP mínimo para recibir webhooks externos.
 API Key OBLIGATORIA para todas las peticiones.
 """
+
 import hmac
 import json
 import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+from src.config import WEBHOOK_API_KEY_ENABLED, WEBHOOK_PORT
 from src.data.database_manager import DatabaseManager
 from src.events.bus import EventBus
 from src.utils.logger import setup_logging
-from src.config import WEBHOOK_PORT, WEBHOOK_API_KEY_ENABLED
 
 logger = setup_logging(__name__)
 
@@ -50,9 +52,9 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 self._send_json(401, {"error": "API Key inválida o no proporcionada"})
                 logger.warning(f"Webhook rechazado: API Key inválida para workflow {workflow_id}")
                 if self.db:
-                    self.db.audit("webhook.rejected",
-                                   f"API Key inválida para workflow {workflow_id}",
-                                   self.client_address[0])
+                    self.db.audit(
+                        "webhook.rejected", f"API Key inválida para workflow {workflow_id}", self.client_address[0]
+                    )
                 return
 
         # Leer body
@@ -74,20 +76,21 @@ class WebhookHandler(BaseHTTPRequestHandler):
             webhook_data["_workflow_id"] = workflow_id
             results = bus.publish("webhook.received", webhook_data)
 
-            self._send_json(200, {
-                "status": "processed",
-                "results": results,
-            })
+            self._send_json(
+                200,
+                {
+                    "status": "processed",
+                    "results": results,
+                },
+            )
 
             logger.info(f"Webhook procesado para workflow {workflow_id}")
             if self.db:
-                self.db.audit("webhook.received",
-                               f"Webhook para workflow {workflow_id}",
-                               self.client_address[0])
+                self.db.audit("webhook.received", f"Webhook para workflow {workflow_id}", self.client_address[0])
 
         except Exception as e:
             logger.error(f"Error procesando webhook: {e}")
-            self._send_json(500, {"error": f"Error interno: {str(e)}"})
+            self._send_json(500, {"error": f"Error interno: {e!s}"})
 
     def do_GET(self):
         """Maneja peticiones GET."""
@@ -112,7 +115,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
 class WebhookServer:
     """
     Servidor de webhooks.
-    
+
     Se inicia en un hilo separado en el puerto configurado.
     """
 

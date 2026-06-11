@@ -2,6 +2,7 @@
 Workflow Determinista — Tests del StepExecutor
 Tests unitarios para el ejecutor de pasos: resolución de variables, timeout, tools.
 """
+
 from unittest.mock import MagicMock
 
 
@@ -91,6 +92,7 @@ class TestStepExecutor:
     def test_execute_step_with_timeout(self):
         """Test: un paso que excede el timeout retorna StepResult con status='failed'."""
         import time
+
         from src.workflow.step_executor import StepExecutor
 
         executor = StepExecutor()

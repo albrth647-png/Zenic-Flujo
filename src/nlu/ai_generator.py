@@ -13,19 +13,28 @@ Flujo:
 
 Soporta: Ollama (local), OpenAI, Anthropic.
 """
+
 from __future__ import annotations
+
 import json
 from dataclasses import dataclass
-from src.nlu.ai_config import AIProvider, get_ai_config, ProviderConfig
+
+from src.nlu.ai_config import AIProvider, ProviderConfig, get_ai_config
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
 # Tools conocidas (debe coincidir con src/nlu/compiler.py)
 KNOWN_TOOLS = {
-    "crm", "invoice", "inventory", "notification",
-    "system", "autopilot", "logic_gate",
-    "api_connector", "data_keeper",
+    "crm",
+    "invoice",
+    "inventory",
+    "notification",
+    "system",
+    "autopilot",
+    "logic_gate",
+    "api_connector",
+    "data_keeper",
 }
 
 # Prompt template para generar workflows
@@ -68,6 +77,7 @@ FORMATO:
 @dataclass
 class AIGenerationResult:
     """Resultado de la generación IA de un workflow."""
+
     workflow: dict
     provider: str
     model: str
@@ -107,8 +117,7 @@ class WorkflowAIGenerator:
                 workflow={},
                 provider="none",
                 model="",
-                explanation="No hay proveedor de IA configurado. "
-                            "Activa Ollama, OpenAI o Anthropic en Configuración.",
+                explanation="No hay proveedor de IA configurado. Activa Ollama, OpenAI o Anthropic en Configuración.",
                 validated=False,
                 validation_errors=["No AI provider configured"],
                 fallback_used=False,
@@ -188,8 +197,7 @@ class WorkflowAIGenerator:
 
     def _call_llm(self, text: str, config: ProviderConfig, lang: str) -> str:
         """Llama al LLM según el proveedor configurado."""
-        user_prompt = f"Genera un workflow para: {text}" if lang == "es" \
-            else f"Generate a workflow for: {text}"
+        user_prompt = f"Genera un workflow para: {text}" if lang == "es" else f"Generate a workflow for: {text}"
 
         if config.provider == AIProvider.OLLAMA:
             return self._call_ollama(user_prompt, config)
@@ -291,7 +299,7 @@ class WorkflowAIGenerator:
             if start == -1 or end == -1:
                 return None
 
-            json_str = raw[start:end + 1]
+            json_str = raw[start : end + 1]
             parsed = json.loads(json_str)
 
             if not isinstance(parsed, dict):
@@ -336,8 +344,7 @@ class WorkflowAIGenerator:
             action = step.get("action", "")
 
             if tool not in KNOWN_TOOLS:
-                errors.append(f"Paso {step_id}: tool '{tool}' no existe. "
-                              f"Disponibles: {', '.join(sorted(KNOWN_TOOLS))}")
+                errors.append(f"Paso {step_id}: tool '{tool}' no existe. Disponibles: {', '.join(sorted(KNOWN_TOOLS))}")
 
             if not action:
                 errors.append(f"Paso {step_id}: falta 'action'")
@@ -371,6 +378,7 @@ class WorkflowAIGenerator:
 
 
 # ── Función de conveniencia ──────────────────────────────
+
 
 def generate_workflow_from_text(text: str, lang: str = "es") -> AIGenerationResult:
     """Función rápida para generar un workflow con IA desde texto libre.

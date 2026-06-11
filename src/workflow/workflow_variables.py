@@ -65,8 +65,7 @@ class WorkflowVariables:
         return {"name": name, "value": value, "status": "set"}
 
     @staticmethod
-    def get_variable(name: str, context: dict,
-                     default: Any = None) -> dict:
+    def get_variable(name: str, context: dict, default: Any = None) -> dict:
         """
         Obtiene una variable del contexto del workflow.
 
@@ -148,8 +147,7 @@ class WorkflowVariables:
         return {"result": str(value).strip()}
 
     @staticmethod
-    def transform_replace(value: str, old: str, new: str,
-                          count: int = -1) -> dict:
+    def transform_replace(value: str, old: str, new: str, count: int = -1) -> dict:
         """Reemplaza una subcadena por otra."""
         if count >= 0:
             return {"result": str(value).replace(old, new, count)}
@@ -166,8 +164,7 @@ class WorkflowVariables:
         return {"result": delimiter.join(str(v) for v in values)}
 
     @staticmethod
-    def transform_substring(value: str, start: int = 0,
-                            end: int | None = None) -> dict:
+    def transform_substring(value: str, start: int = 0, end: int | None = None) -> dict:
         """Extrae una subcadena."""
         s = str(value)
         if end is not None:
@@ -203,8 +200,7 @@ class WorkflowVariables:
     def math_divide(a: float, b: float) -> dict:
         """Divide dos números. Retorna error si b es 0."""
         if float(b) == 0:
-            return {"result": None, "error": "division_by_zero",
-                    "a": a, "b": b}
+            return {"result": None, "error": "division_by_zero", "a": a, "b": b}
         return {"result": float(a) / float(b), "a": a, "b": b}
 
     @staticmethod
@@ -246,8 +242,7 @@ class WorkflowVariables:
     def math_sqrt(value: float) -> dict:
         """Raíz cuadrada. Retorna error si value < 0."""
         if float(value) < 0:
-            return {"result": None, "error": "negative_sqrt",
-                    "value": value}
+            return {"result": None, "error": "negative_sqrt", "value": value}
         return {"result": math.sqrt(float(value))}
 
     @staticmethod
@@ -302,8 +297,7 @@ class WorkflowVariables:
 
         Útil para debugging o logging.
         """
-        safe_keys = {"input", "output", "steps_output", "workflow",
-                     "settings", "_last_step_id", "_last_step_var"}
+        safe_keys = {"input", "output", "steps_output", "workflow", "settings", "_last_step_id", "_last_step_var"}
         snapshot = {}
         for key in safe_keys:
             if key in context:
@@ -314,11 +308,10 @@ class WorkflowVariables:
         for key, value in context.items():
             if key.startswith("_") or key in safe_keys:
                 continue
-            if isinstance(value, (str, int, float, bool, list)):
-                if isinstance(value, list) and len(value) <= 10:
-                    custom[key] = value
-                elif not isinstance(value, list):
-                    custom[key] = value
+            if isinstance(value, (str, int, float, bool, list)) and (
+                (isinstance(value, list) and len(value) <= 10) or not isinstance(value, list)
+            ):
+                custom[key] = value
         if custom:
             snapshot["custom_vars"] = custom
 
@@ -373,26 +366,21 @@ class WorkflowVariables:
             elif transform_name == "trim":
                 return cls.transform_trim(val)
             elif transform_name == "replace":
-                return cls.transform_replace(
-                    val, params.get("old", ""), params.get("new", ""),
-                    params.get("count", -1))
+                return cls.transform_replace(val, params.get("old", ""), params.get("new", ""), params.get("count", -1))
             elif transform_name == "split":
-                return cls.transform_split(
-                    val, params.get("delimiter", ","))
+                return cls.transform_split(val, params.get("delimiter", ","))
             elif transform_name == "join":
-                return cls.transform_join(
-                    params.get("values", []),
-                    params.get("delimiter", ","))
+                return cls.transform_join(params.get("values", []), params.get("delimiter", ","))
             elif transform_name == "substring":
-                return cls.transform_substring(
-                    val, params.get("start", 0), params.get("end"))
+                return cls.transform_substring(val, params.get("start", 0), params.get("end"))
             elif transform_name == "length":
                 return cls.transform_length(val)
             else:
                 raise ValueError(
                     f"Transform desconocido: {transform_name}. "
                     f"Disponibles: upper, lower, trim, replace, "
-                    f"split, join, substring, length")
+                    f"split, join, substring, length"
+                )
 
         # ── Math operations ──
         if operation == "math":
@@ -432,7 +420,8 @@ class WorkflowVariables:
                     f"Math desconocido: {math_name}. "
                     f"Disponibles: add, subtract, multiply, divide, "
                     f"floor, ceil, round, abs, min, max, power, "
-                    f"sqrt, modulo")
+                    f"sqrt, modulo"
+                )
 
         # ── Aggregate operations ──
         if operation == "aggregate":
@@ -450,9 +439,7 @@ class WorkflowVariables:
             elif agg_name == "max":
                 return cls.aggregate_max(values)
             else:
-                raise ValueError(
-                    f"Aggregate desconocido: {agg_name}. "
-                    f"Disponibles: sum, avg, count, min, max")
+                raise ValueError(f"Aggregate desconocido: {agg_name}. Disponibles: sum, avg, count, min, max")
 
         # ── Snapshot ──
         if operation == "snapshot":
@@ -461,4 +448,5 @@ class WorkflowVariables:
         raise ValueError(
             f"Operación desconocida: {operation}. "
             f"Disponibles: set, get, delete, exists, transform, "
-            f"math, aggregate, snapshot")
+            f"math, aggregate, snapshot"
+        )

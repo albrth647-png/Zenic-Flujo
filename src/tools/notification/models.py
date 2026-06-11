@@ -21,7 +21,11 @@ EMAIL_TEMPLATES = {
     },
     "invoice_overdue": {
         "subject": "Factura vencida #{numero}",
-        "body": "Estimado/a {cliente}, la factura #{numero} por ${total} está vencida. Por favor, realice el pago a la brevedad.",
+        "body": (
+            "Estimado/a {cliente}, la factura #{numero} "
+            "por ${total} está vencida. Por favor, "
+            "realice el pago a la brevedad."
+        ),
     },
     "stock_low": {
         "subject": "Alerta: Stock bajo — {producto}",

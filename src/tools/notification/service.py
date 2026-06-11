@@ -15,8 +15,7 @@ class NotificationService:
     def __init__(self):
         self._db = DatabaseManager()
 
-    def send_email(self, to: str, subject: str, body: str,
-                   template: str | None = None) -> dict:
+    def send_email(self, to: str, subject: str, body: str, template: str | None = None) -> dict:
         smtp_server = self._db.get_setting("smtp_server")
         if not smtp_server:
             return {"status": "queued", "message": "SMTP no configurado, guardado en cola"}
@@ -44,8 +43,7 @@ class NotificationService:
             logger.error(f"Error enviando email a {to}: {e}")
             return {"status": "failed", "error": str(e)}
 
-    def send_notification(self, channel: str, recipients: list[str] | str,
-                          message: str, **kwargs) -> dict:
+    def send_notification(self, channel: str, recipients: list[str] | str, message: str, **kwargs) -> dict:
         if channel == "email":
             if isinstance(recipients, list):
                 results = []
@@ -58,6 +56,7 @@ class NotificationService:
 
     def send_birthday_emails(self) -> int:
         from datetime import date
+
         today = date.today()
         leads = self._db.fetchall(
             "SELECT * FROM leads WHERE strftime('%m-%d', substr(notes, 1, 10)) = ?",
@@ -75,8 +74,7 @@ class NotificationService:
                     sent += 1
         return sent
 
-    def configure_smtp(self, server: str, port: int, username: str,
-                       password: str) -> bool:
+    def configure_smtp(self, server: str, port: int, username: str, password: str) -> bool:
         self._db.set_setting("smtp_server", server)
         self._db.set_setting("smtp_port", str(port))
         self._db.set_setting("email_user", username)
@@ -90,6 +88,7 @@ class NotificationService:
             return {"status": "error", "message": "SMTP no configurado"}
         try:
             import smtplib
+
             port = int(self._db.get_setting("smtp_port", "587"))
             with smtplib.SMTP(smtp_server, port, timeout=10) as server:
                 server.starttls()
@@ -124,6 +123,7 @@ class NotificationService:
 
         try:
             import requests
+
             url = f"https://graph.facebook.com/v22.0/{phone_number_id}/messages"
             headers = {
                 "Authorization": f"Bearer {token}",
@@ -157,9 +157,9 @@ class NotificationService:
             logger.error(f"WhatsApp exception: {e}")
             return {"status": "failed", "message": str(e)}
 
-    def send_whatsapp_template(self, to: str, template_name: str,
-                                language_code: str = "es",
-                                components: list[dict] | None = None) -> dict:
+    def send_whatsapp_template(
+        self, to: str, template_name: str, language_code: str = "es", components: list[dict] | None = None
+    ) -> dict:
         """Envía un mensaje template (para fuera de ventana 24h)."""
         token = self._get_whatsapp_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
@@ -169,6 +169,7 @@ class NotificationService:
 
         try:
             import requests
+
             url = f"https://graph.facebook.com/v22.0/{phone_number_id}/messages"
             headers = {
                 "Authorization": f"Bearer {token}",
@@ -239,7 +240,6 @@ class NotificationService:
         return {
             "smtp_configured": bool(self._db.get_setting("smtp_server")),
             "whatsapp_configured": bool(
-                self._db.get_setting("whatsapp_token")
-                and self._db.get_setting("whatsapp_phone_number_id")
+                self._db.get_setting("whatsapp_token") and self._db.get_setting("whatsapp_phone_number_id")
             ),
         }

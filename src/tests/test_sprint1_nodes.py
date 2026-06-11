@@ -2,9 +2,11 @@
 Tests para Sprint 1 del Roadmap Competitivo.
 Cubre: Wait node, WaitUntil node, Schedule interval, APIConnector registration.
 """
+
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
+
 from src.workflow.step_executor import StepExecutor
 
 
@@ -44,7 +46,7 @@ class TestWaitNode:
 
     def test_wait_caps_at_24h(self):
         """Wait no acepta más de 86400 segundos (24h) — verifica que no crashea."""
-        with patch('time.sleep'):  # No hacer sleep real
+        with patch("time.sleep"):  # No hacer sleep real
             executor = StepExecutor()
             step = {
                 "id": 1,
@@ -78,7 +80,7 @@ class TestWaitUntilNode:
     def test_wait_until_already_passed(self):
         """WaitUntil con datetime ya pasado retorna inmediatamente."""
         executor = StepExecutor()
-        past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        past = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
         step = {
             "id": 1,
             "tool": "system",
@@ -95,7 +97,7 @@ class TestWaitUntilNode:
     def test_wait_until_with_z_suffix(self):
         """WaitUntil acepta formato ISO 8601 con sufijo Z."""
         executor = StepExecutor()
-        past = (datetime.now(timezone.utc) - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        past = (datetime.now(UTC) - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
         step = {
             "id": 1,
             "tool": "system",
@@ -170,6 +172,7 @@ class TestAPIConnectorRegistration:
     def test_api_connector_tool_definition(self):
         """APIConnectorService tiene definición de tool."""
         from src.tools.api_connector.service import APIConnectorService
+
         api = APIConnectorService()
         definition = api.get_tool_definition()
         assert definition["tool"] == "api_connector"
@@ -179,6 +182,7 @@ class TestAPIConnectorRegistration:
     def test_api_connector_validate_url(self):
         """Validación de URLs funciona."""
         from src.tools.api_connector.service import APIConnectorService
+
         assert APIConnectorService.validate_url("https://api.example.com") is True
         assert APIConnectorService.validate_url("http://localhost:8080/api") is True
         assert APIConnectorService.validate_url("") is False
@@ -188,6 +192,7 @@ class TestAPIConnectorRegistration:
     def test_api_connector_allowed_methods(self):
         """Solo métodos HTTP válidos."""
         from src.tools.api_connector.service import APIConnectorService
+
         api = APIConnectorService()
         for method in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
             assert method in api.ALLOWED_METHODS

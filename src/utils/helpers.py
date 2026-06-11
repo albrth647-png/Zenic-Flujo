@@ -1,10 +1,11 @@
 """
 Workflow Determinista — Funciones Auxiliares
 """
+
 import re
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -22,17 +23,17 @@ def generate_secure_token(length: int = 32) -> str:
 
 def now_iso() -> str:
     """Retorna timestamp actual en ISO 8601."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def truncate(text: str, max_length: int = 100) -> str:
     """Trunca texto a max_length caracteres."""
     if len(text) <= max_length:
         return text
-    return text[:max_length - 3] + "..."
+    return text[: max_length - 3] + "..."
 
 
-def safe_get(data: dict, path: str, default: T | None = None) -> T | None:
+def safe_get[T](data: dict, path: str, default: T | None = None) -> T | None:
     """
     Obtiene un valor de un dict anidado usando notación de puntos.
     Ejemplo: safe_get({"a": {"b": 1}}, "a.b") → 1
@@ -54,19 +55,19 @@ def resolve_variables(template: str, context: dict) -> str | int | float | list 
     """
     Resuelve variables en formato $input.nombre, $output.step1.email, etc.
     Busca en context usando notación de puntos.
-    
+
     - Si el template es una sola variable (ej: "$input.cantidad"), retorna el
       valor original preservando su tipo (int, float, str, etc.).
     - Si el template mezcla texto con variables (ej: "Hola $input.nombre"),
       retorna un string con todas las variables resueltas.
     - Si la variable no existe, retorna el placeholder "${path}".
     """
-    pattern = r'\$(\w+(?:\.\w+)*)'
+    pattern = r"\$(\w+(?:\.\w+)*)"
     matches = list(re.finditer(pattern, template))
-    
+
     if not matches:
         return template
-    
+
     # Caso especial: template es UNA SOLA variable (ej: "$input.cantidad")
     if len(matches) == 1 and matches[0].start() == 0 and matches[0].end() == len(template):
         path = matches[0].group(1)
@@ -74,7 +75,7 @@ def resolve_variables(template: str, context: dict) -> str | int | float | list 
         if value is None:
             return f"${{{path}}}"
         return value  # Preserva el tipo original (int, float, list, dict, etc.)
-    
+
     # Caso general: template con texto + variables
     def replacer(match):
         path = match.group(1)
@@ -82,7 +83,7 @@ def resolve_variables(template: str, context: dict) -> str | int | float | list 
         if value is None:
             return f"${{{path}}}"
         return str(value)
-    
+
     return re.sub(pattern, replacer, template)
 
 
@@ -99,7 +100,7 @@ def parse_cron_expression(expr: str) -> dict[str, list[int]]:
         raise ValueError(f"Expresión cron inválida: {expr}. Se requieren 5 campos.")
 
     result = {}
-    for field_name, part in zip(fields, parts):
+    for field_name, part in zip(fields, parts, strict=False):
         result[field_name] = _parse_cron_field(part, field_name)
 
     return result
@@ -139,12 +140,13 @@ def _parse_cron_field(field: str, field_name: str) -> list[int]:
         else:
             values.append(int(part))
 
-    return sorted(set(v for v in values if min_val <= v <= max_val))
+    return sorted({v for v in values if min_val <= v <= max_val})
 
 
 def should_run_now(cron_fields: dict[str, list[int]], dt: datetime | None = None) -> bool:
     """Verifica si la fecha/hora actual coincide con la expresión cron."""
     from datetime import datetime as dt_mod
+
     now = dt or dt_mod.now()
 
     checks = [

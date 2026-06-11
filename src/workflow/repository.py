@@ -6,12 +6,14 @@ CRUD de definiciones y ejecuciones de workflows en SQLite.
 Mantiene compatibilidad total con la DB existente.
 Agrega conversion automatica a definiciones orbitales via OrbitalRepository.
 """
+
 import json
 from datetime import datetime
+
+from src.config import FREE_TIER_MAX_WORKFLOWS
 from src.data.database_manager import DatabaseManager
 from src.utils.helpers import now_iso
 from src.utils.logger import setup_logging
-from src.config import FREE_TIER_MAX_WORKFLOWS
 
 logger = setup_logging(__name__)
 
@@ -19,10 +21,18 @@ logger = setup_logging(__name__)
 class WorkflowDefinition:
     """Representa la definición de un workflow."""
 
-    def __init__(self, id: int | None = None, name: str = "", description: str = "",
-                 trigger_type: str = "", trigger_config: dict | None = None,
-                 steps: list[dict] | None = None, status: str = "active",
-                 created_at: str | None = None, updated_at: str | None = None):
+    def __init__(
+        self,
+        id: int | None = None,
+        name: str = "",
+        description: str = "",
+        trigger_type: str = "",
+        trigger_config: dict | None = None,
+        steps: list[dict] | None = None,
+        status: str = "active",
+        created_at: str | None = None,
+        updated_at: str | None = None,
+    ):
         self.id = id
         self.name = name
         self.description = description
@@ -75,10 +85,17 @@ class WorkflowDefinition:
 class WorkflowExecution:
     """Representa una ejecución de workflow."""
 
-    def __init__(self, id: int | None = None, workflow_id: int = 0,
-                 status: str = "pending", trigger_data: dict | None = None,
-                 started_at: str | None = None, completed_at: str | None = None,
-                 duration_ms: int | None = None, error_message: str | None = None):
+    def __init__(
+        self,
+        id: int | None = None,
+        workflow_id: int = 0,
+        status: str = "pending",
+        trigger_data: dict | None = None,
+        started_at: str | None = None,
+        completed_at: str | None = None,
+        duration_ms: int | None = None,
+        error_message: str | None = None,
+    ):
         self.id = id
         self.workflow_id = workflow_id
         self.status = status
@@ -116,6 +133,7 @@ class WorkflowRepository:
         if count >= FREE_TIER_MAX_WORKFLOWS:
             # Verificar si tiene licencia válida
             from src.license.validator import LicenseValidator
+
             validator = LicenseValidator()
             license_info = validator.get_license_info()
 
@@ -126,7 +144,7 @@ class WorkflowRepository:
                 )
 
         cursor = self._db.execute(
-            """INSERT INTO workflow_definitions 
+            """INSERT INTO workflow_definitions
                (name, description, trigger_type, trigger_config, steps, status, user_id)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
@@ -171,15 +189,12 @@ class WorkflowRepository:
                 (user_id,),
             )
         else:
-            rows = self._db.fetchall(
-                "SELECT * FROM workflow_definitions ORDER BY updated_at DESC"
-            )
+            rows = self._db.fetchall("SELECT * FROM workflow_definitions ORDER BY updated_at DESC")
         return [WorkflowDefinition.from_dict(r) for r in rows]
 
     def update(self, workflow_id: int, updates: dict) -> WorkflowDefinition | None:
         """Actualiza campos de una definición de workflow."""
-        allowed_fields = {"name", "description", "trigger_type", "trigger_config",
-                          "steps", "status"}
+        allowed_fields = {"name", "description", "trigger_type", "trigger_config", "steps", "status"}
         set_parts = []
         params = []
 
@@ -208,15 +223,14 @@ class WorkflowRepository:
 
     def delete(self, workflow_id: int) -> bool:
         """Elimina una definición de workflow y sus ejecuciones."""
-        self._db.execute("DELETE FROM workflow_step_logs WHERE execution_id IN "
-                        "(SELECT id FROM workflow_executions WHERE workflow_id = ?)",
-                        (workflow_id,))
-        self._db.execute("DELETE FROM workflow_executions WHERE workflow_id = ?",
-                        (workflow_id,))
-        self._db.execute("DELETE FROM event_subscriptions WHERE workflow_id = ?",
-                        (workflow_id,))
-        self._db.execute("DELETE FROM workflow_definitions WHERE id = ?",
-                        (workflow_id,))
+        self._db.execute(
+            "DELETE FROM workflow_step_logs WHERE execution_id IN "
+            "(SELECT id FROM workflow_executions WHERE workflow_id = ?)",
+            (workflow_id,),
+        )
+        self._db.execute("DELETE FROM workflow_executions WHERE workflow_id = ?", (workflow_id,))
+        self._db.execute("DELETE FROM event_subscriptions WHERE workflow_id = ?", (workflow_id,))
+        self._db.execute("DELETE FROM workflow_definitions WHERE id = ?", (workflow_id,))
         self._db.commit()
         self._db.audit("workflow.deleted", f"Workflow ID {workflow_id} eliminado")
         return True
@@ -248,12 +262,11 @@ class WorkflowRepository:
         logger.info(f"Ejecución creada: ID {execution.id} para workflow {workflow_id}")
         return execution
 
-    def complete_execution(self, execution_id: int, duration_ms: int,
-                           error_message: str | None = None) -> None:
+    def complete_execution(self, execution_id: int, duration_ms: int, error_message: str | None = None) -> None:
         """Marca una ejecución como completada o fallida."""
         status = "failed" if error_message else "completed"
         self._db.execute(
-            """UPDATE workflow_executions 
+            """UPDATE workflow_executions
                SET status = ?, completed_at = ?, duration_ms = ?, error_message = ?
                WHERE id = ?""",
             (status, now_iso(), duration_ms, error_message, execution_id),
@@ -282,38 +295,59 @@ class WorkflowRepository:
     def list_executions(self, workflow_id: int, limit: int = 50) -> list[WorkflowExecution]:
         """Lista las ejecuciones de un workflow."""
         rows = self._db.fetchall(
-            """SELECT * FROM workflow_executions 
-               WHERE workflow_id = ? 
+            """SELECT * FROM workflow_executions
+               WHERE workflow_id = ?
                ORDER BY started_at DESC LIMIT ?""",
             (workflow_id, limit),
         )
         return [
             WorkflowExecution(
-                id=r["id"], workflow_id=r["workflow_id"], status=r["status"],
+                id=r["id"],
+                workflow_id=r["workflow_id"],
+                status=r["status"],
                 trigger_data=json.loads(r["trigger_data"]) if r.get("trigger_data") else {},
-                started_at=r["started_at"], completed_at=r["completed_at"],
-                duration_ms=r["duration_ms"], error_message=r["error_message"],
+                started_at=r["started_at"],
+                completed_at=r["completed_at"],
+                duration_ms=r["duration_ms"],
+                error_message=r["error_message"],
             )
             for r in rows
         ]
 
     # ── Step Logs ────────────────────────────────────────────
 
-    def save_step_log(self, execution_id: int, step_id: int, tool: str,
-                      action: str, input_data: dict, output_data: dict | None,
-                      status: str, duration_ms: int,
-                      error_message: str | None = None, retry_count: int = 0) -> None:
+    def save_step_log(
+        self,
+        execution_id: int,
+        step_id: int,
+        tool: str,
+        action: str,
+        input_data: dict,
+        output_data: dict | None,
+        status: str,
+        duration_ms: int,
+        error_message: str | None = None,
+        retry_count: int = 0,
+    ) -> None:
         """Guarda el log de un paso ejecutado."""
         self._db.execute(
-            """INSERT INTO workflow_step_logs 
+            """INSERT INTO workflow_step_logs
                (execution_id, step_id, tool, action, input_data, output_data,
                 status, started_at, completed_at, duration_ms, error_message, retry_count)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                execution_id, step_id, tool, action,
-                json.dumps(input_data), json.dumps(output_data or {}),
-                status, now_iso(), now_iso(), duration_ms,
-                error_message, retry_count,
+                execution_id,
+                step_id,
+                tool,
+                action,
+                json.dumps(input_data),
+                json.dumps(output_data or {}),
+                status,
+                now_iso(),
+                now_iso(),
+                duration_ms,
+                error_message,
+                retry_count,
             ),
         )
         self._db.commit()
@@ -386,15 +420,20 @@ class WorkflowRepository:
 
         steps = steps or []
         # Sanitizar: resetear IDs de pasos (sin mutar el dict original)
-        steps = [
-            {**step, "id": i + 1} if isinstance(step, dict) else step
-            for i, step in enumerate(steps)
-        ]
+        steps = [{**step, "id": i + 1} if isinstance(step, dict) else step for i, step in enumerate(steps)]
 
         # Advertir sobre tools desconocidas (no bloqueante)
-        known_tools = {"crm", "invoice", "inventory", "notification",
-                       "system", "autopilot", "logic_gate",
-                       "api_connector", "data_keeper"}
+        known_tools = {
+            "crm",
+            "invoice",
+            "inventory",
+            "notification",
+            "system",
+            "autopilot",
+            "logic_gate",
+            "api_connector",
+            "data_keeper",
+        }
         for step in steps:
             tool = step.get("tool", "")
             if tool and tool not in known_tools:
@@ -403,13 +442,15 @@ class WorkflowRepository:
                     "se importará igual, pero puede fallar en ejecución"
                 )
 
-        wf = self.create(WorkflowDefinition(
-            name=name,
-            description=data.get("description", ""),
-            trigger_type=trigger_type,
-            trigger_config=trigger_config,
-            steps=steps,
-        ))
+        wf = self.create(
+            WorkflowDefinition(
+                name=name,
+                description=data.get("description", ""),
+                trigger_type=trigger_type,
+                trigger_config=trigger_config,
+                steps=steps,
+            )
+        )
         logger.info(f"Workflow importado: {wf.name} (ID: {wf.id})")
         return wf
 
@@ -418,7 +459,7 @@ class WorkflowRepository:
     def get_active_scheduled(self) -> list[WorkflowDefinition]:
         """Obtiene todos los workflows activos con trigger de tipo schedule."""
         rows = self._db.fetchall(
-            """SELECT * FROM workflow_definitions 
+            """SELECT * FROM workflow_definitions
                WHERE status = 'active' AND trigger_type = 'schedule'"""
         )
         return [WorkflowDefinition.from_dict(r) for r in rows]
@@ -426,7 +467,7 @@ class WorkflowRepository:
     def get_active_webhooks(self) -> list[WorkflowDefinition]:
         """Obtiene todos los workflows activos con trigger de tipo webhook."""
         rows = self._db.fetchall(
-            """SELECT * FROM workflow_definitions 
+            """SELECT * FROM workflow_definitions
                WHERE status = 'active' AND trigger_type = 'webhook'"""
         )
         return [WorkflowDefinition.from_dict(r) for r in rows]
@@ -487,6 +528,7 @@ class WorkflowRepository:
             return None
 
         from src.orbital.orbital_repository import OrbitalRepository
+
         orbital_repo = OrbitalRepository()
         orbital_def = orbital_repo.convert_linear_to_orbital(definition.to_dict())
         orbital_repo.save_orbital_workflow(orbital_def)
@@ -497,6 +539,7 @@ class WorkflowRepository:
     def get_orbital_stats(self) -> dict:
         """Retorna estadisticas de las tablas orbitales."""
         from src.orbital.db import OrbitalDB
+
         orbital_db = OrbitalDB()
         stats = orbital_db.get_stats()
         orbital_db.close()

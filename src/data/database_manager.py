@@ -2,17 +2,18 @@
 Workflow Determinista — Database Manager (Singleton SQLite)
 Gestion de UNA sola base de datos: workflow_determinista.db
 """
+
+import json as _json
 import os
 import sqlite3
 import threading
 from pathlib import Path
-import json as _json
 from typing import TypeVar
-
-T = TypeVar("T")
 
 from src.config import DB_PATH
 from src.utils.logger import setup_logging
+
+T = TypeVar("T")
 
 logger = setup_logging(__name__)
 
@@ -411,6 +412,7 @@ class DatabaseManager:
         dest = Path(dest_path)
         if dest.is_dir():
             import datetime
+
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             dest = dest / f"workflow_determinista_backup_{timestamp}.db"
 
@@ -445,14 +447,16 @@ class DatabaseManager:
 
     # ── Audit helpers ────────────────────────────────────────
 
-    def audit(self, event: str, details: str | None = None,
-              ip_address: str | None = None, user_id: int | None = None) -> None:
+    def audit(
+        self, event: str, details: str | None = None, ip_address: str | None = None, user_id: int | None = None
+    ) -> None:
         """Registra un evento de auditoria."""
         self.execute(
             "INSERT INTO audit_log (event, details, ip_address, user_id) VALUES (?, ?, ?, ?)",
             (event, details, ip_address, user_id),
         )
         import random
+
         if random.random() < 0.1:
             count = self.fetchone("SELECT COUNT(*) as c FROM audit_log")
             if count and count["c"] > self._max_audit_logs:
@@ -466,11 +470,12 @@ class DatabaseManager:
 
     # ── User helpers ─────────────────────────────────────────
 
-    def create_user(self, username: str, password: str,
-                    role: str = "admin", display_name: str = "",
-                    email: str = "") -> dict:
+    def create_user(
+        self, username: str, password: str, role: str = "admin", display_name: str = "", email: str = ""
+    ) -> dict:
         """Crea un nuevo usuario con contraseña hasheada."""
         import bcrypt
+
         hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
         cursor = self.execute(
             "INSERT INTO users (username, password_hash, role, display_name, email) VALUES (?, ?, ?, ?, ?)",
@@ -482,7 +487,9 @@ class DatabaseManager:
     def get_user(self, user_id: int) -> dict | None:
         """Obtiene un usuario por ID."""
         return self.fetchone(
-            "SELECT id, username, role, display_name, email, is_active, created_at, last_login_at FROM users WHERE id = ?",
+            "SELECT id, username, role, display_name, "
+            "email, is_active, created_at, last_login_at "
+            "FROM users WHERE id = ?",
             (user_id,),
         )
 
@@ -493,7 +500,9 @@ class DatabaseManager:
     def list_users(self) -> list[dict]:
         """Lista todos los usuarios activos."""
         return self.fetchall(
-            "SELECT id, username, role, display_name, email, is_active, created_at, last_login_at FROM users ORDER BY username"
+            "SELECT id, username, role, display_name, "
+            "email, is_active, created_at, last_login_at "
+            "FROM users ORDER BY username"
         )
 
     def update_user(self, user_id: int, updates: dict) -> bool:

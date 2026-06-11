@@ -6,6 +6,7 @@ Permite a los usuarios crear sus propias estructuras de datos sin modificar
 el código fuente, ideales para almacenar información que no encaja en las
 tablas predefinidas del sistema.
 """
+
 from src.tools.data_keeper.repository import DataKeeperRepository
 from src.utils.logger import setup_logging
 
@@ -76,8 +77,7 @@ class DataKeeperService:
         """
         return self._repo.insert(collection, data)
 
-    def query(self, collection: str, filters: dict | None = None,
-              limit: int = 100, offset: int = 0) -> list[dict]:
+    def query(self, collection: str, filters: dict | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
         """
         Consulta registros con filtros opcionales.
 
@@ -131,61 +131,73 @@ class DataKeeperService:
                     "name": "Insertar registro",
                     "description": "Inserta un nuevo registro en una colección",
                     "params": [
-                        {"name": "collection", "type": "string",
-                         "required": True, "label": "Colección",
-                         "placeholder": "nombre_de_la_coleccion"},
-                        {"name": "data", "type": "dict",
-                         "required": True, "label": "Datos",
-                         "placeholder": '{"campo1": "valor1", "campo2": 123}'},
+                        {
+                            "name": "collection",
+                            "type": "string",
+                            "required": True,
+                            "label": "Colección",
+                            "placeholder": "nombre_de_la_coleccion",
+                        },
+                        {
+                            "name": "data",
+                            "type": "dict",
+                            "required": True,
+                            "label": "Datos",
+                            "placeholder": '{"campo1": "valor1", "campo2": 123}',
+                        },
                     ],
                 },
                 "query": {
                     "name": "Consultar registros",
                     "description": "Consulta registros de una colección",
                     "params": [
-                        {"name": "collection", "type": "string",
-                         "required": True, "label": "Colección"},
-                        {"name": "filters", "type": "dict",
-                         "required": False, "default": {},
-                         "label": "Filtros",
-                         "placeholder": '{"campo": "valor"}'},
-                        {"name": "limit", "type": "number",
-                         "required": False, "default": 100,
-                         "label": "Límite"},
+                        {"name": "collection", "type": "string", "required": True, "label": "Colección"},
+                        {
+                            "name": "filters",
+                            "type": "dict",
+                            "required": False,
+                            "default": {},
+                            "label": "Filtros",
+                            "placeholder": '{"campo": "valor"}',
+                        },
+                        {"name": "limit", "type": "number", "required": False, "default": 100, "label": "Límite"},
                     ],
                 },
                 "update": {
                     "name": "Actualizar registro",
                     "description": "Actualiza un registro existente",
                     "params": [
-                        {"name": "collection", "type": "string",
-                         "required": True, "label": "Colección"},
-                        {"name": "record_id", "type": "number",
-                         "required": True, "label": "ID del registro"},
-                        {"name": "data", "type": "dict",
-                         "required": True, "label": "Datos a actualizar",
-                         "placeholder": '{"campo": "nuevo_valor"}'},
+                        {"name": "collection", "type": "string", "required": True, "label": "Colección"},
+                        {"name": "record_id", "type": "number", "required": True, "label": "ID del registro"},
+                        {
+                            "name": "data",
+                            "type": "dict",
+                            "required": True,
+                            "label": "Datos a actualizar",
+                            "placeholder": '{"campo": "nuevo_valor"}',
+                        },
                     ],
                 },
                 "delete": {
                     "name": "Eliminar registro",
                     "description": "Elimina un registro de una colección",
                     "params": [
-                        {"name": "collection", "type": "string",
-                         "required": True, "label": "Colección"},
-                        {"name": "record_id", "type": "number",
-                         "required": True, "label": "ID del registro"},
+                        {"name": "collection", "type": "string", "required": True, "label": "Colección"},
+                        {"name": "record_id", "type": "number", "required": True, "label": "ID del registro"},
                     ],
                 },
                 "create_collection": {
                     "name": "Crear colección",
                     "description": "Crea una nueva colección con schema",
                     "params": [
-                        {"name": "name", "type": "string",
-                         "required": True, "label": "Nombre de la colección"},
-                        {"name": "schema", "type": "dict",
-                         "required": True, "label": "Schema",
-                         "placeholder": '{"campo1": "string", "campo2": "number"}'},
+                        {"name": "name", "type": "string", "required": True, "label": "Nombre de la colección"},
+                        {
+                            "name": "schema",
+                            "type": "dict",
+                            "required": True,
+                            "label": "Schema",
+                            "placeholder": '{"campo1": "string", "campo2": "number"}',
+                        },
                     ],
                 },
                 "list_collections": {

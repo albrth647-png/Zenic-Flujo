@@ -43,17 +43,20 @@ class MercadoPagoService:
 
     API_BASE = "https://api.mercadopago.com"
 
-    def create_preference(self, access_token: str = "",
-                          items: list[dict] | None = None,
-                          external_reference: str = "",
-                          back_urls: dict | None = None,
-                          auto_return: str = "approved",
-                          notification_url: str = "",
-                          payer: dict | None = None,
-                          expires: bool = False,
-                          expiration_date_from: str = "",
-                          expiration_date_to: str = "",
-                          timeout: int = 30) -> dict:
+    def create_preference(
+        self,
+        access_token: str = "",
+        items: list[dict] | None = None,
+        external_reference: str = "",
+        back_urls: dict | None = None,
+        auto_return: str = "approved",
+        notification_url: str = "",
+        payer: dict | None = None,
+        expires: bool = False,
+        expiration_date_from: str = "",
+        expiration_date_to: str = "",
+        timeout: int = 30,
+    ) -> dict:
         """
         Crea una preferencia de pago (Checkout Pro).
 
@@ -99,6 +102,7 @@ class MercadoPagoService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self.API_BASE}/checkout/preferences",
                 headers={
@@ -133,9 +137,7 @@ class MercadoPagoService:
             logger.error(f"MercadoPago preference error: {e}")
             return self._error(str(e))
 
-    def get_payment(self, access_token: str = "",
-                    payment_id: int = 0,
-                    timeout: int = 15) -> dict:
+    def get_payment(self, access_token: str = "", payment_id: int = 0, timeout: int = 15) -> dict:
         """
         Consulta el estado de un pago.
 
@@ -153,6 +155,7 @@ class MercadoPagoService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self.API_BASE}/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -176,12 +179,8 @@ class MercadoPagoService:
                 "payment_method": p.get("payment_method_id", ""),
                 "external_reference": p.get("external_reference", ""),
                 "description": p.get("description", ""),
-                "fee": p.get("transaction_details", {}).get(
-                    "total_fee_amount", 0
-                ),
-                "net_amount": p.get("transaction_details", {}).get(
-                    "net_received_amount", 0
-                ),
+                "fee": p.get("transaction_details", {}).get("total_fee_amount", 0),
+                "net_amount": p.get("transaction_details", {}).get("net_received_amount", 0),
                 "created": p.get("date_created", ""),
             }
 
@@ -191,12 +190,15 @@ class MercadoPagoService:
             logger.error(f"MercadoPago payment error: {e}")
             return self._error(str(e))
 
-    def search_payments(self, access_token: str = "",
-                        status: str | None = None,
-                        external_reference: str | None = None,
-                        limit: int = 20,
-                        offset: int = 0,
-                        timeout: int = 15) -> dict:
+    def search_payments(
+        self,
+        access_token: str = "",
+        status: str | None = None,
+        external_reference: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+        timeout: int = 15,
+    ) -> dict:
         """
         Busca pagos en MercadoPago.
 
@@ -221,6 +223,7 @@ class MercadoPagoService:
 
         try:
             import requests
+
             resp = requests.get(
                 f"{self.API_BASE}/v1/payments/search",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -260,11 +263,14 @@ class MercadoPagoService:
             logger.error(f"MercadoPago search error: {e}")
             return self._error(str(e))
 
-    def create_customer(self, access_token: str = "",
-                        email: str = "",
-                        name: str = "",
-                        identification: dict | None = None,
-                        timeout: int = 15) -> dict:
+    def create_customer(
+        self,
+        access_token: str = "",
+        email: str = "",
+        name: str = "",
+        identification: dict | None = None,
+        timeout: int = 15,
+    ) -> dict:
         """
         Crea un customer en MercadoPago (para guardar tarjetas).
 
@@ -290,6 +296,7 @@ class MercadoPagoService:
 
         try:
             import requests
+
             resp = requests.post(
                 f"{self.API_BASE}/v1/customers",
                 headers={
@@ -319,8 +326,7 @@ class MercadoPagoService:
             logger.error(f"MercadoPago customer error: {e}")
             return self._error(str(e))
 
-    def process_webhook(self, access_token: str = "",
-                        notification_data: dict | None = None) -> dict:
+    def process_webhook(self, access_token: str = "", notification_data: dict | None = None) -> dict:
         """
         Procesa una notificación webhook de MercadoPago.
 
@@ -384,27 +390,22 @@ class MercadoPagoService:
                     "name": "Crear preferencia",
                     "description": "Crea link de pago Checkout Pro",
                     "params": [
-                        {"name": "items", "type": "list", "required": True,
-                         "label": "Items"},
-                        {"name": "external_reference", "type": "string",
-                         "default": "", "label": "Referencia externa"},
-                        {"name": "notification_url", "type": "string",
-                         "default": "", "label": "URL de notificación"},
+                        {"name": "items", "type": "list", "required": True, "label": "Items"},
+                        {"name": "external_reference", "type": "string", "default": "", "label": "Referencia externa"},
+                        {"name": "notification_url", "type": "string", "default": "", "label": "URL de notificación"},
                     ],
                 },
                 "get_payment": {
                     "name": "Consultar pago",
                     "description": "Estado de un pago",
                     "params": [
-                        {"name": "payment_id", "type": "number",
-                         "required": True, "label": "ID del pago"},
+                        {"name": "payment_id", "type": "number", "required": True, "label": "ID del pago"},
                     ],
                 },
                 "search_payments": {
                     "name": "Buscar pagos",
                     "params": [
-                        {"name": "status", "type": "string",
-                         "default": "", "label": "Estado"},
+                        {"name": "status", "type": "string", "default": "", "label": "Estado"},
                     ],
                 },
             },
