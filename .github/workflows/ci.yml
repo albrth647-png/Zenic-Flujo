@@ -80,8 +80,8 @@ jobs:
             --tb=short
         env:
           WFD_PRODUCTION: false
-          WFD_SESSION_SECRET: REDACTED
-          WFD_LICENSE_SECRET: REDACTED
+          WFD_SESSION_SECRET: ${{ secrets.WFD_SESSION_SECRET }}
+          WFD_LICENSE_SECRET: ${{ secrets.WFD_LICENSE_SECRET }}
           PYTHONPATH: .
 
       - name: Upload coverage artifact
@@ -122,8 +122,8 @@ jobs:
         run: |
           docker run --rm -d \
             --name zenic-test \
-            -e WFD_SESSION_SECRET=REDACTED \
-            -e WFD_LICENSE_SECRET=REDACTED \
+            -e WFD_SESSION_SECRET=${{ secrets.WFD_SESSION_SECRET }} \
+            -e WFD_LICENSE_SECRET=${{ secrets.WFD_LICENSE_SECRET }} \
             -p 8080:8080 \
             zenic-flijo:${{ github.sha }}
           sleep 5
@@ -138,6 +138,30 @@ jobs:
           if [ "$SIZE_MB" -gt 300 ]; then
             echo "::warning::Image size (${SIZE_MB}MB) exceeds 300MB target"
           fi
+
+  # ── Secrets Scan ──────────────────────────────────────────
+  secretscan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install detect-secrets
+        run: pip install detect-secrets
+
+      - name: Run detect-secrets scan
+        run: |
+          detect-secrets scan src/ --baseline .secrets.baseline
+        continue-on-error: false
 
   # ── Security Audit ───────────────────────────────────────
   security:
