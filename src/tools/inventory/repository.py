@@ -3,6 +3,7 @@ Workflow Determinista — Inventory Repository
 """
 
 from src.data.database_manager import DatabaseManager
+from src.utils.sql import build_update_query
 
 
 class InventoryRepository:
@@ -52,16 +53,12 @@ class InventoryRepository:
 
     def update_product(self, product_id: int, **fields) -> dict | None:
         allowed = {"sku", "name", "description", "category", "stock", "min_stock", "price"}
-        set_parts = []
-        params = []
-        for k, v in fields.items():
-            if k in allowed:
-                set_parts.append(f"{k} = ?")
-                params.append(v)
-        if not set_parts:
+        result = build_update_query("products", allowed, fields)
+        if result is None:
             return self.get_product(product_id)
-        params.append(product_id)
-        self._db.execute("UPDATE products SET " + ", ".join(set_parts) + " WHERE id = ?", tuple(params))
+        sql, params = result
+        # Append el valor del WHERE (id = ?) al final de los params
+        self._db.execute(sql, (*params, product_id))
         self._db.commit()
         return self.get_product(product_id)
 

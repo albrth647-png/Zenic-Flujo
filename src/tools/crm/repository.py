@@ -5,6 +5,7 @@ Workflow Determinista — CRM Repository
 from datetime import datetime
 
 from src.data.database_manager import DatabaseManager
+from src.utils.sql import build_update_query
 
 
 class CRMRepository:
@@ -58,19 +59,18 @@ class CRMRepository:
         )
 
     def update_lead(self, lead_id: int, **fields) -> dict | None:
-        allowed = {"name", "email", "phone", "company", "stage", "source", "notes"}
-        set_parts = []
-        params = []
-        for key, value in fields.items():
-            if key in allowed:
-                set_parts.append(f"{key} = ?")
-                params.append(value)
-        if not set_parts:
+        allowed = {"name", "email", "phone", "company", "stage", "source", "notes", "updated_at"}
+        result = build_update_query(
+            "leads",
+            allowed,
+            fields,
+            extra_set={"updated_at": datetime.now().isoformat()},
+        )
+        if result is None:
             return self.get_lead(lead_id)
-        set_parts.append("updated_at = ?")
-        params.append(datetime.now().isoformat())
-        params.append(lead_id)
-        self._db.execute("UPDATE leads SET " + ", ".join(set_parts) + " WHERE id = ?", tuple(params))
+        sql, params = result
+        # Append el valor del WHERE (id = ?) al final de los params
+        self._db.execute(sql, (*params, lead_id))
         self._db.commit()
         return self.get_lead(lead_id)
 

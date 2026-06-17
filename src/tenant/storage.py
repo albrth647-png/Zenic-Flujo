@@ -12,7 +12,6 @@ por tenant. Soporta dos modos de aislamiento:
 from __future__ import annotations
 
 import contextlib
-import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -20,6 +19,7 @@ from typing import Any
 from src.config import DATA_DIR
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
+from src.utils.sql import safe_drop_table_if_exists, validate_identifier
 
 logger = setup_logging(__name__)
 
@@ -273,7 +273,18 @@ class TenantStorageProvisioner:
         return {"status": "ok", "db_type": "schema", "connection_string": connection_string}
 
     def _deprovision_schema(self, connection_string: str) -> None:
-        """Elimina tablas con prefijo de la BD compartida."""
+        """Elimina tablas con prefijo de la BD compartida.
+
+        SEGURIDAD: El nombre de cada tabla se valida con `validate_identifier`
+        (regex `^[A-Za-z_][A-Za-z0-9_]{0,127}$`) y se dropea vía
+        `safe_drop_table_if_exists`, que usa quote-style de SQLite. Esto mitiga
+        Bandit B608 (SQL injection via string concatenation) y B607 (partial path).
+
+        El prefijo del tenant se pasa como parámetro `?` al SELECT inicial —
+        no se interpola. Los nombres de tabla retornados por sqlite_master
+        vienen de la propia BD (no de input externo), pero el patrón de
+        validación defende en profundidad contra compromisos de la BD.
+        """
         parts = connection_string.split(":")
         if len(parts) >= 3:
             prefix = parts[2]
@@ -285,10 +296,14 @@ class TenantStorageProvisioner:
             )
             for table in tables:
                 table_name = table["name"]
-                if not re.match(r"^[a-zA-Z0-9_]+$", table_name):
+                try:
+                    validate_identifier(table_name)
+                except ValueError:
                     logger.warning(f"Tenant: Nombre de tabla invalido ignorado: {table_name}")
                     continue
-                cursor.execute("DROP TABLE IF EXISTS \"" + table_name + "\"")
+                # Mitigación B608: usar helper con quote + validación estricta
+                # en vez de concatenación manual de strings.
+                safe_drop_table_if_exists(cursor, table_name)
             conn.commit()
             logger.info(f"Tenant: Tablas con prefijo '{prefix}' eliminadas")
 
