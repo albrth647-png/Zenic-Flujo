@@ -7,10 +7,9 @@ from __future__ import annotations
 from typing import Any
 
 from src.data.database_manager import DatabaseManager
-from src.security.sso.mapping import create_or_link_user, link_existing_user
+from src.security.sso.session import create_or_link_user, link_existing_user, create_sso_session
 from src.security.sso.oidc import OIDCHandler
 from src.security.sso.saml import SAMLHandler
-from src.security.sso.session import create_sso_session
 
 
 def register_sso_routes(app: Any, db: DatabaseManager | None = None) -> None:

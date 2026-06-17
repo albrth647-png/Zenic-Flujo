@@ -136,3 +136,40 @@ def get_pagination(
         PaginationParams: Parametros de paginacion validados
     """
     return PaginationParams(page=page, page_size=page_size)
+
+
+# ─── Re-exports de auth (BUG-ARCH-03) ────────────────────────────────────
+# Algunos routers importan `require_permission` y `get_current_user` desde
+# `dependencies`, otros desde `auth`. Para eliminar el drift y hacer ambos
+# imports válidos, re-exportamos aquí los símbolos de auth.
+# La fuente de verdad sigue siendo src/api_v2/auth.py.
+# Esto resuelve el ImportError que impedía cargar api_v2.app.
+
+from src.api_v2.auth import (  # noqa: E402  (import al final es intencional)
+    generate_token,
+    validate_token,
+    get_current_user,
+    get_optional_user,
+    require_permission,
+    get_tenant,
+)
+
+__all__ = [
+    "get_db",
+    "get_redis",
+    "get_workflow_engine",
+    "get_workflow_repository",
+    "get_nlu_pipeline",
+    "get_connector_registry",
+    "get_tenant_service",
+    "get_rbac_manager",
+    "get_telemetry_service",
+    "get_pagination",
+    # Re-exports de auth
+    "generate_token",
+    "validate_token",
+    "get_current_user",
+    "get_optional_user",
+    "require_permission",
+    "get_tenant",
+]

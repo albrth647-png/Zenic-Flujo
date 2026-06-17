@@ -20,12 +20,12 @@ Mobile Interaction Modes:
 4. Push Notifications — Firebase Cloud Messaging for alerts
 """
 
-from src.mobile.api import MobileAPIRouter
+from src.mobile.api import router as mobile_router
 from src.mobile.push import PushNotificationService
 from src.mobile.sync import OfflineSyncManager
 
 __all__ = [
-    "MobileAPIRouter",
+    "mobile_router",
     "OfflineSyncManager",
     "PushNotificationService",
 ]

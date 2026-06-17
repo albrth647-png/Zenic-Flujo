@@ -399,14 +399,10 @@ async def verify_mfa(
             return {"status": "verified", "method": request.method, "message": "Codigo MFA verificado"}
 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Codigo MFA invalido.")
-    APIKeyResponse,
-    ErrorResponse,
-    MFAEnableRequest,
-    MFAVerifyRequest,
-    RefreshTokenRequest,
-    TokenRequest,
-    TokenResponse,
-)
+
+
+# ─── API Keys CRUD ───────────────────────────────────────────────────────
+
 from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)

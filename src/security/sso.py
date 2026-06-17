@@ -16,7 +16,6 @@ import threading
 from src.data.database_manager import DatabaseManager
 from src.data.redis_service import RedisService
 from src.security.sso.keycloak import auto_configure_keycloak
-from src.security.sso.mapping import create_or_link_user, link_existing_user
 from src.security.sso.oidc import OIDCHandler
 from src.security.sso.provider_manager import (
     configure_provider,
@@ -29,7 +28,9 @@ from src.security.sso.routes import register_sso_routes
 from src.security.sso.saml import SAMLHandler
 from src.security.sso.session import (
     cleanup_expired_sessions,
+    create_or_link_user,
     create_sso_session,
+    link_existing_user,
     logout_session,
     validate_sso_session,
 )
