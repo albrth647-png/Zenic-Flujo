@@ -14,7 +14,6 @@ from __future__ import annotations
 import pytest
 
 from src.observability.alerts import (
-    DEFAULT_ALERT_COOLDOWN_SECONDS,
     DEFAULT_RULES,
     AlertEvent,
     AlertRule,
@@ -226,7 +225,7 @@ class TestAlertPersistence:
         )
 
         e1 = alert_service.evaluate_rule(rule)
-        e2 = alert_service.evaluate_rule(rule)
+        alert_service.evaluate_rule(rule)
         alert_service.resolve_alert(e1.id)  # type: ignore[arg-type]
 
         assert alert_service.count_alerts() == 2

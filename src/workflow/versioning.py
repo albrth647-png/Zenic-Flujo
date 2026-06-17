@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any
 
 from src.data.database_manager import DatabaseManager
@@ -108,7 +107,7 @@ class WorkflowVersion:
         }
 
     @classmethod
-    def from_row(cls, row: dict) -> "WorkflowVersion":
+    def from_row(cls, row: dict) -> WorkflowVersion:
         """Construye una WorkflowVersion desde una fila de DB."""
         return cls(
             id=row["id"],
@@ -155,7 +154,7 @@ class WorkflowEnvironment:
         }
 
     @classmethod
-    def from_row(cls, row: dict) -> "WorkflowEnvironment":
+    def from_row(cls, row: dict) -> WorkflowEnvironment:
         return cls(
             id=row["id"],
             workflow_id=row["workflow_id"],

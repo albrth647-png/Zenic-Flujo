@@ -121,20 +121,17 @@ def notification_service(db_manager):
 @pytest.fixture(autouse=True)
 def _ensure_test_license_keys(monkeypatch, db_path):
     """Genera claves Ed25519 para tests en el directorio temporal de la BD.
-    
+
     Parchea las rutas de keys.py (ya vinculadas a nivel de módulo)
     para que apunten al directorio temporal de la BD de test.
     """
-    import os
-    from pathlib import Path
-    
-    from src import license
+
     from src.license import keys as license_keys
-    
+
     # Parchear las constantes de keys.py (ya vinculadas a nivel de módulo)
     test_keys_dir = db_path.parent / "license_keys"
     test_keys_dir.mkdir(parents=True, exist_ok=True)
-    
+
     monkeypatch.setattr(license_keys, "KEYS_DIR", test_keys_dir)
     monkeypatch.setattr(license_keys, "PRIVATE_KEY_FILE", test_keys_dir / "private_key.enc")
     monkeypatch.setattr(license_keys, "PUBLIC_KEY_FILE", test_keys_dir / "public_key.pem")
@@ -147,7 +144,7 @@ def _ensure_test_license_keys(monkeypatch, db_path):
             license_keys.generate_keypair("test-admin-pw")
         except Exception as e:
             import warnings
-            warnings.warn(f"No se pudieron generar keys Ed25519 para tests: {e}")
+            warnings.warn(f"No se pudieron generar keys Ed25519 para tests: {e}", stacklevel=2)
 
 
 @pytest.fixture

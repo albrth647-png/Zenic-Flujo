@@ -29,6 +29,7 @@ from src.security.sso.session import (
     validate_sso_session,
 )
 
+
 # Re-export de SSOService desde el módulo legacy sso.py
 # Import diferido vía importlib para evitar circular import (sso.py importa de este paquete).
 # Cargamos sso.py como módulo "sso_legacy" para no chocar con el nombre del paquete.

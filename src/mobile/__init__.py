@@ -25,7 +25,7 @@ from src.mobile.push import PushNotificationService
 from src.mobile.sync import OfflineSyncManager
 
 __all__ = [
-    "mobile_router",
     "OfflineSyncManager",
     "PushNotificationService",
+    "mobile_router",
 ]

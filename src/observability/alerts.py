@@ -22,9 +22,9 @@ import json
 import smtplib
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 

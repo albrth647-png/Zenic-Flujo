@@ -16,7 +16,7 @@ CHARSET = LICENSE_CHARSET
 class LicenseGenerator:
     """
     Genera License Keys firmadas con Ed25519.
-    
+
     Almacena la firma completa (base64url) internamente para que
     LicenseValidator pueda acceder a ella durante activate_key().
     """

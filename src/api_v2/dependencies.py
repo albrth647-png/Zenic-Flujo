@@ -145,7 +145,7 @@ def get_pagination(
 # La fuente de verdad sigue siendo src/api_v2/auth.py.
 # Esto resuelve el ImportError que impedía cargar api_v2.app.
 
-from src.api_v2.auth import (  # noqa: E402  (import al final es intencional)
+from src.api_v2.auth import (
     generate_token,
     validate_token,
     get_current_user,
@@ -155,21 +155,21 @@ from src.api_v2.auth import (  # noqa: E402  (import al final es intencional)
 )
 
 __all__ = [
-    "get_db",
-    "get_redis",
-    "get_workflow_engine",
-    "get_workflow_repository",
-    "get_nlu_pipeline",
-    "get_connector_registry",
-    "get_tenant_service",
-    "get_rbac_manager",
-    "get_telemetry_service",
-    "get_pagination",
     # Re-exports de auth
     "generate_token",
-    "validate_token",
+    "get_connector_registry",
     "get_current_user",
+    "get_db",
+    "get_nlu_pipeline",
     "get_optional_user",
-    "require_permission",
+    "get_pagination",
+    "get_rbac_manager",
+    "get_redis",
+    "get_telemetry_service",
     "get_tenant",
+    "get_tenant_service",
+    "get_workflow_engine",
+    "get_workflow_repository",
+    "require_permission",
+    "validate_token",
 ]

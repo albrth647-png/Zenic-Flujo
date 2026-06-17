@@ -11,6 +11,7 @@ Verifica que el container:
 from __future__ import annotations
 
 import threading
+
 import pytest
 
 from src.container import Container, ContainerError, container, setup_default_container
@@ -134,7 +135,7 @@ class TestOverrides:
 
     def test_override_takes_precedence_over_cached(self, fresh_container: Container):
         fresh_container.register("svc", lambda: {"v": 1})
-        cached = fresh_container.resolve("svc")  # cachea
+        fresh_container.resolve("svc")  # cachea
 
         fresh_container.override("svc", {"v": 999})
         assert fresh_container.resolve("svc")["v"] == 999

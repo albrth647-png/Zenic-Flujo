@@ -18,8 +18,6 @@ from src.workflow.versioning import (
     EnvironmentService,
     InvalidPromotionError,
     PromotionService,
-    WorkflowEnvironment,
-    WorkflowPromotion,
     WorkflowVersionRepository,
 )
 

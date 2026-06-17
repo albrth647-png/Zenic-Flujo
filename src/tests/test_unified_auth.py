@@ -11,9 +11,6 @@ Verifica que:
 """
 from __future__ import annotations
 
-import importlib
-import sys
-
 
 class TestUnifiedAuthImports:
     """Verifica que ambos paths de import funcionan (auth y dependencies)."""
@@ -97,8 +94,9 @@ class TestSSOServiceAccessibility:
         assert hasattr(SSOService, "__init__")
 
     def test_sso_service_is_class(self):
-        from src.security.sso import SSOService
         import inspect
+
+        from src.security.sso import SSOService
         assert inspect.isclass(SSOService)
 
     def test_security_init_imports_sso_service(self):

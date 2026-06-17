@@ -7,12 +7,10 @@ funcionalidad.
 """
 from __future__ import annotations
 
-import pytest
-
-from src.tenant.resolver import TenantResolver
-from src.tenant.settings_service import TenantSettings
 from src.tenant.provisioner import TenantProvisioner
+from src.tenant.resolver import TenantResolver
 from src.tenant.service import TenantService
+from src.tenant.settings_service import TenantSettings
 
 
 class TestTenantResolver:

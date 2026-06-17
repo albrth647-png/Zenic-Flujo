@@ -6,11 +6,12 @@ Almacen cifrado para secretos del sistema con AES-256-GCM.
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import os
 import threading
 from pathlib import Path
-from typing import Any
+
 from src.utils.logger import setup_logging
 
 _CRYPTOGRAPHY_AVAILABLE = False
@@ -127,5 +128,4 @@ class SecretVault:
         data = {"version": VAULT_VERSION, "salt": base64.b64encode(self._salt).decode() if self._salt else "", "pbkdf2_iterations": PBKDF2_ITERATIONS, "verification": {"nonce": base64.b64encode(nonce).decode(), "ciphertext": base64.b64encode(verification_ct).decode()}, "secrets": self._secrets}
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with open(self._path, "w") as f: json.dump(data, f, indent=2, ensure_ascii=False)
-        try: self._path.chmod(0o600)
-        except OSError: pass
+        with contextlib.suppress(OSError): self._path.chmod(0o600)

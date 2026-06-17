@@ -36,7 +36,8 @@ dispersos por el código.
 from __future__ import annotations
 
 import threading
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -233,9 +234,9 @@ def setup_default_container() -> None:
 
     # ── Versioning (Sprint 9) ─────────────────────────────────
     from src.workflow.versioning import (
-        WorkflowVersionRepository,
         EnvironmentService,
         PromotionService,
+        WorkflowVersionRepository,
     )
 
     container.register("version_repository", lambda: WorkflowVersionRepository())

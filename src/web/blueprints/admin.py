@@ -225,13 +225,13 @@ def api_admin_metrics():
     Devuelve métricas del sistema en formato JSON para el dashboard admin.
     Combina datos de MetricsRegistry (Prometheus), WorkQueue y DeadLetterManager.
     """
-    from src.observability.metrics import MetricsRegistry
-    from src.events.work_queue import WorkQueue
-    from src.workflow.dead_letter import DeadLetterManager
     from src.data.database_manager import DatabaseManager
+    from src.events.work_queue import WorkQueue
+    from src.observability.metrics import MetricsRegistry
+    from src.workflow.dead_letter import DeadLetterManager
 
     db = DatabaseManager()
-    metrics = MetricsRegistry()
+    MetricsRegistry()
 
     # Work queue metrics
     queue = WorkQueue()
@@ -347,7 +347,7 @@ def api_admin_alerts_stats():
 @require_role("admin")
 def api_admin_alert_rules():
     """Lista las reglas de alerta configuradas."""
-    from src.observability.alerts import AlertService, DEFAULT_RULES
+    from src.observability.alerts import DEFAULT_RULES
 
     rules = [
         {
@@ -431,7 +431,6 @@ def _register_default_metric_providers(service) -> None:
     # workers_alive: por ahora 4 (DEFAULT_NUM_WORKERS) — en producción leer de WorkerManager
     def _workers_alive() -> float:
         try:
-            from src.events.worker_manager import WorkerManager
             # WorkerManager es singleton; si no está inicializado, retornar 0
             return 4.0  # valor por defecto conservador
         except Exception:

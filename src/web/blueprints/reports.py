@@ -86,9 +86,10 @@ def api_report_invoices(fmt):
 def api_report_audit(fmt):
     """Genera reporte del audit log en CSV o PDF.
     Necesario para compliance SOC 2 / GDPR."""
+    import io
+
     from src.data.audit_repository import AuditRepository
     from src.web.helpers import db
-    import io
 
     audit_repo = AuditRepository(db)
     entries = audit_repo.get_recent(limit=10000)
