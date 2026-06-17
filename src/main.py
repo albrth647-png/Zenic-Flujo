@@ -99,7 +99,7 @@ def register_tools(event_bus):
     engine.register_tool("crm", CRMService(event_bus=event_bus))
     engine.register_tool("invoice", InvoiceService(event_bus=event_bus))
     engine.register_tool("inventory", InventoryService(event_bus=event_bus))
-    engine.register_tool("notification", NotificationService(event_bus=event_bus))
+    engine.register_tool("notification", NotificationService())
     engine.register_tool("autopilot", AutoPilotService())
     engine.register_tool("logic_gate", LogicGateService(event_bus=event_bus))
     engine.register_tool("api_connector", APIConnectorService())

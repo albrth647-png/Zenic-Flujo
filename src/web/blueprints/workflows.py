@@ -145,9 +145,27 @@ def api_workflow_action(wf_id, action):
     return jsonify({"status": status})
 
 
+@bp.route("/api/workflows/<int:wf_id>/execute", methods=["POST"])
+@login_required
+@require_role("editor")
+def api_workflow_execute(wf_id):
+    """Ejecuta un workflow manualmente con trigger_data opcional del body."""
+    from src.workflow.engine import WorkflowEngine
+
+    body = request.get_json(silent=True) or {}
+    trigger_data = body.get("trigger_data", {})
+    engine = WorkflowEngine()
+    try:
+        result = engine.execute(wf_id, trigger_data)
+        return jsonify(result.to_dict())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
 @bp.route("/api/workflows/<int:wf_id>/history", methods=["GET"])
 @login_required
 def api_workflow_history(wf_id):
+    """Lista el historial de ejecuciones de un workflow."""
     limit = int(request.args.get("limit", 50))
     executions = repo.list_executions(wf_id, limit)
     return jsonify([e.to_dict() for e in executions])

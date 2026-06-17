@@ -18,7 +18,7 @@ from src.schemas import (
     StatusResponse,
 )
 from src.utils.logger import setup_logging
-from src.web.helpers import _check_rate_limit, db, login_required, repo, require_role
+from src.web.helpers import _check_rate_limit, _register_failed_login, db, login_required, repo, require_role
 
 users = UserRepository()
 audit = AuditRepository()
@@ -79,14 +79,17 @@ def api_login():
                 session.permanent = True
                 audit.log("login.success", f"Login legacy: {username}", ip, 1)
                 return jsonify(LoginResponse(status="ok", user=username).model_dump())
+        _register_failed_login(ip)
         audit.log("login.failed", f"Intento fallido para {username}", ip)
         return jsonify(ErrorResponse(error="auth_error", message="Credenciales invalidas").model_dump()), 401
 
     if not user.get("is_active", 1):
+        _register_failed_login(ip)
         return jsonify(ErrorResponse(error="user_disabled", message="Usuario desactivado").model_dump()), 403
 
     valid = _verify_password(password, user["password_hash"])
     if not valid:
+        _register_failed_login(ip)
         audit.log("login.failed", f"Intento fallido para {username}", ip, user["id"])
         return jsonify(ErrorResponse(error="auth_error", message="Credenciales invalidas").model_dump()), 401
 

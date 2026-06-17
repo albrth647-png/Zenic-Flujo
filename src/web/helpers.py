@@ -31,7 +31,11 @@ logger = setup_logging(__name__)
 db = DatabaseManager()
 repo = WorkflowRepository()
 event_bus: EventBus = EventBus()
-workflow_subscriber: WorkflowSubscriber = WorkflowSubscriber()
+# WorkflowSubscriber requiere event_bus y event_queue en __init__.
+# Inicializamos diferido: se asigna correctamente vía helpers.init() en main.py.
+# El valor None indica "no inicializado todavía" — los endpoints que lo usen
+# deben verificar o ser llamados después de helpers.init().
+workflow_subscriber: WorkflowSubscriber | None = None
 _login_attempts: dict[str, list[float]] = {}
 
 
@@ -68,7 +72,8 @@ def _sanitize(s: str) -> str:
 # ── Rate limiting ──────────────────────────────────────────
 
 def _check_rate_limit(ip: str) -> bool:
-    """Verifica rate limiting: 10 intentos cada 15 minutos por IP."""
+    """Verifica rate limiting: max LOGIN_MAX_ATTEMPTS intentos FALLIDOS cada LOGIN_WINDOW_MINUTES por IP.
+    Los logins exitosos NO cuentan contra el límite — solo los fallidos se registran."""
     now = _time.time()
     window = LOGIN_WINDOW_MINUTES * 60
     if ip not in _login_attempts:
@@ -76,8 +81,17 @@ def _check_rate_limit(ip: str) -> bool:
     _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < window]
     if len(_login_attempts[ip]) >= LOGIN_MAX_ATTEMPTS:
         return False
-    _login_attempts[ip].append(now)
+    # NO registrar aquí — solo registrar cuando el login FALLA (ver _register_failed_login)
     return True
+
+
+def _register_failed_login(ip: str) -> None:
+    """Registra un intento de login fallido para rate limiting.
+    Los logins exitosos NO llaman esta función, por lo que no cuentan contra el límite."""
+    now = _time.time()
+    if ip not in _login_attempts:
+        _login_attempts[ip] = []
+    _login_attempts[ip].append(now)
 
 
 # ── Decorators ─────────────────────────────────────────────
