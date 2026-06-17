@@ -1,14 +1,22 @@
-# ⚙️ Workflow Determinista
+# ⚙️ Zenic-Flijo v2.0.0
 
 **Automatización offline para tu negocio. Sin internet, sin mensualidades.**
 
-Workflow Determinista es un sistema de automatización de procesos de negocio que instalas en tu propia computadora, pagas una sola vez, y funciona 100% offline.
+Zenic-Flijo es un sistema de automatización de procesos de negocio que instalas en tu propia computadora, pagas una sola vez, y funciona 100% offline. Incluye el motor ORBITAL, un sistema circular determinista con convergencia garantizada por el Teorema del Punto Fijo de Brouwer.
+
+## ✨ Novedades v2.0.0
+
+- **Multi-entorno + Versioning** (Sprint 9): workflows en `dev → staging → prod` con promoción controlada, versionado inmutable y rollback.
+- **Monitoreo + Alertas** (Sprint 11): dashboard admin con métricas en tiempo real, sistema de alertas con reglas declarativas y notificadores email/Slack/webhook.
+- **Visualizador Orbital** (Sprint 12): visualización Canvas 2D en tiempo real del motor ORBITAL — el showcase del diferenciador competitivo.
+- **Frontend con strict mode TypeScript** + suite de tests vitest (39 tests).
+- **CI/CD con GitHub Actions** (backend ruff+pytest, frontend eslint+tsc+vitest).
 
 ## 🚀 Instalación Rápida
 
 ### Opción 1: Ejecutable (Windows/Linux)
-1. Descarga el instalador desde [GitHub Releases](https://github.com/tuusuario/workflow-determinista/releases)
-2. Haz doble clic en `WorkflowDeterminista_v1.0.exe`
+1. Descarga el instalador desde [GitHub Releases](https://github.com/albrth647-png/Zenic-Flijo/releases)
+2. Haz doble clic en `ZenicFlijo_v2.0.exe`
 3. Sigue las instrucciones del instalador
 4. Abre `http://localhost:8080` en tu navegador
 

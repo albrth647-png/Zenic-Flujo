@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { OrbitalVisualizer } from "@/components/orbital/OrbitalVisualizer"
 import {
   Activity,
   RefreshCw,
@@ -262,7 +263,7 @@ export default function OrbitalPage() {
   const [error, setError] = useState<string | null>(null)
   const [ticking, setTicking] = useState(false)
   const [resetting, setResetting] = useState(false)
-  const [activeTab, setActiveTab] = useState("variables")
+  const [activeTab, setActiveTab] = useState("visualizer")
 
   // Diálogo nueva variable
   const [showVarDialog, setShowVarDialog] = useState(false)
@@ -553,6 +554,13 @@ export default function OrbitalPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="border-zinc-800 bg-zinc-900 flex-wrap">
           <TabsTrigger
+            value="visualizer"
+            className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100"
+          >
+            <Activity className="mr-1.5 h-4 w-4" />
+            Visualizador
+          </TabsTrigger>
+          <TabsTrigger
             value="variables"
             className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100"
           >
@@ -588,6 +596,11 @@ export default function OrbitalPage() {
             Historial
           </TabsTrigger>
         </TabsList>
+
+        {/* ── Visualizador (Sprint 12) ── */}
+        <TabsContent value="visualizer" className="mt-4">
+          <OrbitalVisualizer size={480} />
+        </TabsContent>
 
         {/* ── Variables ── */}
         <TabsContent value="variables" className="mt-4">
