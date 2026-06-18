@@ -46,6 +46,16 @@ INTENT_EVENTS: dict[str, str] = {
     "factura_vencida": "invoice.overdue",
     "producto_agotado": "inventory.stock_out",
     "archivo_nuevo": "file.created",
+    # Nuevos intents v2.0
+    "email_lead_nuevo": "crm.lead.created",
+    "whatsapp_lead_nuevo": "crm.lead.created",
+    "lead_cualificado_ventas": "crm.lead.stage_changed",
+    "lead_perdido_analisis": "crm.lead.stage_changed",
+    "email_pago_recibido": "payment.received",
+    "factura_pagada_thankyou": "invoice.paid",
+    "alerta_precio_cambio": "inventory.price_changed",
+    "confirmacion_pedido": "order.created",
+    "encuesta_satisfaccion": "crm.lead.stage_changed",
 }
 
 
@@ -193,6 +203,9 @@ class WorkflowCompiler:
         """
         settings_defaults: dict[str, str] = {
             "admin_email": "admin@corp.com",
+            "admin_phone": "+1234567890",
+            "telegram_chat_id": "",
+            "shopify_url": "",
         }
 
         def _resolve_string(s: str) -> str:

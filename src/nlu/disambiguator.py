@@ -12,19 +12,17 @@ from __future__ import annotations
 from src.nlu.entities.base import IntentMatch
 
 # Umbral: si la diferencia entre el mejor y segundo es menor a esto, hay ambigüedad
-# Ajustado a 0.05 (era 0.1) — el TF-IDF del IntentClassifier normaliza por el total
-# de keywords del template (típicamente 7-10), así que un solo match da ~10-15%.
-# Con 0.1 de threshold, casi todo queda como ambiguo. 0.05 es más realista.
-AMBIGUITY_THRESHOLD = 0.05
+# Ajustado a 0.02 — con 30+ templates, los scores son bajos pero el ranking es correcto.
+# La diferencia entre el intent correcto y el segundo suele ser >0.02.
+AMBIGUITY_THRESHOLD = 0.02
 
-# Umbral mínimo de score para aceptar una intención (era 0.2).
-# El TF-IDF normalizado rara vez supera 0.15 con 1-2 matches de keywords.
-# Bajar a 0.05 permite detectar intenciones con evidencia parcial.
-MIN_ACCEPTANCE_THRESHOLD = 0.05
+# Umbral mínimo de score para aceptar una intención.
+# Con 30+ templates, un solo match da ~3-5%. Bajar a 0.03 acepta esos casos.
+MIN_ACCEPTANCE_THRESHOLD = 0.03
 
-# Umbral para aceptar cuando hay múltiples candidatos cercanos (era 0.5).
-# Prácticamente inalcanzable con la normalización actual. 0.15 es realista.
-MULTI_CANDIDATE_THRESHOLD = 0.15
+# Umbral para aceptar cuando hay múltiples candidatos cercanos.
+# Con 30+ templates, múltiples candidatos es común. 0.10 es realista.
+MULTI_CANDIDATE_THRESHOLD = 0.10
 
 
 class Disambiguator:

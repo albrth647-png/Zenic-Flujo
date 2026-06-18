@@ -14,31 +14,33 @@ from src.nlu.entities.base import Entity, IntentMatch, Slot
 
 # ── Definición de slots por intención ───────────────────
 # Cada intención tiene su lista de slots (nombre, tipo, required, default)
+# Los defaults usan $settings.xxx para slots que pueden inferirse del contexto.
 INTENT_SLOTS: dict[str, list[dict[str, object]]] = {
     "registro_cliente": [
-        {"name": "nombre", "entity_type": "text", "required": True, "default": ""},
-        {"name": "email_destino", "entity_type": "email", "required": True, "default": ""},
+        {"name": "nombre", "entity_type": "text", "required": False, "default": "Cliente"},
+        {"name": "email_destino", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
         {"name": "telefono", "entity_type": "phone", "required": False, "default": ""},
     ],
     "alerta_stock_bajo": [
         {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
         {"name": "umbral_stock", "entity_type": "qty", "required": False, "default": "10"},
+        {"name": "frecuencia", "entity_type": "cron", "required": False, "default": "0 9 * * *"},
     ],
     "factura_automatica": [
-        {"name": "frecuencia", "entity_type": "cron", "required": True, "default": "0 9 * * 1"},
+        {"name": "frecuencia", "entity_type": "cron", "required": False, "default": "0 9 * * 1"},
         {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
     ],
     "backup_automatico": [
-        {"name": "frecuencia", "entity_type": "cron", "required": True, "default": "0 23 * * *"},
+        {"name": "frecuencia", "entity_type": "cron", "required": False, "default": "0 23 * * *"},
     ],
     "email_cumpleanos": [
-        {"name": "frecuencia", "entity_type": "cron", "required": True, "default": "0 8 * * *"},
+        {"name": "frecuencia", "entity_type": "cron", "required": False, "default": "0 8 * * *"},
     ],
     "lead_avanzar_etapa": [
         {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
     ],
     "factura_vencida": [
-        {"name": "email_cliente", "entity_type": "email", "required": True, "default": ""},
+        {"name": "email_cliente", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
     ],
     "producto_agotado": [
         {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
@@ -48,6 +50,71 @@ INTENT_SLOTS: dict[str, list[dict[str, object]]] = {
     ],
     "archivo_nuevo": [
         {"name": "carpeta", "entity_type": "text", "required": False, "default": "/uploads"},
+    ],
+    # ── Nuevos intents (v2.0 — producción) ──────────────
+    "email_lead_nuevo": [
+        {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "whatsapp_lead_nuevo": [
+        {"name": "phone_admin", "entity_type": "phone", "required": False, "default": "$settings.admin_phone"},
+    ],
+    "telegram_mensaje_grupo": [
+        {"name": "chat_id", "entity_type": "text", "required": False, "default": "$settings.telegram_chat_id"},
+        {"name": "mensaje", "entity_type": "text", "required": False, "default": "Notificación automática"},
+    ],
+    "stripe_crear_cliente": [
+        {"name": "nombre", "entity_type": "text", "required": False, "default": "Cliente"},
+        {"name": "email_destino", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "stripe_crear_pago": [
+        {"name": "monto", "entity_type": "money", "required": False, "default": "1000"},
+        {"name": "descripcion", "entity_type": "text", "required": False, "default": "Pago por producto"},
+    ],
+    "mercadopago_preferencia": [
+        {"name": "monto", "entity_type": "money", "required": False, "default": "100"},
+        {"name": "descripcion", "entity_type": "text", "required": False, "default": "Producto"},
+        {"name": "email_destino", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "openai_chat": [
+        {"name": "prompt", "entity_type": "text", "required": False, "default": "Hola"},
+    ],
+    "reporte_diario_crm": [
+        {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "sync_inventario_shopify": [
+        {"name": "shopify_url", "entity_type": "url", "required": False, "default": "$settings.shopify_url"},
+    ],
+    "email_pago_recibido": [
+        {"name": "email_cliente", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "lead_cualificado_ventas": [
+        {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "factura_pagada_thankyou": [
+        {"name": "email_cliente", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "stock_reposicion_automatica": [
+        {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "notificacion_slack": [
+        {"name": "canal", "entity_type": "text", "required": False, "default": "#general"},
+        {"name": "mensaje", "entity_type": "text", "required": False, "default": "Notificación automática"},
+    ],
+    "lead_perdido_analisis": [
+        {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "sync_drive_backup": [],
+    "encuesta_satisfaccion": [
+        {"name": "email_cliente", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "newsletter_semanal": [
+        {"name": "mensaje", "entity_type": "text", "required": False, "default": "Newsletter semanal - novedades de la semana"},
+    ],
+    "alerta_precio_cambio": [
+        {"name": "email_admin", "entity_type": "email", "required": False, "default": "$settings.admin_email"},
+    ],
+    "confirmacion_pedido": [
+        {"name": "phone_cliente", "entity_type": "phone", "required": False, "default": "$settings.admin_phone"},
     ],
 }
 
