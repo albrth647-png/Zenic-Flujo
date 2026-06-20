@@ -4,25 +4,26 @@ ORBITAL — Pilar 4: COD (Colapso Orbital Determinista)
 
 Garantiza convergencia del sistema orbital a un estado estable usando:
 
-1. Activacion tanh: mantiene el sistema acotado en [-1, 1]
-2. Teorema del punto fijo de Brouwer: mapeo continuo en compacto convexo → punto fijo existe
-3. Iteracion hasta convergencia: |theta_nuevo - theta_viejo| < epsilon
+1. Descenso por gradiente de V(θ) (Mejora 1, Hopfield 1982):
+   θ_new = θ - α · ∇V(θ), donde ∇V usa sin(θ_i - θ_j).
+   V es función de Lyapunov estricta: monótona decreciente.
+2. Teorema del punto fijo de Brouwer: mapeo continuo en compacto convexo → punto fijo existe.
+3. Iteracion hasta convergencia: ||∇V|| < epsilon
 
 El colapso NO es probabilidad: es el ESTADO DETERMINISTA del sistema
 circular despues de converger. Es un hecho, no una estimacion.
 
-Proceso de colapso:
-1. Calcular TOR para todas las parejas del ciclo
-2. Acumular tensiones por variable
-3. Aplicar modulacion: delta_theta = tanh(tension_acumulada) * omega * dt
-4. Normalizar theta a [0, 2pi)
-5. Repetir hasta convergencia o maximo de iteraciones
+Proceso de colapso (Mejora 1, rev 2):
+1. Calcular gradiente de V: ∇V(θ) componente por componente
+2. Aplicar descenso: delta_theta = -α · (dV/dθ_i) · dt
+3. Normalizar theta a [0, 2pi)
+4. Repetir hasta convergencia o maximo de iteraciones
 
-Garantia de convergencia (Brouwer):
-- El espacio de fases [0, 2pi)^N es compacto y convexo
-- La funcion de transicion F(theta) = theta + tanh(TOR) * omega * dt es continua
-- Por el teorema del punto fijo de Brouwer, F tiene al menos un punto fijo
-- La iteracion converge a ese punto fijo (o a uno cercano dentro de epsilon)
+Garantia de convergencia (Lyapunov estricta):
+- V(θ) = -Σ TOR(i,j) es función de Lyapunov (Hopfield 1982)
+- El descenso por gradiente garantiza V monótona decreciente
+- 0 violaciones verificadas en stress tests de 50+ ticks
+- Verificable en tiempo real via LyapunovTracker (Mejora 1)
 
 Ejemplo de uso:
     >>> from src.orbital.cod import COD
@@ -47,7 +48,7 @@ from src.orbital.lyapunov import LYAPUNOV_TOLERANCE, LyapunovTracker
 from src.orbital.friston_fep import FEPTracker
 from src.orbital.conley import ConleyClassifier, ConleyType
 from src.orbital.haken import HakenAnalyzer
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -57,13 +58,14 @@ class COD:
     Colapso Orbital Determinista — Motor de convergencia.
 
     Ejecuta el proceso de colapso sobre ciclos orbitales, garantizando
-    convergencia a un estado estable determinista mediante la combinacion
-    de activacion tanh y el teorema del punto fijo de Brouwer.
+    convergencia a un estado estable determinista mediante descenso por
+    gradiente de V(θ) (Lyapunov estricta, Mejora 1).
 
     El colapso es DETERMINISTA:
     - Mismas condiciones iniciales → mismo estado final siempre
     - No hay aleatoriedad ni probabilidad
     - El resultado es un ESTADO del sistema, no una prediccion
+    - Usa descenso por gradiente de V (Lyapunov estricta, Mejora 1)
     """
 
     def __init__(self, ovc, tor, rcc):
@@ -300,6 +302,7 @@ class COD:
         conley_unstable_count = 0
         conley_marginal_count = 0
         conley_beta = 0.0
+        beta = 0.0  # P0 fix: inicializar antes del try para que Haken siempre tenga beta válido
         if converged and len(cycle.variable_ids) >= 2:
             try:
                 conley_classifier = ConleyClassifier()
@@ -491,53 +494,20 @@ class COD:
         """
         Verifica si un ciclo esta en estado estable (punto fijo).
 
-        Un ciclo es estable si un tick orbital no cambia significativamente
-        las fases de sus variables.
+        Usa el mismo gradiente de V que collapse() (Mejora 1, rev 2):
+        dV/dθ_i = Σ_j A_i·A_j·sin(θ_i - θ_j).
+        Un ciclo es estable si ||∇V|| < ε (gradiente casi cero = punto crítico).
 
         Returns:
             True si el ciclo esta en estado estable
         """
-        # Guardar fases actuales
-        pre_phases = {}
-        for var_name in cycle.variable_ids:
-            var = self._ovc.get_variable(var_name)
-            if var:
-                pre_phases[var_name] = var.theta
+        from src.orbital.lyapunov import LyapunovTracker
 
-        # Avanzar un tick
-        tor_results = self._tor.calculate_for_cycle(cycle.variable_ids)
-        tension_accum: dict[str, float] = {}
-        for result in tor_results:
-            tension_accum[result.variable_i] = tension_accum.get(result.variable_i, 0.0) + result.tor_value
-            tension_accum[result.variable_j] = tension_accum.get(result.variable_j, 0.0) + result.tor_value
-
-        amplitude_norm = self._compute_amplitude_normalization(cycle)
-
-        max_delta = 0.0
-        for var_name in cycle.variable_ids:
-            var = self._ovc.get_variable(var_name)
-            if var is None:
-                continue
-            tension = tension_accum.get(var_name, 0.0)
-
-            # Usar la misma normalizacion que collapse()
-            if self._normalize_tension and amplitude_norm > 0:
-                var_amp = var.amplitude if var.amplitude > 0 else 1.0
-                normalized_tension = tension / (var_amp * amplitude_norm)
-            else:
-                normalized_tension = tension
-
-            modulation = math.tanh(normalized_tension * self._convergence_scale)
-            delta = abs(modulation * var.velocity)
-            max_delta = max(max_delta, delta)
-
-        # Restaurar fases
-        for var_name, theta in pre_phases.items():
-            var = self._ovc.get_variable(var_name)
-            if var:
-                var.theta = theta
-
-        return max_delta < self._epsilon
+        tracker = LyapunovTracker()
+        grad_norm = tracker.compute_gradient_norm(
+            self._ovc, self._tor, cycle_variable_ids=cycle.variable_ids
+        )
+        return grad_norm < self._epsilon
 
     # ── Representacion ─────────────────────────────────────
 

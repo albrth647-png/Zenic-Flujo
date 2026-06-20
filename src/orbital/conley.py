@@ -49,7 +49,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 if TYPE_CHECKING:
     from src.orbital.ovc import OVC

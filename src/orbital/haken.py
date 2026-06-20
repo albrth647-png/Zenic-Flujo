@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from src.orbital.conley import ConleyClassifier
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 if TYPE_CHECKING:
     from src.orbital.ovc import OVC
@@ -330,13 +330,14 @@ class HakenAnalyzer:
 
         tau_slow = max(modes[k].timescale_tau for k in slow_indices)
         tau_fast = min(modes[k].timescale_tau for k in fast_indices)
-        separation_ratio = tau_slow / tau_fast
+        # P1 fix: proteger contra división por cero si tau_fast=0
+        separation_ratio = tau_slow / max(tau_fast, 1e-12)
 
         if separation_ratio >= self._slaving_strong:
-            slaving_state = SlavingState.ACTIVE
+            slaving_state = SlavingState.ACTIVE  # slaving fuerte (adiabático)
             slaving_active = True
         elif separation_ratio >= self._slaving_threshold:
-            slaving_state = SlavingState.ACTIVE
+            slaving_state = SlavingState.ACTIVE  # slaving débil pero activo
             slaving_active = True
         elif separation_ratio >= 2.0:
             slaving_state = SlavingState.WEAK

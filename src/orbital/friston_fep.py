@@ -18,11 +18,15 @@ Adaptación al motor Orbital:
 
 Relación con Mejora 1 (Lyapunov):
 - V(θ) ya es función de Lyapunov estricta del COD (Mejora 1).
-- F(θ) = V(θ) - S(θ) es una función objetivo MÁS RICA que V sola:
+- F(θ) = V(θ) - S(θ) es una métrica observacional MÁS RICA que V sola:
   * Si S = 0 (todas las variables en misma fase): F = V (Lyapunov puro).
   * Si S > 0 (diversidad de fases): F < V (premia diversidad).
-- El COD puede usar F como guía adicional para no colapsar todas las
-  variables a un solo punto (evitar over-synchronization).
+- NOTA IMPORTANTE: F es PURAMENTE OBSERVACIONAL. El COD NO usa F para
+  modificar su dinámica. F se trackea y reporta, pero el descenso por
+  gradiente usa exclusivamente ∇V (Lyapunov). Durante sincronización
+  legítima, F puede aumentar (porque la entropía S cae), lo que produce
+  fep_stable=False aunque lyapunov_stable=True. Esto NO es un error:
+  indica que el sistema está perdiendo diversidad de fases.
 
 Uso:
     from src.orbital.friston_fep import FEPTracker
@@ -37,12 +41,12 @@ Uso:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from src.orbital.models import TWO_PI
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 if TYPE_CHECKING:
     from src.orbital.ovc import OVC

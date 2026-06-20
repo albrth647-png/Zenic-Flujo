@@ -30,12 +30,11 @@ Uso:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from src.orbital.models import TWO_PI
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 if TYPE_CHECKING:
     from src.orbital.ovc import OVC
