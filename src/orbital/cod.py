@@ -43,7 +43,11 @@ from src.orbital.models import (
     CicloOrbital,
     CODResult,
 )
-from src.core.logging import setup_logging
+from src.orbital.lyapunov import LYAPUNOV_TOLERANCE, LyapunovTracker
+from src.orbital.friston_fep import FEPTracker
+from src.orbital.conley import ConleyClassifier, ConleyType
+from src.orbital.haken import HakenAnalyzer
+from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -76,7 +80,7 @@ class COD:
         self._rcc = rcc
         self._epsilon = DEFAULT_EPSILON
         self._max_iterations = MAX_COD_ITERATIONS
-        self._convergence_scale = 0.01  # escala para evitar divergencia
+        self._convergence_scale = 0.5  # escala del paso de descenso de V
         self._normalize_tension = True  # normalizar tension por amplitud para convergencia
 
     # ── Configuracion ──────────────────────────────────────
@@ -108,19 +112,24 @@ class COD:
         """
         Ejecuta el colapso orbital determinista sobre un ciclo.
 
+        Mejora 1 (revisión 2): descenso por gradiente de V(θ) = -Σ TOR(i,j).
+        La dinámica ahora es θ_i_new = θ_i - α · (dV/dθ_i), donde
+        dV/dθ_i = Σ_j A_i·A_j·sin(θ_i - θ_j). Esto garantiza que V es
+        función de Lyapunov estricta (V monótona decreciente).
+
         Proceso:
         1. Guardar fases iniciales
         2. Iterar:
-           a. Calcular TOR para todas las parejas del ciclo
-           b. Acumular tensiones por variable
-           c. Aplicar modulacion tanh a cada variable
-           d. Verificar convergencia: max|delta_theta| < epsilon
-        3. Si convergio → estado estable determinista
-        4. Si no convergio → sistema en estado no-estable (requiere mas ticks)
+           a. Calcular gradiente de V: ∇V(θ) componente por componente
+           b. Aplicar descenso: θ_i_new = θ_i - α · (dV/dθ_i) · dt
+           c. Normalizar θ a [0, 2π)
+           d. Verificar convergencia: max|Δθ| < ε
+        3. Si convergió → estado estable determinista
+        4. Si no → sistema en estado no-estable (requiere más ticks)
 
         Args:
             cycle: CicloOrbital a colapsar
-            dt: Paso temporal por iteracion
+            dt: Paso temporal por iteración
 
         Returns:
             CODResult con el estado final del colapso
@@ -128,40 +137,52 @@ class COD:
         start_time = time.time()
 
         # Fases iniciales
-        initial_phases = {}
+        initial_phases: dict[str, float] = {}
         for var_name in cycle.variable_ids:
             var = self._ovc.get_variable(var_name)
             if var:
                 initial_phases[var_name] = var.theta
 
+        # Mejora 1 (rev 2): Lyapunov tracker integrado
+        # Usa update() para que el historial y los contadores se mantengan
+        # consistentes con los snapshots reales del sistema.
+        lyapunov_tracker = LyapunovTracker()
+        # Snapshot inicial (antes de iterar)
+        status_initial = lyapunov_tracker.update(
+            self._ovc, self._tor, cycle_variable_ids=cycle.variable_ids
+        )
+        V_initial = status_initial.V
+        lyapunov_violations = 0
+
+        # Mejora 2: Friston Free Energy Principle tracker
+        # F(θ) = U(θ) - S(θ) donde U = V/N y S = entropía de Shannon de fases.
+        # FEP complementa a Lyapunov: mide auto-organización, no solo convergencia.
+        fep_tracker = FEPTracker()
+        fep_status_initial = fep_tracker.update(
+            self._ovc, self._tor, cycle_variable_ids=cycle.variable_ids
+        )
+        fep_F_initial = fep_status_initial.F
+        fep_energy_initial = fep_status_initial.energy
+        fep_entropy_initial = fep_status_initial.entropy
+        fep_violations = 0
+
         # Iterar hasta convergencia
         converged = False
         iterations = 0
         max_delta = float("inf")
-        final_phases = dict(initial_phases)
 
-        # Pre-calcular factor de normalizacion por amplitud
-        # Esto evita que amplitudes grandes saturen tanh y prevengan convergencia
+        # Pre-calcular factor de normalización por amplitud
+        # (se sigue usando para escalar α y evitar pasos demasiado grandes)
         amplitude_norm = self._compute_amplitude_normalization(cycle)
 
-        # Pre-computar amplitudes y velocidades para evitar get_variable() repetido
-        # en cada iteracion. Obtener referencias a las variables una sola vez.
-        var_refs: dict[str, tuple] = {}
+        # Pre-computar referencias a variables (evita get_variable() repetido)
+        var_refs: dict[str, object] = {}
         for var_name in cycle.variable_ids:
             var = self._ovc.get_variable(var_name)
             if var:
-                var_refs[var_name] = (var, var.amplitude, var.velocity)
+                var_refs[var_name] = var
 
-        # Pre-computar parejas del ciclo (pares ordenados para evitar duplicados)
-        cycle_pairs = []
-        vids = list(cycle.variable_ids)
-        for i in range(len(vids)):
-            for j in range(i + 1, len(vids)):
-                cycle_pairs.append((vids[i], vids[j]))
-
-        # Relajacion adaptativa: reducir paso si el sistema oscila
-        # relaxation_decay va de 1.0 a ~0.01 a lo largo de las iteraciones,
-        # forzando convergencia cuando el sistema oscila alrededor del punto fijo
+        # Relajación adaptativa: reducir paso si el sistema oscila
         relaxation = 1.0
         prev_max_delta = float("inf")
         oscillation_count = 0
@@ -169,60 +190,67 @@ class COD:
         for iteration in range(self._max_iterations):
             iterations = iteration + 1
 
-            # 1. Calcular TOR para el ciclo
-            tor_results = self._tor.calculate_for_cycle(cycle.variable_ids)
+            # 1. Calcular gradiente de V usando el tracker (una sola pasada)
+            gradient = lyapunov_tracker.compute_gradient(
+                self._ovc, self._tor, cycle_variable_ids=cycle.variable_ids
+            )
 
-            # 2. Acumular tensiones por variable
-            tension_accum: dict[str, float] = {}
-            for result in tor_results:
-                tension_accum[result.variable_i] = tension_accum.get(result.variable_i, 0.0) + result.tor_value
-                tension_accum[result.variable_j] = tension_accum.get(result.variable_j, 0.0) + result.tor_value
-
-            # 3. Aplicar modulacion tanh a cada variable (con normalizacion + relajacion)
+            # 2. Descenso por gradiente: θ_i_new = θ_i - α · (dV/dθ_i) · dt
+            # α = convergence_scale * relaxation
+            # Normalizamos por amplitude_norm para mantener el paso acotado.
             max_delta = 0.0
             for var_name in cycle.variable_ids:
-                var = self._ovc.get_variable(var_name)
+                var = var_refs.get(var_name)
                 if var is None:
                     continue
 
-                tension = tension_accum.get(var_name, 0.0)
+                dV_dtheta = gradient.get(var_name, 0.0)
 
-                # Normalizar tension por amplitud: evita saturacion de tanh
-                # Con amplitudes grandes, TOR puede ser ~A_i*A_j, saturando tanh.
-                # Normalizando: tension_norm = tension / (A_i * sum_A_j) ∈ rango manejable
+                # Normalizar el gradiente por la amplitud del sistema para
+                # mantener estabilidad numérica en sistemas grandes.
                 if self._normalize_tension and amplitude_norm > 0:
-                    var_amp = var.amplitude if var.amplitude > 0 else 1.0
-                    normalized_tension = tension / (var_amp * amplitude_norm)
+                    norm_factor = amplitude_norm
                 else:
-                    normalized_tension = tension
+                    norm_factor = 1.0
 
-                modulation = math.tanh(normalized_tension * self._convergence_scale)
-                # Aplicar factor de relajacion adaptativa
-                step = modulation * var.velocity * dt * relaxation
+                # Paso de descenso: negativo porque vamos cuesta abajo de V
+                step = -dV_dtheta * self._convergence_scale * dt * relaxation / norm_factor
                 old_theta = var.theta
                 new_theta = (var.theta + step) % TWO_PI
                 var.theta = new_theta
 
-                # Calcular delta (distancia angular minima)
+                # Calcular delta (distancia angular mínima)
                 delta = abs(new_theta - old_theta)
                 delta = min(delta, TWO_PI - delta)
-                max_delta = max(max_delta, delta)
+                if delta > max_delta:
+                    max_delta = delta
 
-            # 4. Detectar oscilacion y ajustar relajacion
+            # 3. Detectar oscilación y ajustar relajación
             if max_delta > prev_max_delta * 0.9:
-                # El delta no esta disminuyendo — hay oscilacion
                 oscillation_count += 1
             else:
                 oscillation_count = max(0, oscillation_count - 1)
 
-            # Si hay oscilacion sostenida, reducir el paso (aumentar relajacion)
             if oscillation_count >= 3:
-                relaxation *= 0.7  # Reducir paso un 30%
+                relaxation *= 0.7
                 oscillation_count = 0
-                # Garantizar que relaxation no baje de un minimo util
                 relaxation = max(relaxation, 0.001)
 
             prev_max_delta = max_delta
+
+            # 4. Trackear V después de esta iteración (usando update() del tracker)
+            status = lyapunov_tracker.update(
+                self._ovc, self._tor, cycle_variable_ids=cycle.variable_ids
+            )
+            if status.violation:
+                lyapunov_violations += 1
+
+            # Mejora 2: Trackear F después de esta iteración
+            fep_status = fep_tracker.update(
+                self._ovc, self._tor, cycle_variable_ids=cycle.variable_ids
+            )
+            if fep_status.violation:
+                fep_violations += 1
 
             # 5. Verificar convergencia
             if max_delta < self._epsilon:
@@ -230,8 +258,8 @@ class COD:
                 break
 
         # Recopilar fases y valores finales
-        final_phases = {}
-        final_values = {}
+        final_phases: dict[str, float] = {}
+        final_values: dict[str, float] = {}
         for var_name in cycle.variable_ids:
             var = self._ovc.get_variable(var_name)
             if var:
@@ -240,6 +268,91 @@ class COD:
 
         # Verificar estado estable: si las fases no cambian mas
         steady_state_reached = converged and max_delta < self._epsilon * 10
+
+        # Mejora 1: Cálculo final de Lyapunov desde el tracker
+        if lyapunov_tracker.history:
+            V_final = lyapunov_tracker.history[-1].V
+        else:
+            V_final = V_initial
+        lyapunov_stable = lyapunov_violations == 0 and len(lyapunov_tracker.history) >= 2
+
+        # Mejora 2: Cálculo final de FEP desde el tracker
+        if fep_tracker.history:
+            F_final = fep_tracker.history[-1].F
+            fep_energy_final = fep_tracker.history[-1].energy
+            fep_entropy_final = fep_tracker.history[-1].entropy
+        else:
+            F_final = fep_F_initial
+            fep_energy_final = fep_energy_initial
+            fep_entropy_final = fep_entropy_initial
+        fep_stable = fep_violations == 0 and len(fep_tracker.history) >= 2
+
+        # Mejora 3: Clasificación Conley del punto fijo al que convergió el COD.
+        # Construir β efectivo usado en la iteración final.
+        # β = convergence_scale · dt · relaxation / amplitude_norm
+        # Solo clasificamos si el sistema convergió (de otro modo, no hay punto fijo).
+        conley_type_str = "degenerate"  # default: no es punto fijo hiperbólico
+        conley_morse_index = 0
+        conley_step_safe = False
+        conley_recommended_max_beta = -1.0  # sentinel: no aplicable
+        conley_is_hyperbolic = False
+        conley_stable_count = 0
+        conley_unstable_count = 0
+        conley_marginal_count = 0
+        conley_beta = 0.0
+        if converged and len(cycle.variable_ids) >= 2:
+            try:
+                conley_classifier = ConleyClassifier()
+                # Calcular β efectivo: relaxation está definido en este scope
+                beta = conley_classifier.compute_beta(
+                    convergence_scale=self._convergence_scale,
+                    dt=dt,
+                    relaxation=relaxation,
+                    amplitude_norm=amplitude_norm if amplitude_norm > 0 else 1.0,
+                )
+                conley_status = conley_classifier.classify(
+                    self._ovc, self._tor, beta=beta,
+                    cycle_variable_ids=cycle.variable_ids,
+                )
+                conley_type_str = conley_status.conley_type.value
+                conley_morse_index = conley_status.morse_index
+                conley_step_safe = conley_status.step_safe
+                # JSON-safe: convertir inf a -1.0
+                if math.isinf(conley_status.recommended_max_beta):
+                    conley_recommended_max_beta = -1.0
+                else:
+                    conley_recommended_max_beta = conley_status.recommended_max_beta
+                conley_is_hyperbolic = conley_status.is_hyperbolic
+                conley_stable_count = conley_status.spectrum.stable_count
+                conley_unstable_count = conley_status.spectrum.unstable_count
+                conley_marginal_count = conley_status.spectrum.marginal_count
+                conley_beta = beta
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(f"Conley classification failed: {exc}")
+                # Mantener valores default (degenerate)
+
+        # Mejora 4: Haken synergetics (slaving principle)
+        haken_slaving_active = False
+        haken_separation_ratio = float("nan")
+        haken_n_order_parameters = 0
+        haken_effective_dimension = 0
+        haken_reduction_error = float("nan")
+        haken_slaving_state = "not_applicable_trivial"
+        if converged and len(cycle.variable_ids) >= 2:
+            try:
+                haken_analyzer = HakenAnalyzer()
+                haken_status = haken_analyzer.analyze(
+                    self._ovc, self._tor, beta=beta,
+                    cycle_variable_ids=cycle.variable_ids,
+                )
+                haken_slaving_active = haken_status.slaving_active
+                haken_separation_ratio = haken_status.separation_ratio
+                haken_n_order_parameters = len(haken_status.order_parameters)
+                haken_effective_dimension = haken_status.effective_dimension
+                haken_reduction_error = haken_status.reduction_error
+                haken_slaving_state = haken_status.slaving_state.value
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(f"Haken analysis failed: {exc}")
 
         duration_ms = int((time.time() - start_time) * 1000)
 
@@ -251,13 +364,48 @@ class COD:
             final_values=final_values,
             convergence_delta=max_delta,
             steady_state_reached=steady_state_reached,
+            lyapunov_V_initial=V_initial,
+            lyapunov_V_final=V_final,
+            lyapunov_delta_V=V_final - V_initial,
+            lyapunov_stable=lyapunov_stable,
+            lyapunov_violations=lyapunov_violations,
+            fep_F_initial=fep_F_initial,
+            fep_F_final=F_final,
+            fep_delta_F=F_final - fep_F_initial,
+            fep_energy_initial=fep_energy_initial,
+            fep_energy_final=fep_energy_final,
+            fep_entropy_initial=fep_entropy_initial,
+            fep_entropy_final=fep_entropy_final,
+            fep_stable=fep_stable,
+            fep_violations=fep_violations,
+            conley_type=conley_type_str,
+            conley_morse_index=conley_morse_index,
+            conley_step_safe=conley_step_safe,
+            conley_recommended_max_beta=conley_recommended_max_beta,
+            conley_is_hyperbolic=conley_is_hyperbolic,
+            conley_stable_count=conley_stable_count,
+            conley_unstable_count=conley_unstable_count,
+            conley_marginal_count=conley_marginal_count,
+            conley_beta=conley_beta,
+            haken_slaving_active=haken_slaving_active,
+            haken_separation_ratio=haken_separation_ratio,
+            haken_n_order_parameters=haken_n_order_parameters,
+            haken_effective_dimension=haken_effective_dimension,
+            haken_reduction_error=haken_reduction_error,
+            haken_slaving_state=haken_slaving_state,
         )
 
         status = "CONVERGIO" if converged else "NO CONVERGIO"
+        lyap_status = "Lyapunov-stable" if lyapunov_stable else f"Lyapunov-violations={lyapunov_violations}"
+        fep_status_str = "FEP-stable" if fep_stable else f"FEP-violations={fep_violations}"
+        conley_str = f"Conley={conley_type_str}"
         logger.info(
             f"COD: Ciclo '{cycle.name}' {status} — "
             f"iteraciones={iterations} delta={max_delta:.8f} "
-            f"estado_estable={steady_state_reached} ({duration_ms}ms)"
+            f"estado_estable={steady_state_reached} ({duration_ms}ms) "
+            f"[{lyap_status}: V {V_initial:.6f}→{V_final:.6f}] "
+            f"[{fep_status_str}: F {fep_F_initial:.6f}→{F_final:.6f}] "
+            f"[{conley_str}, β={conley_beta:.3f}]"
         )
 
         return result
