@@ -75,6 +75,8 @@ class DatabaseManager(DatabaseInterface):
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("PRAGMA busy_timeout=5000")
+            conn.execute("PRAGMA journal_mode=WAL")
             self._local.connection = conn
             if self._initialized:
                 logger.debug("Nueva conexion SQLite creada con foreign_keys=ON")
