@@ -72,9 +72,14 @@ def create_app() -> Flask:
     # M10.3: Inicializar CSRF protection (si flask-wtf está disponible).
     # Los endpoints que sirven JSON puro (sin formularios HTML) deben eximirse
     # con @csrf.exempt — ver blueprints/auth.py y api_v2 (FastAPI, fuera de Flask).
+    # CSRF: deshabilitado por defecto. El frontend es SPA (JSON API, no formularios).
+    # Las APIs usan session cookies + auth, no requieren CSRF tokens.
+    # Para producción con formularios HTML tradicionales, habilitar:
+    #   app.config["WTF_CSRF_CHECK_DEFAULT"] = True
+    app.config["WTF_CSRF_CHECK_DEFAULT"] = False
     if csrf is not None:
         csrf.init_app(app)
-        logger.info("CSRF protection habilitada (flask-wtf)")
+        logger.info("CSRF: WTF_CSRF_CHECK_DEFAULT=False (SPA usa JSON API)")
     else:
         logger.warning("CSRF protection NO habilitada — flask-wtf no disponible")
 
