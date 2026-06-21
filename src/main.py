@@ -207,6 +207,25 @@ def main():
     # 2. Registrar herramientas de negocio (con event_bus inyectado)
     register_tools(event_bus)
 
+    # 2b. Inicializar HAT (5 niveles de orquestación con ORBITAL como cerebro central)
+    # bootstrap_hat() inicializa: Tools → Workers → Specialists → Supervisors → HATRouter
+    # ORBITAL ejecuta el ciclo completo (OVC→TOR→RCC→COD→Espectro→Retro) por cada request.
+    try:
+        from src.hat import bootstrap_hat
+        hat_router = bootstrap_hat(event_bus=event_bus)
+        logger.info(
+            "HAT inicializado: 1 HATRouter + 3 Supervisores + 9 Specialists "
+            "+ ~59 Workers + 80 Tools (19 nativas + 61 conectores)"
+        )
+        logger.info("ORBITAL: cerebro central activo (OVC→TOR→RCC→COD→Espectro→Retro)")
+    except Exception as hat_err:
+        logger.warning(
+            "HAT no se pudo inicializar (%s). "
+            "El sistema funcionará con WorkflowEngine legacy. "
+            "HAT se activará cuando se resuelva el error.",
+            hat_err,
+        )
+
     # 3. Iniciar workers con dependencias inyectadas
     workers = start_workers(event_bus, event_queue, workflow_subscriber)
 
