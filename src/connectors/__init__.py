@@ -21,6 +21,7 @@ from src.connectors.azure_blob import AzureBlobConnector
 from src.connectors.confluence import ConfluenceConnector
 from src.connectors.datadog import DatadogConnector
 from src.connectors.deepseek import DeepseekConnector
+from src.connectors.dian_colombia import DIANColombiaConnector
 from src.connectors.discord import DiscordConnector
 from src.connectors.dropbox import DropboxConnector
 from src.connectors.dte_chile import DTEChileConnector
@@ -51,7 +52,6 @@ from src.connectors.paypal import PaypalConnector
 from src.connectors.pipedrive import PipedriveConnector
 from src.connectors.pix_brazil import PixBrazilConnector
 from src.connectors.quickbooks import QuickbooksConnector
-from src.connectors.ruv import RuvConnector
 from src.connectors.salesforce import SalesforceConnector
 from src.connectors.sat_mexico import SatMexicoConnector
 from src.connectors.sendgrid import SendGridConnector
@@ -59,7 +59,9 @@ from src.connectors.sentry import SentryConnector
 from src.connectors.shopify import ShopifyConnector
 from src.connectors.splunk import SplunkConnector
 from src.connectors.square import SquareConnector
+from src.connectors.sri_ecuador import SRIEcuadorConnector
 from src.connectors.sumologic import SumoLogicConnector
+from src.connectors.sunat_peru import SUNATPeruConnector
 from src.connectors.teams import TeamsConnector
 from src.connectors.totvs import TotvsConnector
 from src.connectors.trello import TrelloConnector
@@ -74,7 +76,7 @@ from src.connectors.zendesk import ZendeskConnector
 from src.connectors.zoho_crm import ZohoCrmConnector
 from src.sdk.registry import ConnectorRegistry
 
-# Todos los conectores registrados (60 total)
+# Todos los conectores registrados (60 total — RuvConnector removido en Fase 2B)
 _ALL_CONNECTORS: list[type] = [
     # AI & Data (4)
     AnthropicConnector,
@@ -129,13 +131,16 @@ _ALL_CONNECTORS: list[type] = [
     # Identity (2) — incluye Okta (fix #17)
     AzureADConnector,
     OktaConnector,
-    # LATAM (6) — incluye AFIP Argentina y DTE Chile (fix #17)
+    # LATAM (8) — incluye AFIP Argentina y DTE Chile (fix #17). RuvConnector removido en Fase 2B.
+    # Fase 2C: añade DIAN Colombia, SUNAT Perú, SRI Ecuador con crypto REAL.
     AFIPArgentinaConnector,
     DTEChileConnector,
+    DIANColombiaConnector,
     MercadolibreConnector,
     NfeConnector,
-    RuvConnector,
     SatMexicoConnector,
+    SRIEcuadorConnector,
+    SUNATPeruConnector,
     # Marketing (2) — incluye Mailchimp (fix #17)
     MailchimpConnector,
     MarketoConnector,
@@ -188,11 +193,11 @@ __all__ = [
     "AzureADConnector",
     "AzureBlobConnector",
     "ConfluenceConnector",
+    "DTEChileConnector",
     "DatadogConnector",
     "DeepseekConnector",
     "DiscordConnector",
     "DropboxConnector",
-    "DTEChileConnector",
     "ElasticConnector",
     "FreshdeskConnector",
     "GcsConnector",
@@ -220,7 +225,6 @@ __all__ = [
     "PipedriveConnector",
     "PixBrazilConnector",
     "QuickbooksConnector",
-    "RuvConnector",
     "SalesforceConnector",
     "SatMexicoConnector",
     "SendGridConnector",

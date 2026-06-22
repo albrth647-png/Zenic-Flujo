@@ -158,7 +158,5 @@ CONNECTORS_REGISTRY: list[tuple[str, str, str, str, str, bool]] = [
      "src.connectors.okta", "OktaConnector", False),
     ("vault", "datos_auto", "data",
      "src.connectors.vault", "VaultConnector", False),
-    # Other
-    ("ruv", "datos_auto", "automation",
-     "src.connectors.ruv", "RuvConnector", False),
+    # RuvConnector removido en Fase 2B (no es facturación electrónica).
 ]

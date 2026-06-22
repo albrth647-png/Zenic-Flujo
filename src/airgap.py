@@ -83,7 +83,6 @@ CLOUD_CONNECTORS: list[str] = [
 
 # Conectores que funcionan OFFLINE (mantenidos en modo air-gapped)
 LOCAL_CONNECTORS: list[str] = [
-    "ruv",           # Registro Único de Ventas (local file-based)
     "sat_mexico",    # SAT México (puede operar con archivos locales)
     "pix_brazil",    # PIX Brazil (operación local con QR)
     "totvs",         # TOTVS ERP (red local)

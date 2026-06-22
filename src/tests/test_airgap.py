@@ -72,7 +72,7 @@ class TestAirGapConfig:
 
     def test_get_local_connectors(self, airgap_config):
         locals_ = airgap_config.get_local_connectors()
-        assert "ruv" in locals_
+        assert "ruv" not in locals_  # RuvConnector removido en Fase 2B
         assert "totvs" in locals_
         assert "vault" in locals_
         assert "sat_mexico" in locals_

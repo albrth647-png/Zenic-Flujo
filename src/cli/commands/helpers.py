@@ -37,7 +37,7 @@ ALLOWED_CONNECTORS = {
     "huggingface", "intercom", "jira", "mailchimp", "mailgun", "marketo",
     "mercadolibre", "monday", "mongo_connector", "mysql_connector", "new_relic",
     "nfe", "notion", "okta", "openai_v2", "pagerduty", "paypal", "pipedrive",
-    "pix_brazil", "quickbooks", "ruv", "salesforce", "sat_mexico", "sendgrid",
+    "pix_brazil", "quickbooks", "salesforce", "sat_mexico", "sendgrid",
     "sentry", "shopify", "splunk", "square", "sumologic", "teams", "totvs",
     "trello", "twilio", "typeform", "vault", "whatsapp", "wise", "woocommerce",
     "xero", "zendesk", "zoho_crm",
