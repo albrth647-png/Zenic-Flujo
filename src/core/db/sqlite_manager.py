@@ -249,6 +249,46 @@ class DatabaseManager(DatabaseInterface):
             user_id         INTEGER DEFAULT 1
         );
 
+        -- Foso 3: Clients (clientes maestros, no confundir con leads)
+        CREATE TABLE IF NOT EXISTS clients (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            name            TEXT NOT NULL,
+            fiscal_type     TEXT,
+            fiscal_id       TEXT,
+            email           TEXT,
+            phone           TEXT,
+            address         TEXT,
+            city            TEXT,
+            country_code    TEXT DEFAULT 'MX',
+            currency        TEXT DEFAULT 'MXN',
+            lead_id         INTEGER,
+            user_id         INTEGER DEFAULT 1,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lead_id) REFERENCES leads(id)
+        );
+        -- Foso 3: UNIQUE parcial — solo aplica cuando fiscal_id no está vacío
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_fiscal ON clients(fiscal_id, country_code) WHERE fiscal_id != '';
+
+        -- Foso 3: Deals (oportunidades con monto)
+        CREATE TABLE IF NOT EXISTS deals (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_id         INTEGER NOT NULL,
+            client_id       INTEGER,
+            title           TEXT NOT NULL,
+            amount          REAL NOT NULL,
+            currency        TEXT DEFAULT 'MXN',
+            probability     REAL DEFAULT 0.5,
+            expected_close_date DATE,
+            stage           TEXT DEFAULT 'proposal',
+            items           TEXT DEFAULT '[]',
+            notes           TEXT,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lead_id) REFERENCES leads(id),
+            FOREIGN KEY (client_id) REFERENCES clients(id)
+        );
+
         -- Settings
         CREATE TABLE IF NOT EXISTS settings (
             key             TEXT PRIMARY KEY,
@@ -466,6 +506,25 @@ class DatabaseManager(DatabaseInterface):
             cursor.execute("ALTER TABLE license ADD COLUMN signature_b64 TEXT DEFAULT ''")
             conn.commit()
             logger.info("Migración: license.signature_b64 agregada")
+
+        # Foso 3: Migración invoices — añadir columnas nuevas
+        for col, ddl in [
+            ("client_id",  "INTEGER REFERENCES clients(id)"),
+            ("deal_id",    "INTEGER REFERENCES deals(id)"),
+            ("lead_id",    "INTEGER REFERENCES leads(id)"),
+            ("currency",   "TEXT DEFAULT 'MXN'"),
+            ("fiscal_type", "TEXT"),
+            ("fiscal_id",  "TEXT"),
+            ("pdf_path",   "TEXT"),
+            ("mp_preference_id", "TEXT"),
+            ("mp_payment_id",    "TEXT"),
+        ]:
+            try:
+                cursor.execute(f"SELECT {col} FROM invoices LIMIT 1")
+            except sqlite3.OperationalError:
+                cursor.execute(f"ALTER TABLE invoices ADD COLUMN {col} {ddl}")
+                conn.commit()
+                logger.info(f"Migración: invoices.{col} agregada")
 
     # ── Operaciones generales ────────────────────────────────
 

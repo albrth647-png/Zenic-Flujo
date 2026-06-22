@@ -26,13 +26,18 @@ class InvoiceRepository:
         due_date: str | None = None,
         notes: str | None = None,
         user_id: int | None = None,
+        # Foso 3: nuevos campos
+        lead_id: int | None = None,
+        client_id: int | None = None,
+        currency: str = "MXN",
     ) -> dict:
         if not due_date:
             due_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
         cursor = self._db.execute(
             """INSERT INTO invoices (number, client_name, client_email, items, subtotal,
-               tax_rate, tax_amount, discount, total, due_date, notes, user_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               tax_rate, tax_amount, discount, total, due_date, notes, user_id,
+               lead_id, client_id, currency)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 number,
                 client_name,
@@ -46,6 +51,9 @@ class InvoiceRepository:
                 due_date,
                 notes,
                 user_id or 1,
+                lead_id,
+                client_id,
+                currency,
             ),
         )
         self._db.commit()

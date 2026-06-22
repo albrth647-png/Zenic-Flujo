@@ -171,7 +171,7 @@ class MercadoPagoService:
                 "status": p.get("status"),
                 "status_detail": p.get("status_detail"),
                 "amount": p.get("transaction_amount", 0),
-                "currency": "ARS",
+                "currency": p.get("currency_id", "ARS"),  # Foso 3: fix currency dinámico (antes hardcoded ARS)
                 "payer": {
                     "email": p.get("payer", {}).get("email", ""),
                     "name": p.get("payer", {}).get("first_name", ""),

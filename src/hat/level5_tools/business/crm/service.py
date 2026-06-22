@@ -2,10 +2,10 @@
 Workflow Determinista — CRM Service
 """
 
+from src.core.logging import setup_logging
 from src.events.bus import EventBus
 from src.hat.level5_tools.business.crm.models import STAGE_ORDER, STAGES
 from src.hat.level5_tools.business.crm.repository import CRMRepository
-from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -77,3 +77,86 @@ class CRMService:
 
     def get_stats(self) -> dict:
         return self._repo.get_stats()
+
+    # ── Foso 3: Clients ──────────────────────────────────────
+
+    def create_client(
+        self,
+        name: str,
+        fiscal_type: str = "",
+        fiscal_id: str = "",
+        email: str = "",
+        phone: str = "",
+        address: str = "",
+        city: str = "",
+        country_code: str = "MX",
+        currency: str = "MXN",
+        lead_id: int | None = None,
+    ) -> dict:
+        """Crea un cliente maestro. Si lead_id se provee, vincula al lead."""
+        client = self._repo.create_client(
+            name=name, fiscal_type=fiscal_type, fiscal_id=fiscal_id,
+            email=email, phone=phone, address=address, city=city,
+            country_code=country_code, currency=currency, lead_id=lead_id,
+        )
+        self._event_bus.publish("crm.client.created", dict(client) if client else {})
+        logger.info(f"Cliente creado: {client.get('name')} (ID: {client.get('id')})")
+        return client
+
+    def get_client(self, client_id: int) -> dict | None:
+        return self._repo.get_client(client_id)
+
+    def get_client_by_fiscal_id(self, fiscal_id: str, country_code: str) -> dict | None:
+        return self._repo.get_client_by_fiscal_id(fiscal_id, country_code)
+
+    def list_clients(self, limit: int = 50, offset: int = 0) -> list[dict]:
+        return self._repo.list_clients(limit, offset)
+
+    def update_client(self, client_id: int, **fields) -> dict | None:
+        return self._repo.update_client(client_id, **fields)
+
+    def convert_lead_to_deal(
+        self,
+        lead_id: int,
+        title: str = "",
+        amount: float = 0.0,
+        currency: str = "MXN",
+        items: list | None = None,
+    ) -> dict:
+        """Convierte un Lead closed_won en Client + Deal.
+
+        1. Obtiene el lead
+        2. Crea un Client con los datos del lead
+        3. Crea un Deal vinculado al lead y al client
+        4. Publica evento crm.lead.converted
+        """
+        lead = self._repo.get_lead(lead_id)
+        if not lead:
+            raise ValueError(f"Lead {lead_id} no encontrado")
+
+        # Crear client desde lead
+        client = self._repo.create_client(
+            name=lead["name"],
+            email=lead.get("email") or "",
+            phone=lead.get("phone") or "",
+            lead_id=lead_id,
+        )
+
+        # Crear deal vinculado
+        deal_title = title or f"Deal - {lead['name']}"
+        deal = self._repo.create_deal(
+            lead_id=lead_id,
+            title=deal_title,
+            amount=amount,
+            currency=currency,
+            items=items,
+            client_id=client.get("id"),
+        )
+
+        self._event_bus.publish("crm.lead.converted", {
+            "lead_id": lead_id,
+            "client_id": client.get("id"),
+            "deal_id": deal.get("id"),
+        })
+        logger.info(f"Lead {lead_id} convertido → client={client.get('id')} deal={deal.get('id')}")
+        return {"client": client, "deal": deal}

@@ -4,10 +4,10 @@ Workflow Determinista — Invoice Service
 
 from datetime import datetime, timedelta
 
+from src.core.logging import setup_logging
+from src.core.utils import generate_id
 from src.events.bus import EventBus
 from src.hat.level5_tools.business.invoice.repository import InvoiceRepository
-from src.core.utils import generate_id
-from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -27,6 +27,11 @@ class InvoiceService:
         due_days: int = 30,
         notes: str | None = None,
         user_id: int | None = None,
+        # Foso 3: nuevos campos
+        lead_id: int | None = None,
+        client_id: int | None = None,
+        currency: str = "MXN",
+        client_phone: str | None = None,
     ) -> dict:
         items = items or []
         # Asegurar tipos numéricos para evitar errores si llegan como string
@@ -64,6 +69,10 @@ class InvoiceService:
             due_date=due_date,
             notes=notes,
             user_id=user_id,
+            # Foso 3: nuevos campos
+            lead_id=lead_id,
+            client_id=client_id,
+            currency=currency,
         )
         self._event_bus.publish("invoice.created", dict(invoice) if invoice else {})
         logger.info(f"Factura creada: {number} - ${total:.2f}")
