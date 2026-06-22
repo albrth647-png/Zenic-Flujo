@@ -375,6 +375,9 @@ from src.api_v2.routers.invoices_v2 import router as invoices_v2_router
 app.include_router(crm_router)
 app.include_router(inventory_router)
 app.include_router(invoices_v2_router)
+# Foso 2: router Fiscal Dispatcher (LATAM e-invoicing con crypto REAL)
+from src.api_v2.routers.fiscal import router as fiscal_router
+app.include_router(fiscal_router)
 
 
 # ── Health Check Endpoint ──────────────────────────────────────
