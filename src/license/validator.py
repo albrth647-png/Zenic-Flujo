@@ -12,13 +12,79 @@ from typing import ClassVar
 
 from src.core.config import TRIAL_DAYS
 from src.core.db import DatabaseManager
-from src.license.keys import load_public_key
 from src.core.logging import setup_logging
+from src.license.keys import load_public_key
 
 # Caracteres permitidos en License Keys (sin vocales para evitar palabras)
 LICENSE_CHARSET = "BCDFGHJKLMNPQRSTVWXYZ23456789"
 
 logger = setup_logging(__name__)
+
+# ── Foso 3: License tier gating ──────────────────────────────────────
+
+TIER_FEATURES: dict[str, dict[str, int | bool]] = {
+    "trial": {
+        "max_leads": 10,
+        "max_invoices_per_month": 5,
+        "max_products": 20,
+        "whatsapp_enabled": False,
+        "pdf_invoices": False,
+        "fiscal_electronic": False,
+    },
+    "individual": {
+        "max_leads": 1000,
+        "max_invoices_per_month": 100,
+        "max_products": 500,
+        "whatsapp_enabled": True,
+        "pdf_invoices": True,
+        "fiscal_electronic": False,
+    },
+    "reseller": {
+        "max_leads": 10000,
+        "max_invoices_per_month": 1000,
+        "max_products": 5000,
+        "whatsapp_enabled": True,
+        "pdf_invoices": True,
+        "fiscal_electronic": True,
+    },
+    "enterprise": {
+        "max_leads": -1,
+        "max_invoices_per_month": -1,
+        "max_products": -1,
+        "whatsapp_enabled": True,
+        "pdf_invoices": True,
+        "fiscal_electronic": True,
+    },
+}
+
+
+def get_tier_features(license_type: str) -> dict:
+    """Devuelve las features del tier de licencia."""
+    return TIER_FEATURES.get(license_type, TIER_FEATURES["trial"])
+
+
+def check_feature(license_type: str, feature: str) -> bool:
+    """Verifica si una feature booleana está habilitada para el tier."""
+    feats = get_tier_features(license_type)
+    return bool(feats.get(feature, False))
+
+
+def check_quota(license_type: str, resource: str, current_count: int) -> bool:
+    """Verifica si el count actual está dentro del quota del tier.
+
+    Args:
+        license_type: trial | individual | reseller | enterprise
+        resource: leads | invoices_per_month | products
+        current_count: cantidad actual usada
+
+    Returns:
+        True si está dentro del quota, False si excedido.
+    """
+    feats = get_tier_features(license_type)
+    max_val = feats.get(f"max_{resource}", 0)
+    if max_val == -1:
+        return True  # ilimitado
+    return current_count < max_val
 
 
 class LicenseValidator:

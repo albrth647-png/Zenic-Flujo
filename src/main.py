@@ -137,6 +137,7 @@ def main():
         if existing_users and existing_users[0]["count"] == 0:
             import hashlib
             import secrets as _secrets
+
             from src.core.config import PRODUCTION
 
             # En producción, REQUIRE env var WFD_ADMIN_PASSWORD (≥12 chars).
@@ -250,7 +251,7 @@ def main():
     # ORBITAL ejecuta el ciclo completo (OVC→TOR→RCC→COD→Espectro→Retro) por cada request.
     try:
         from src.hat import get_hat_router
-        hat_router = get_hat_router(event_bus=event_bus)
+        _hat_router = get_hat_router(event_bus=event_bus)
         logger.info(
             "HAT inicializado: 1 HATRouter + 3 Supervisores + 9 Specialists "
             "+ ~59 Workers + 80 Tools (19 nativas + 61 conectores)"
@@ -266,6 +267,14 @@ def main():
 
     # 3. Iniciar workers con dependencias inyectadas
     workers = start_workers(event_bus, event_queue, workflow_subscriber)
+
+    # 3b. Foso 3: PYME orchestrator subscribers
+    try:
+        from src.hat.level5_tools.business.pyme_orchestrator.subscribers import register_subscribers
+        register_subscribers(event_bus)
+        logger.info("PYME orchestrator subscribers registrados")
+    except Exception as e:
+        logger.warning(f"No se pudieron registrar subscribers PYME: {e}")
 
     # 4. Crear y ejecutar app Flask
     app = create_web_app()

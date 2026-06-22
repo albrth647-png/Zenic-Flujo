@@ -368,6 +368,13 @@ app.include_router(mobile_router)
 # M8: HAT router (Nivel 1) — POST /api/hat/chat
 from src.hat.level1_orchestrator.api.routes import router as hat_router
 app.include_router(hat_router)
+# Foso 3: routers CRM + Inventory + Invoices v2
+from src.api_v2.routers.crm import router as crm_router
+from src.api_v2.routers.inventory import router as inventory_router
+from src.api_v2.routers.invoices_v2 import router as invoices_v2_router
+app.include_router(crm_router)
+app.include_router(inventory_router)
+app.include_router(invoices_v2_router)
 
 
 # ── Health Check Endpoint ──────────────────────────────────────
