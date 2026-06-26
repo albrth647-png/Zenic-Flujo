@@ -29,7 +29,7 @@ def rate_limit(max_calls: int = 60, period: int = 60) -> Callable[[F], F]:
             action_name = getattr(func, "_connector_action_name", func.__name__)
             rate_key = f"sdk:ratelimit:{connector_name}:{action_name}"
             try:
-                from src.data.redis_service import RedisService
+                from src.core.db import RedisService
                 redis = RedisService()
                 result = redis.check_rate_limit(rate_key, max_calls, period)
                 if not result["allowed"]:

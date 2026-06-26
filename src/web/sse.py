@@ -10,8 +10,11 @@ from datetime import datetime as _dt
 
 from flask import Blueprint, current_app
 
+from src.core.logging import setup_logging
 from src.web.helpers import login_required
 from src.workflow.repository import WorkflowRepository
+
+logger = setup_logging(__name__)
 
 sse_bp = Blueprint("sse", __name__, url_prefix="/api/events")
 
@@ -34,8 +37,19 @@ def _broadcast_sse(event_type: str, data: dict):
 
 
 def _patch_engine_for_sse():
-    """Parchea WorkflowEngine.execute para emitir eventos SSE."""
+    """Parchea WorkflowEngine.execute para emitir eventos SSE.
+
+    Fix Sprint 3 bug #29: idempotent check para evitar wrap recursivo
+    en hot-reload dev. Antes, cada llamada a register_blueprints() volvía
+    a wrapear WorkflowEngine.execute, causando recursion infinita tras
+    N reloads. Ahora marca el método patcheado con _sse_patched=True.
+    """
     from src.workflow.engine import WorkflowEngine
+
+    # Idempotent: si ya está patcheado, no hacer nada
+    if getattr(WorkflowEngine.execute, "_sse_patched", False):
+        logger.debug("SSE: WorkflowEngine.execute ya está patcheado, skip")
+        return
 
     repo = WorkflowRepository()
     original_execute = WorkflowEngine.execute
@@ -70,6 +84,10 @@ def _patch_engine_for_sse():
             })
             raise
 
+    # Marcar como patcheado para idempotencia
+    patched_execute._sse_patched = True
+    # Guardar referencia al original para test/unpatch si hace falta
+    patched_execute._original_execute = original_execute
     WorkflowEngine.execute = patched_execute
 
 

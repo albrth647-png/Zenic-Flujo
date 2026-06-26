@@ -10,7 +10,11 @@ Endpoints de busqueda e instalacion de conectores del marketplace:
 - POST   /api/v2/marketplace/publish                  — Publicar conector
 - GET    /api/v2/marketplace/categories               — Listar categorias
 - GET    /api/v2/marketplace/stats                    — Estadisticas del marketplace
+
+# Audience: External
+# Purpose: Marketplace de connectors. Paralelo a Flask /api/marketplace/* para gestión programática externa.
 """
+
 
 from __future__ import annotations
 
@@ -30,7 +34,7 @@ from src.api_v2.models import (
     MarketplaceCategory,
     MarketplaceStats,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 from src.workflow.workflow_templates import (
     get_template,

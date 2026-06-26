@@ -1,7 +1,11 @@
 import { memo } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react"
 import { Zap, Clock, Link, Play } from "lucide-react"
 import type { TriggerNodeData } from "@/types/workflow"
+
+// En @xyflow/react v12, NodeProps<T> requiere que T sea un Node completo,
+// no solo el tipo data. Por eso envolvemos TriggerNodeData en Node<...>.
+type TriggerNodeType = Node<TriggerNodeData, "trigger">
 
 const triggerIcons: Record<string, React.ReactNode> = {
   event: <Zap className="size-4" />,
@@ -17,7 +21,7 @@ const triggerColors: Record<string, string> = {
   manual: "bg-emerald-500",
 }
 
-function TriggerNode({ data }: NodeProps<TriggerNodeData>) {
+function TriggerNode({ data }: NodeProps<TriggerNodeType>) {
   return (
     <div className="relative">
       {/* Node body */}

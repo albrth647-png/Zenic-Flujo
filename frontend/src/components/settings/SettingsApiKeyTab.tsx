@@ -104,7 +104,7 @@ export function SettingsApiKeyTab() {
               </button>
             </div>
             {apiKey && (
-              <Button variant="outline" size="icon" className="size-9 shrink-0" onClick={handleCopy}>
+              <Button variant="outline" size="icon" className="size-9 shrink-0" onClick={handleCopy} aria-label={copied ? "API Key copiada" : "Copiar API Key al portapapeles"}>
                 {copied ? <CheckCircle2 className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
               </Button>
             )}

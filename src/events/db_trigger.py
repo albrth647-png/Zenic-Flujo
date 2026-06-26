@@ -5,9 +5,9 @@ Detecta cambios en tablas SQLite y emite eventos correspondientes.
 
 from typing import ClassVar
 
-from src.data.database_manager import DatabaseManager
+from src.core.db import DatabaseManager
 from src.events.bus import EventBus
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -49,12 +49,37 @@ class DatabaseTrigger:
         self._snapshots: dict[str, dict[int, dict]] = {}
 
     def install_triggers(self) -> None:
-        """Instala triggers SQL en la base de datos."""
+        """Instala triggers SQL en la base de datos.
+
+        Fix Sprint 3 bug #41: aunque event_name proviene de TABLE_EVENTS
+        (ClassVar hardcoded), el patrón de interpolarlo como string literal
+        en el SQL del trigger es frágil. SQLite CREATE TRIGGER no soporta
+        parameter binding para los VALUES dentro de BEGIN/END, así que
+        validamos estrictamente que event_name cumple el patrón esperado
+        (solo letras, números, puntos, guiones bajos) antes de interpolar.
+        """
+        # Patrón estricto para event_name: namespace.event_name (ej: crm.lead.created)
+        import re
+        _EVENT_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
+
         conn = self._db.get_connection()
         cursor = conn.cursor()
 
         for table, events in self.TABLE_EVENTS.items():
+            # Validar table name también (debe ser identificador simple)
+            if not re.match(r"^[a-z][a-z0-9_]*$", table):
+                logger.error(f"db_trigger: nombre de tabla inválido: {table!r}")
+                continue
+
             for action, event_name in events.items():
+                # Validar event_name antes de interpolar (defense in depth)
+                if not _EVENT_NAME_PATTERN.match(event_name):
+                    logger.error(
+                        f"db_trigger: event_name inválido {event_name!r} — "
+                        f"debe seguir patrón 'namespace.event_name'"
+                    )
+                    continue
+
                 trigger_name = f"trg_{table}_{action}"
 
                 # Verificar si el trigger ya existe
@@ -65,7 +90,8 @@ class DatabaseTrigger:
                 if cursor.fetchone():
                     continue
 
-                # Crear trigger
+                # Crear trigger — table y trigger_name son literals de TABLE_EVENTS (ClassVar hardcoded).
+                # event_name también es literal. B608 es falso positivo.
                 if action == "insert":
                     sql = f"""
                     CREATE TRIGGER IF NOT EXISTS {trigger_name}
@@ -74,7 +100,7 @@ class DatabaseTrigger:
                         INSERT INTO event_queue (event_type, event_data, status)
                         VALUES ('{event_name}', json_object('id', NEW.id), 'pending');
                     END;
-                    """
+                    """  # nosec B608 — identificadores son literals hardcoded
                 elif action == "update":
                     sql = f"""
                     CREATE TRIGGER IF NOT EXISTS {trigger_name}
@@ -83,7 +109,7 @@ class DatabaseTrigger:
                         INSERT INTO event_queue (event_type, event_data, status)
                         VALUES ('{event_name}', json_object('id', NEW.id), 'pending');
                     END;
-                    """
+                    """  # nosec B608 — identificadores son literals hardcoded
                 elif action == "delete":
                     sql = f"""
                     CREATE TRIGGER IF NOT EXISTS {trigger_name}
@@ -92,7 +118,7 @@ class DatabaseTrigger:
                         INSERT INTO event_queue (event_type, event_data, status)
                         VALUES ('{event_name}', json_object('id', OLD.id), 'pending');
                     END;
-                    """
+                    """  # nosec B608 — identificadores son literals hardcoded
 
                 cursor.execute(sql)
                 logger.debug(f"Trigger SQL instalado: {trigger_name}")

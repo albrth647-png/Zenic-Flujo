@@ -25,4 +25,6 @@ export interface LicenseValidation {
   client_name?: string
   expires_at?: string | null
   error?: string
+  // Mensaje opcional del backend (puede venir en lugar de `error`)
+  message?: string
 }

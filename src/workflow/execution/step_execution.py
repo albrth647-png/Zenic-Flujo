@@ -6,13 +6,11 @@ engine.py esbelto (~300 líneas).
 
 from __future__ import annotations
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 from src.workflow.execution.subworkflow import SubworkflowExecutionService
 from src.workflow.step_executor import StepResult
 
 logger = setup_logging(__name__)
-
-MAX_SUBWORKFLOW_DEPTH = 10
 
 
 class StepExecutionService:

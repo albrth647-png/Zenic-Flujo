@@ -29,7 +29,7 @@ from src.orbital.espectro import EspectroOrbital
 from src.orbital.ovc import OVC
 from src.orbital.rcc import RCC
 from src.orbital.tor import TOR
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -150,23 +150,33 @@ class OrbitalContext:
 
     def get_snapshot(self) -> dict:
         """Retorna un snapshot completo del estado orbital compartido."""
+        # Fix Sprint 2 bug #13: usar métodos públicos en vez de atributos privados.
+        rcc_cycle_count = (
+            self._rcc.get_cycle_count() if hasattr(self._rcc, "get_cycle_count")
+            else len(self._rcc._cycles)  # fallback
+        )
         return {
             "ovc_variables": self._ovc.variable_count,
             "ovc_phases": self._ovc.get_phase_snapshot(),
             "ovc_values": self._ovc.get_value_snapshot(),
             "tor_matrix_size": len(self._tor.calculate_matrix()) if self._ovc.variable_count >= 2 else 0,
-            "rcc_cycles": len(self._rcc._cycles) if hasattr(self._rcc, "_cycles") else 0,
+            "rcc_cycles": rcc_cycle_count,
             "engine_tick": self._engine.tick,
         }
 
     def status_summary(self) -> str:
         """Retorna un resumen del estado orbital compartido."""
+        # Fix Sprint 2 bug #13: usar métodos públicos en vez de atributos privados.
+        rcc_cycle_count = (
+            self._rcc.get_cycle_count() if hasattr(self._rcc, "get_cycle_count")
+            else len(self._rcc._cycles)  # fallback
+        )
         lines = ["=" * 50]
         lines.append("ORBITAL CONTEXT — Estado Compartido")
         lines.append("=" * 50)
         lines.append(f"  Variables orbitales: {self._ovc.variable_count}")
         lines.append(f"  Engine tick: {self._engine.tick}")
-        lines.append(f"  RCC ciclos: {len(self._rcc._cycles) if hasattr(self._rcc, '_cycles') else 0}")
+        lines.append(f"  RCC ciclos: {rcc_cycle_count}")
         if self._ovc.variable_count > 0:
             lines.append(self._ovc.status_summary())
         lines.append("=" * 50)
@@ -178,6 +188,70 @@ class OrbitalContext:
     def _reset(cls) -> None:
         """Reinicia el singleton (para tests)."""
         cls._instance = None
+
+    # ── Reset por workflow (fix Sprint 1 bugs #1 + #2) ─────────
+
+    # Prefijo usado para namespacing de variables orbitales por workflow.
+    # Formato: "wf_<execution_id>__<step_var_name>"
+    # Esto permite que dos workflows concurrentes no contaminen sus variables
+    # en el singleton compartido OVC.
+    WORKFLOW_VAR_PREFIX = "wf_"
+
+    @staticmethod
+    def make_workflow_var_prefix(execution_id: str) -> str:
+        """Genera el prefijo de namespace para variables de un workflow."""
+        # Sanitizar execution_id para que sea válido como prefix de nombre
+        safe_id = "".join(c if c.isalnum() else "_" for c in str(execution_id))
+        return f"{OrbitalContext.WORKFLOW_VAR_PREFIX}{safe_id}__"
+
+    def clear_workflow_variables(self, execution_id: str) -> int:
+        """
+        Elimina TODAS las variables orbitales asociadas a un execution_id.
+
+        Esto resuelve el bug #1 del Sprint 1 (OrbitalContext singleton
+        contaminable entre requests): al final de cada WorkflowEngine.execute(),
+        se llama a este método para limpiar las variables orbitales del workflow
+        que terminó, evitando que se acumulen y contaminen el siguiente.
+
+        TAMBIÉN limpia los ciclos RCC registrados con el nombre workflow_cycle
+        de ese execution_id (bug #3 — ciclos fantasma).
+
+        Args:
+            execution_id: ID de ejecución del workflow a limpiar.
+
+        Returns:
+            Número total de variables eliminadas.
+        """
+        prefix = self.make_workflow_var_prefix(execution_id)
+
+        # Limpiar variables del OVC por prefijo (eficiente)
+        removed = 0
+        if hasattr(self._ovc, "delete_variables_by_prefix"):
+            removed = self._ovc.delete_variables_by_prefix(prefix)
+        else:
+            # Fallback: iterar y eliminar una por una
+            var_names = list(self._ovc.get_variable_names())
+            for name in var_names:
+                if name.startswith(prefix):
+                    if hasattr(self._ovc, "delete_variable"):
+                        self._ovc.delete_variable(name)
+                        removed += 1
+
+        # Limpiar ciclo fantasma workflow_cycle_<exec_id> si existe
+        cycle_name = f"workflow_cycle_{execution_id}"
+        if hasattr(self._rcc, "remove_cycles_by_name"):
+            self._rcc.remove_cycles_by_name(cycle_name)
+
+        # Limpiar cache TOR para que no queden entradas stale
+        if hasattr(self._tor, "clear_cache"):
+            self._tor.clear_cache()
+
+        if removed > 0:
+            logger.info(
+                f"OrbitalContext: {removed} variables orbitales limpiadas "
+                f"para execution_id={execution_id}"
+            )
+        return removed
 
     def __repr__(self) -> str:
         return f"OrbitalContext(vars={self._ovc.variable_count}, tick={self._engine.tick})"

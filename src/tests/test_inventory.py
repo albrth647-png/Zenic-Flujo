@@ -9,7 +9,7 @@ class TestInventoryModels:
 
     def test_movement_types_defined(self):
         """Test: MOVEMENT_TYPES contiene los tipos correctos."""
-        from src.tools.inventory.models import MOVEMENT_TYPES
+        from src.hat.level5_tools.business.inventory.models import MOVEMENT_TYPES
 
         assert "in" in MOVEMENT_TYPES
         assert "out" in MOVEMENT_TYPES
@@ -17,7 +17,7 @@ class TestInventoryModels:
 
     def test_movement_types_count(self):
         """Test: hay exactamente 3 tipos de movimiento."""
-        from src.tools.inventory.models import MOVEMENT_TYPES
+        from src.hat.level5_tools.business.inventory.models import MOVEMENT_TYPES
 
         assert len(MOVEMENT_TYPES) == 3
 
@@ -187,7 +187,7 @@ class TestInventoryService:
             price=10.0,
         )
         # Update via repository directly since service doesn't expose update_product
-        from src.tools.inventory.repository import InventoryRepository
+        from src.hat.level5_tools.business.inventory.repository import InventoryRepository
 
         repo = InventoryRepository()
         result = repo.update_product(created["id"], name="Updated Name", price=15.0)
@@ -230,7 +230,7 @@ class TestInventoryService:
             name="SKU Search Product",
             price=25.0,
         )
-        from src.tools.inventory.repository import InventoryRepository
+        from src.hat.level5_tools.business.inventory.repository import InventoryRepository
 
         repo = InventoryRepository()
         result = repo.get_product_by_sku("SKU-SEARCH-001")

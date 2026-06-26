@@ -18,10 +18,10 @@ from __future__ import annotations
 
 import threading
 
-from src.data.database_manager import DatabaseManager
+from src.core.db import DatabaseManager
 from src.events.bus import EventBus
 from src.events.queue_service import EventQueueService
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

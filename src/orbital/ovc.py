@@ -25,7 +25,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.orbital.models import DEFAULT_AMPLITUDE, DEFAULT_VELOCITY, VariableOrbital
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -245,6 +245,39 @@ class OVC:
         self._variables.clear()
         self._tick = 0
         logger.info("OVC: Reset completo")
+
+    def delete_variable(self, name: str) -> bool:
+        """
+        Elimina una variable orbital por nombre.
+
+        Returns:
+            True si se eliminó, False si no existía.
+
+        Nota: NO limpia el cache TOR asociado — el caller debe llamar
+        tor.clear_cache() si quiere reflejar el cambio inmediatamente.
+        """
+        if name in self._variables:
+            del self._variables[name]
+            return True
+        return False
+
+    def delete_variables_by_prefix(self, prefix: str) -> int:
+        """
+        Elimina todas las variables cuyo nombre empieza con el prefix dado.
+
+        Útil para limpiar variables de un workflow específico sin afectar
+        a otros (fix Sprint 1 bug #1 — OrbitalContext contaminable).
+
+        Args:
+            prefix: Prefijo de los nombres a eliminar.
+
+        Returns:
+            Número de variables eliminadas.
+        """
+        names_to_remove = [n for n in self._variables if n.startswith(prefix)]
+        for name in names_to_remove:
+            del self._variables[name]
+        return len(names_to_remove)
 
     # ── Representacion ─────────────────────────────────────
 

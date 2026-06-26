@@ -17,7 +17,7 @@ import hashlib
 
 from src.orbital.context import OrbitalContext
 from src.orbital.models import TWO_PI
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 from src.workflow.condition_evaluator import ConditionEvaluator
 
 logger = setup_logging(__name__)
@@ -52,8 +52,11 @@ class BranchHandler:
 
         logger.info(f"OrbitalDivergence: Evaluando branch con {len(branches)} ramas")
 
+        # Fix BUG-W8: usar prefijo de execution_id para aislar workflows
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+
         # 1. Crear variable orbital para el contexto
-        context_var_name = f"branch_ctx_{step.get('id', 0)}"
+        context_var_name = f"{orbital_prefix}branch_ctx_{step.get('id', 0)}"
         self._ensure_context_variable(context_var_name, context)
 
         # 2. Crear variables orbitales para cada rama y calcular TOR
@@ -62,7 +65,7 @@ class BranchHandler:
             branch_name = branch.get("name", "unnamed")
             condition = branch.get("condition", "True")
 
-            branch_var_name = f"branch_{step.get('id', 0)}_{branch_name}"
+            branch_var_name = f"{orbital_prefix}branch_{step.get('id', 0)}_{branch_name}"
             self._ensure_branch_variable(branch_var_name, branch)
 
             tor_value = 0.0
@@ -108,7 +111,9 @@ class BranchHandler:
                 continue
 
         # 4. Fallback orbital: seleccionar por TOR
-        if best["tor_value"] > 0.1:
+        # Fix Sprint 4 bug #55: añadir guard explícito para best=None.
+        # Aunque hay un guard previo (branches no vacío), defensive programming.
+        if best is not None and best["tor_value"] > 0.1:
             logger.info(
                 f"OrbitalDivergence: Rama '{best['name']}' seleccionada por resonancia (TOR={best['tor_value']:.4f})"
             )
@@ -118,6 +123,11 @@ class BranchHandler:
             return BranchResult(
                 branch_taken=best["name"],
                 steps=best["branch"].get("steps", []),
+            )
+        elif best is None:
+            logger.warning(
+                f"BranchHandler: best es None tras evaluar {len(branch_scores)} branches — "
+                f"siguiendo a default branch"
             )
 
         # 5. Ultimo recurso: buscar rama default
@@ -151,13 +161,18 @@ class BranchHandler:
 
     def evaluate_switch(self, expression: str, cases: list[dict], context: dict) -> BranchResult:
         """Evalua una expresion switch con divergencia orbital."""
-        from src.utils.helpers import resolve_variables
+        from src.core.utils import resolve_variables
 
         resolved_expr = resolve_variables(expression, context)
 
         logger.info(f"OrbitalDivergence: Evaluando switch: {expression} = {resolved_expr}")
 
-        expr_var_name = f"switch_{hashlib.md5(str(resolved_expr).encode()).hexdigest()[:8]}"
+        # Fix BUG-W8: usar prefijo de execution_id
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+
+        # Hash no criptográfico: genera identificador determinista para variable orbital.
+        # usedforsecurity=False silencia B324 (no es para fines de seguridad).
+        expr_var_name = f"{orbital_prefix}switch_{hashlib.md5(str(resolved_expr).encode(), usedforsecurity=False).hexdigest()[:8]}"
         self._ensure_switch_variable(expr_var_name, str(resolved_expr))
 
         default_case = None
@@ -170,7 +185,8 @@ class BranchHandler:
                 continue
 
             case_value = resolve_variables(str(case.get("value", "")), context)
-            case_var_name = f"case_{hashlib.md5(str(case_value).encode()).hexdigest()[:8]}"
+            # Hash no criptográfico: identificador determinista para variable orbital (B324 mitigado).
+            case_var_name = f"{orbital_prefix}case_{hashlib.md5(str(case_value).encode(), usedforsecurity=False).hexdigest()[:8]}"
             self._ensure_switch_variable(case_var_name, str(case_value))
 
             try:
@@ -202,7 +218,8 @@ class BranchHandler:
 
     def _ensure_context_variable(self, var_name: str, context: dict) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
-            hash_val = int(hashlib.md5(str(context).encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista del contexto (B324 mitigado).
+            hash_val = int(hashlib.md5(str(context).encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,
@@ -216,7 +233,8 @@ class BranchHandler:
     def _ensure_branch_variable(self, var_name: str, branch: dict) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
             condition = branch.get("condition", "True")
-            hash_val = int(hashlib.md5(condition.encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista de la condición (B324 mitigado).
+            hash_val = int(hashlib.md5(condition.encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,
@@ -229,7 +247,8 @@ class BranchHandler:
 
     def _ensure_switch_variable(self, var_name: str, value: str) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
-            hash_val = int(hashlib.md5(value.encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista del valor (B324 mitigado).
+            hash_val = int(hashlib.md5(value.encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,

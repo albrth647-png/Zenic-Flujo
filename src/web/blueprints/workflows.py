@@ -145,9 +145,27 @@ def api_workflow_action(wf_id, action):
     return jsonify({"status": status})
 
 
+@bp.route("/api/workflows/<int:wf_id>/execute", methods=["POST"])
+@login_required
+@require_role("editor")
+def api_workflow_execute(wf_id):
+    """Ejecuta un workflow manualmente con trigger_data opcional del body."""
+    from src.workflow.engine import WorkflowEngine
+
+    body = request.get_json(silent=True) or {}
+    trigger_data = body.get("trigger_data", {})
+    engine = WorkflowEngine()
+    try:
+        result = engine.execute(wf_id, trigger_data)
+        return jsonify(result.to_dict())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
 @bp.route("/api/workflows/<int:wf_id>/history", methods=["GET"])
 @login_required
 def api_workflow_history(wf_id):
+    """Lista el historial de ejecuciones de un workflow."""
     limit = int(request.args.get("limit", 50))
     executions = repo.list_executions(wf_id, limit)
     return jsonify([e.to_dict() for e in executions])
@@ -194,3 +212,223 @@ def api_retry_workflow(wf_id):
         return jsonify(result.to_dict())
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
+
+# ─── Sprint 9: Versioning + Multi-entorno + Promoción ──────────────────
+# Endpoints para gestionar versiones de workflows, entornos y promociones.
+# Todos requieren login; los que mutan requieren rol editor.
+
+
+@bp.route("/api/workflows/<int:wf_id>/versions", methods=["GET"])
+@login_required
+def api_list_workflow_versions(wf_id):
+    """Lista las versiones de un workflow (las más recientes primero)."""
+    from src.workflow.versioning import WorkflowVersionRepository
+
+    limit = request.args.get("limit", default=50, type=int)
+    offset = request.args.get("offset", default=0, type=int)
+    # Limitar para evitar abuso
+    limit = max(1, min(limit, 200))
+
+    version_repo = WorkflowVersionRepository()
+    versions = version_repo.list_versions(wf_id, limit=limit, offset=offset)
+    total = version_repo.count_versions(wf_id)
+    return jsonify({
+        "workflow_id": wf_id,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "versions": [v.to_dict() for v in versions],
+    })
+
+
+@bp.route("/api/workflows/<int:wf_id>/versions/<int:version_number>", methods=["GET"])
+@login_required
+def api_get_workflow_version(wf_id, version_number):
+    """Obtiene una versión específica de un workflow."""
+    from src.workflow.versioning import WorkflowVersionRepository
+
+    version_repo = WorkflowVersionRepository()
+    version = version_repo.get_version(wf_id, version_number)
+    if not version:
+        return jsonify({"error": "Version not found"}), 404
+    return jsonify(version.to_dict())
+
+
+@bp.route("/api/workflows/<int:wf_id>/versions/<int:version_number>/rollback", methods=["POST"])
+@login_required
+@require_role("editor")
+def api_rollback_workflow_version(wf_id, version_number):
+    """
+    Restaura el workflow a una versión anterior.
+    Internamente crea una NUEVA versión con el contenido de la versión objetivo
+    (no destruye el histórico, cumple el principio append-only del versioning).
+    """
+    from src.workflow.versioning import WorkflowVersionRepository
+
+    version_repo = WorkflowVersionRepository()
+    target_version = version_repo.get_version(wf_id, version_number)
+    if not target_version:
+        return jsonify({"error": "Version not found"}), 404
+
+    # Aplicar el snapshot de la versión objetivo al workflow actual
+    updated = repo.update(
+        wf_id,
+        {
+            "name": target_version.name,
+            "description": target_version.description,
+            "trigger_type": target_version.trigger_type,
+            "trigger_config": target_version.trigger_config,
+            "steps": target_version.steps,
+        },
+        create_version=True,
+        change_summary=f"Rollback a versión {version_number}",
+        user_id=session.get("user_id", 1),
+    )
+
+    if not updated:
+        return jsonify({"error": "Workflow not found"}), 404
+
+    return jsonify({
+        "status": "ok",
+        "message": f"Workflow restaurado a versión {version_number}",
+        "workflow": updated.to_dict(),
+    })
+
+
+@bp.route("/api/workflows/<int:wf_id>/environments", methods=["GET"])
+@login_required
+def api_list_workflow_environments(wf_id):
+    """Lista los entornos donde está presente el workflow."""
+    from src.workflow.versioning import EnvironmentService
+
+    env_service = EnvironmentService()
+    environments = env_service.list_environments(wf_id)
+    return jsonify({
+        "workflow_id": wf_id,
+        "environments": [e.to_dict() for e in environments],
+    })
+
+
+@bp.route("/api/workflows/<int:wf_id>/environments/<environment>", methods=["POST"])
+@login_required
+@require_role("editor")
+def api_assign_workflow_to_environment(wf_id, environment):
+    """Asigna un workflow a un entorno (dev, staging, prod)."""
+    from src.workflow.versioning import EnvironmentService
+
+    if environment not in ("dev", "staging", "prod"):
+        return jsonify({"error": f"Invalid environment: {environment}"}), 400
+
+    body = request.get_json(silent=True) or {}
+    notes = body.get("notes", "")
+    promoted_from = body.get("promoted_from")
+    promoted_by = session.get("user_id", 1)
+
+    # Verificar que el workflow existe
+    wf = repo.get(wf_id)
+    if not wf:
+        return jsonify({"error": "Workflow not found"}), 404
+
+    env_service = EnvironmentService()
+    env = env_service.assign_to_environment(
+        workflow_id=wf_id,
+        environment=environment,
+        promoted_from=promoted_from,
+        promoted_by=promoted_by,
+        notes=notes,
+    )
+    return jsonify(env.to_dict())
+
+
+@bp.route("/api/workflows/<int:wf_id>/environments/<environment>", methods=["DELETE"])
+@login_required
+@require_role("editor")
+def api_remove_workflow_from_environment(wf_id, environment):
+    """Elimina la asociación de un workflow con un entorno."""
+    from src.workflow.versioning import EnvironmentService
+
+    if environment not in ("dev", "staging", "prod"):
+        return jsonify({"error": f"Invalid environment: {environment}"}), 400
+
+    env_service = EnvironmentService()
+    deleted = env_service.remove_from_environment(wf_id, environment)
+    if not deleted:
+        return jsonify({"error": "Workflow not assigned to that environment"}), 404
+    return jsonify({"status": "deleted"})
+
+
+@bp.route("/api/workflows/<int:wf_id>/promote", methods=["POST"])
+@login_required
+@require_role("editor")
+def api_promote_workflow(wf_id):
+    """
+    Promueve un workflow de un entorno a otro (dev→staging o staging→prod).
+
+    Body JSON:
+        {
+            "source_env": "dev",
+            "target_env": "staging",
+            "notes": "Promoción para QA"  // opcional
+        }
+    """
+    from src.workflow.versioning import (
+        EnvironmentNotFoundError,
+        InvalidPromotionError,
+        PromotionService,
+    )
+
+    body = request.get_json(silent=True) or {}
+    source_env = body.get("source_env")
+    target_env = body.get("target_env")
+    notes = body.get("notes", "")
+
+    if not source_env or not target_env:
+        return jsonify({
+            "error": "Se requieren source_env y target_env"
+        }), 400
+
+    # Verificar que el workflow existe
+    wf = repo.get(wf_id)
+    if not wf:
+        return jsonify({"error": "Workflow not found"}), 404
+
+    # Construir definition desde el workflow actual
+    workflow_definition = wf.to_dict()
+
+    promotion_service = PromotionService()
+    try:
+        promotion = promotion_service.promote(
+            workflow_id=wf_id,
+            source_env=source_env,
+            target_env=target_env,
+            workflow_definition=workflow_definition,
+            promoted_by=session.get("user_id", 1),
+            notes=notes,
+        )
+    except InvalidPromotionError as e:
+        return jsonify({"error": str(e)}), 400
+    except EnvironmentNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+
+    return jsonify(promotion.to_dict()), 201
+
+
+@bp.route("/api/workflows/<int:wf_id>/promotions", methods=["GET"])
+@login_required
+def api_list_workflow_promotions(wf_id):
+    """Lista el histórico de promociones de un workflow."""
+    from src.workflow.versioning import PromotionService
+
+    limit = request.args.get("limit", default=50, type=int)
+    limit = max(1, min(limit, 200))
+
+    promotion_service = PromotionService()
+    promotions = promotion_service.list_promotions(wf_id, limit=limit)
+    summary = promotion_service.get_promotion_history_summary(wf_id)
+    return jsonify({
+        "workflow_id": wf_id,
+        "total": len(promotions),
+        "promotions": [p.to_dict() for p in promotions],
+        "summary_by_target_env": summary,
+    })

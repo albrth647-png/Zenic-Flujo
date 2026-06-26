@@ -24,8 +24,8 @@ import threading
 import time
 from datetime import datetime
 
-from src.data.database_manager import DatabaseManager
-from src.utils.logger import setup_logging
+from src.core.db import DatabaseManager
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

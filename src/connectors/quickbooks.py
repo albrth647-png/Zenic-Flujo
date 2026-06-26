@@ -13,7 +13,7 @@ from typing import Any
 from src.sdk.base import BaseConnector
 from src.sdk.http_client import HttpClient, HTTPClientError
 from src.sdk.schema import ActionDefinition, AuthRequirement, ConnectorSchema
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -300,7 +300,18 @@ class QuickbooksConnector(BaseConnector):
         """
         self._log_operation("list_customers")
 
-        query = f"SELECT * FROM Customer STARTPOSITION {params.get('start_position', 1)} MAXRESULTS {params.get('limit', 100)}"
+        # Validar y normalizar start_position y limit a enteros (evita SQL injection en Quickbooks Query Language).
+        try:
+            start_position = int(params.get('start_position', 1))
+            limit = int(params.get('limit', 100))
+        except (ValueError, TypeError):
+            return {"success": False, "error": "start_position y limit deben ser enteros"}
+        # Cotas razonables
+        start_position = max(1, start_position)
+        limit = max(1, min(limit, 1000))
+
+        # Quickbooks Query Language (no SQL estándar). start_position y limit son enteros validados.
+        query = f"SELECT * FROM Customer STARTPOSITION {start_position} MAXRESULTS {limit}"  # nosec B608 — enteros validados
 
         try:
             resp = self._http.get(

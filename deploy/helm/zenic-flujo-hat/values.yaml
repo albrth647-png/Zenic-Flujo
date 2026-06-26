@@ -1,0 +1,51 @@
+# HAT-ORBITAL Helm Values
+# Deploy: helm install zenic-flujo deploy/helm/zenic-flujo-hat/
+
+replicaCount: 1
+
+image:
+  repository: zenic-flujo-hat
+  tag: "2.0.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  limits:
+    cpu: "1000m"
+    memory: "512Mi"
+  requests:
+    cpu: "250m"
+    memory: "128Mi"
+
+env:
+  WFD_SESSION_SECRET: "change-me-in-production"
+  WFD_LICENSE_SECRET: "change-me-in-production"
+  WFD_API_V2_JWT_SECRET: "change-me-in-production"
+  WFD_API_V2_CORS_ORIGINS: "*"
+
+persistence:
+  enabled: true
+  size: "1Gi"
+  storageClass: ""
+
+hat:
+  antiDup:
+    ttlSeconds: 5
+    semanticThreshold: 0.85
+    circuitBreakerThreshold: 3
+    cacheMaxSize: 256
+  orbital:
+    retrofeedDamping: 0.3
+    epsilon: 0.000001
+    maxIterations: 1000
+
+probes:
+  liveness:
+    path: /api/hat/health
+    initialDelaySeconds: 10
+  readiness:
+    path: /api/hat/health
+    initialDelaySeconds: 5

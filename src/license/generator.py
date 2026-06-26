@@ -4,7 +4,7 @@ Genera License Keys firmadas con Ed25519.
 """
 
 import base64
-import random
+import secrets
 from datetime import datetime, timedelta
 
 from src.license.keys import load_private_key
@@ -16,7 +16,7 @@ CHARSET = LICENSE_CHARSET
 class LicenseGenerator:
     """
     Genera License Keys firmadas con Ed25519.
-    
+
     Almacena la firma completa (base64url) internamente para que
     LicenseValidator pueda acceder a ella durante activate_key().
     """
@@ -62,6 +62,8 @@ class LicenseGenerator:
             sig_fragment[0:4],
             sig_fragment[4:8],
             sig_fragment[8:12],
-            "".join(random.choice(CHARSET) for _ in range(4)),
+            # Fix Sprint 2 bug #38: random.choice no es criptográficamente seguro.
+            # secrets.choice usa CSPRNG del OS (urandom), impredecible.
+            "".join(secrets.choice(CHARSET) for _ in range(4)),
         ]
         return f"WFD-{blocks[0]}-{blocks[1]}-{blocks[2]}-{blocks[3]}"

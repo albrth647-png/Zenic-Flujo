@@ -8,7 +8,7 @@ import threading
 import time
 from unittest.mock import MagicMock, patch
 
-from src.tools.api_connector.service import (
+from src.hat.level5_tools.data.api_connector.service import (
     APIConnectorService,
     PaginationCollector,
     RateLimiter,

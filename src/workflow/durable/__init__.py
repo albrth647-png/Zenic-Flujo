@@ -14,8 +14,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from src.data.database_manager import DatabaseManager
-from src.utils.logger import setup_logging
+from src.core.db import DatabaseManager
+from src.core.logging import setup_logging
 from src.workflow.durable.checkpoints import (
     create_snapshot,
     get_state,
@@ -102,14 +102,9 @@ class DurableExecutor:
                 PRIMARY KEY (execution_id, step_id, worker_id)
             );
             CREATE INDEX IF NOT EXISTS idx_workflow_heartbeats_execution ON workflow_heartbeats(execution_id);
-            CREATE TABLE IF NOT EXISTS telemetry_config (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                tenant_id       TEXT DEFAULT 'default',
-                config_key      TEXT NOT NULL,
-                config_value    TEXT NOT NULL DEFAULT '{}',
-                updated_at      TEXT NOT NULL,
-                UNIQUE(tenant_id, config_key)
-            );
+            -- Fix Sprint 4 bug #48: telemetry_config table eliminada.
+            -- Antes se creaba aquí pero nunca se usaba en este módulo (leftover).
+            -- Si se necesita telemetría config, usar src/observability/telemetry.py.
         """)
         conn.commit()
         logger.debug("Tablas de durable execution verificadas/creadas")

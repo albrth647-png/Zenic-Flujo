@@ -15,7 +15,11 @@ Endpoints CRUD + ejecucion + monitoreo de workflows:
 - GET    /api/v2/workflows/{id}/export         — Exportar como JSON
 - POST   /api/v2/workflows/import              — Importar desde JSON
 - GET    /api/v2/workflows/{id}/events         — Obtener log de eventos
+
+# Audience: External
+# Purpose: Workflow management. Paralelo a Flask /api/workflows/* para integraciones externas.
 """
+
 
 from __future__ import annotations
 
@@ -45,7 +49,7 @@ from src.api_v2.models import (
     WorkflowResponse,
     WorkflowUpdate,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

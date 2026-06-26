@@ -18,7 +18,7 @@ from src.cli.templates.helpers import (
     AUTH_VALIDATE_BODIES,
     to_class_name,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

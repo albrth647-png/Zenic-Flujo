@@ -17,8 +17,8 @@ import contextlib
 import hashlib
 
 from src.orbital.context import OrbitalContext
-from src.orbital.models import DEFAULT_EPSILON, DEFAULT_THRESHOLD, TWO_PI
-from src.utils.logger import setup_logging
+from src.orbital.models import DEFAULT_THRESHOLD, TWO_PI
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -69,7 +69,7 @@ class LoopHandler:
 
         import json
 
-        from src.utils.helpers import resolve_variables, safe_get
+        from src.core.utils import resolve_variables, safe_get
 
         collection_str = resolve_variables(collection_ref, context)
         collection = collection_str
@@ -92,7 +92,9 @@ class LoopHandler:
             logger.warning(f"Coleccion truncada de {len(collection)} a {max_iter} iteraciones")
             collection = collection[:max_iter]
 
-        loop_var_name = f"loop_{step.get('id', 0)}_foreach"
+        # Fix BUG-W7: usar prefijo de execution_id para aislar workflows
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+        loop_var_name = f"{orbital_prefix}loop_{step.get('id', 0)}_foreach"
         self._ensure_loop_variable(loop_var_name, step)
 
         outputs = []
@@ -126,7 +128,9 @@ class LoopHandler:
         inner_steps = step.get("steps", [])
         max_iter = step.get("max_iterations", self.MAX_ITERATIONS_DEFAULT)
 
-        loop_var_name = f"loop_{step.get('id', 0)}_for"
+        # Fix BUG-W7: usar prefijo de execution_id
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+        loop_var_name = f"{orbital_prefix}loop_{step.get('id', 0)}_for"
         self._ensure_loop_variable(loop_var_name, step)
 
         count = 0
@@ -166,11 +170,13 @@ class LoopHandler:
         inner_steps = step.get("steps", [])
         max_iter = step.get("max_iterations", self.MAX_ITERATIONS_DEFAULT)
 
-        loop_var_name = f"loop_{step.get('id', 0)}_while"
+        # Fix BUG-W7: usar prefijo de execution_id + filtrar variables por prefijo
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+        loop_var_name = f"{orbital_prefix}loop_{step.get('id', 0)}_while"
         self._ensure_loop_variable(loop_var_name, step)
 
-        # Registrar ciclo si hay suficientes variables en el OVC compartido
-        all_vars = list(self._ctx.ovc.get_all_variables().keys())
+        # Fix BUG-W7: filtrar variables por prefijo para no mezclar workflows ajenos
+        all_vars = [n for n in self._ctx.ovc.get_all_variables().keys() if n.startswith(orbital_prefix)]
         if len(all_vars) >= 2:
             try:
                 from src.orbital.models import CicloOrbital
@@ -216,21 +222,39 @@ class LoopHandler:
             )
 
             # Verificar convergencia orbital (COD compartido)
+            # Fix Sprint 3 bug #47: antes delta < DEFAULT_EPSILON (1e-6) era
+            # prácticamente inalcanzable con amplitudes reales (10-100). Ahora
+            # usamos un umbral relativo del 1% del valor anterior, o un mínimo
+            # absoluto de 0.01 — lo que sea mayor (más permisivo).
+            #
+            # Fix Sprint 4: si no hay variables orbitales en el context (ej: test
+            # con mock executor que no inyecta vars), prev_values/current_values
+            # están vacíos y delta=0 — en ese caso NO converger (respetar
+            # max_iterations).
             current_values = self._ctx.ovc.get_value_snapshot()
-            if prev_values is not None:
+            if prev_values is not None and current_values:
                 delta = 0.0
                 for key in current_values:
                     if key in prev_values:
                         delta += abs(current_values[key] - prev_values[key])
                 convergence_delta = delta
 
-                if delta < DEFAULT_EPSILON:
-                    converged = True
-                    logger.info(
-                        f"OrbitalConvergence: While CONVERGIO en {count} iteraciones "
-                        f"(delta={delta:.8f} < epsilon={DEFAULT_EPSILON})"
-                    )
-                    break
+                # Solo verificar convergencia si hay variables orbitales reales
+                # (delta > 0 significa que algo cambió; delta == 0 con values
+                # vacíos significa que no hay vars, no que convergió).
+                if delta > 0:
+                    # Umbral relativo: 1% de la suma de valores absolutos previos,
+                    # con mínimo de 0.01 (mucho más alcanzable que 1e-6).
+                    prev_sum = sum(abs(v) for v in prev_values.values()) or 1.0
+                    rel_threshold = max(0.01, prev_sum * 0.01)
+
+                    if delta < rel_threshold:
+                        converged = True
+                        logger.info(
+                            f"OrbitalConvergence: While CONVERGIO en {count} iteraciones "
+                            f"(delta={delta:.6f} < threshold={rel_threshold:.6f})"
+                        )
+                        break
 
             prev_values = dict(current_values)
             count += 1
@@ -267,7 +291,8 @@ class LoopHandler:
 
     def _ensure_loop_variable(self, var_name: str, step: dict) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
-            hash_val = int(hashlib.md5(var_name.encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista del var_name (B324 mitigado).
+            hash_val = int(hashlib.md5(var_name.encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,

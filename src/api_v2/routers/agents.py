@@ -1,4 +1,5 @@
-"""Agent API Routes — REST endpoints for the Agent Framework.
+"""
+Agent API Routes — REST endpoints for the Agent Framework.
 
 Provides HTTP API for:
 - Agent lifecycle management (spawn, pause, resume, terminate)
@@ -6,7 +7,16 @@ Provides HTTP API for:
 - Agent messaging (send, broadcast)
 - Multi-agent orchestration
 - Token/cost tracking analytics
+
+NOTE (ADR-0001): Este router depende de `src.hat.agents_legacy/` que está
+oficialmente DEPRECATED. HAT v2 (`src.hat.bootstrap_hat`) es el sucesor.
+Ningún frontend llama a estos endpoints (0 callers en frontend/src/).
+Ver docs/adr/0001-agents-legacy-deprecated-status.md para el plan de migración.
+
+# Audience: External (deprecated, ADR-0001)
+# Purpose: Lifecycle management de agents legacy (spawn, orchestrate, pause, resume, run, token-usage). Depende de agents_legacy que está deprecated.
 """
+
 
 from __future__ import annotations
 
@@ -14,16 +24,16 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from src.agents.base import AgentConfig, AgentState, BaseAgent
-from src.agents.orchestrator import (
+from src.hat.agents_legacy.base import AgentConfig, AgentState, BaseAgent
+from src.hat.agents_legacy.orchestrator import (
     MultiAgentOrchestrator,
     OrchestrationPlan,
 )
-from src.agents.runtime import AgentRuntime
-from src.agents.token_tracking import TokenCostTracker
+from src.hat.agents_legacy.runtime import AgentRuntime
+from src.core.observability.token_tracking import TokenCostTracker
 from src.api_v2.dependencies import require_permission
 
-router = APIRouter(prefix="/agents", tags=["agents"])
+router = APIRouter(prefix="/api/v2/agents", tags=["agents"])
 
 
 # ── Simple concrete agent for API-driven usage ──────────────
@@ -56,7 +66,26 @@ async def spawn_agent(
     config: AgentConfig,
     _: Any = Depends(require_permission("agents", "create")),
 ) -> dict[str, Any]:
-    """Spawn a new agent with the given configuration."""
+    """Spawn a new agent with the given configuration.
+
+    Fix Sprint 3 bug #33: valida que custom_config no contenga callables
+    (think_fn/act_fn) para prevenir code injection via API. Si el caller
+    necesita ejecutar lógica custom, debe implementar un BaseAgent real
+    en Python, no inyectar funciones via JSON.
+    """
+    # Validar custom_config: rechazar callables
+    if config.custom_config:
+        for key, value in config.custom_config.items():
+            if callable(value):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"custom_config['{key}'] es callable — no se permiten "
+                        f"funciones vía API por seguridad. Implementa un BaseAgent "
+                        f"real en Python para lógica custom."
+                    ),
+                )
+
     runtime = AgentRuntime.get_instance()
     try:
         agent = runtime.spawn(APIAgent, config)

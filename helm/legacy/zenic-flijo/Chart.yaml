@@ -1,0 +1,28 @@
+apiVersion: v2
+name: zenic-flijo
+description: Helm chart for Zenic-Flijo — Enterprise Workflow Automation Platform
+type: application
+version: 1.0.0
+appVersion: "3.1.0"
+home: https://zenic-flijo.io
+icon: https://zenic-flijo.io/icon.png
+sources:
+  - https://github.com/zenic-flijo/zenic-flijo
+keywords:
+  - workflow
+  - automation
+  - nlu
+  - orbital
+  - enterprise
+maintainers:
+  - name: Zenic-Flijo Team
+    email: dev@zenic-flijo.io
+dependencies:
+  - name: postgresql
+    version: "~12.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "~18.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

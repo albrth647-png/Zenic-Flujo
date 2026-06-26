@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/components/ui/toast"
+import { error as humanError } from "@/utils/humanize"
 import {
   Mail,
   Table,
@@ -71,10 +72,11 @@ export default function IntegrationsPage() {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [formValues, setFormValues] = useState<Record<string, Record<string, string>>>({})
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     try {
       const api = getApi()
-      const data = await api.get("/api/integrations")
+      const data = await api.get("/api/integrations", { signal })
+      if (signal?.aborted) return
       const list = (data as Integration[]) || []
       setIntegrations(list)
 
@@ -87,17 +89,18 @@ export default function IntegrationsPage() {
         }
       }
       setFormValues((prev) => ({ ...initial, ...prev }))
-    } catch {
-      toast({ title: "Error al cargar integraciones", variant: "error" })
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar integraciones", description: humanError(e), variant: "error" })
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [loadData])
 
@@ -121,8 +124,8 @@ export default function IntegrationsPage() {
       } else {
         toast({ title: `Error al configurar ${name}`, variant: "error" })
       }
-    } catch {
-      toast({ title: `Error al configurar ${name}`, variant: "error" })
+    } catch (e) {
+      toast({ title: `Error al configurar ${name}`, description: humanError(e), variant: "error" })
     } finally {
       setSaving(false)
     }
@@ -139,8 +142,8 @@ export default function IntegrationsPage() {
       } else {
         toast({ title: `❌ ${r?.message || "Error de conexión"}`, variant: "error" })
       }
-    } catch {
-      toast({ title: "Error al probar la conexión", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al probar conexión", description: humanError(e), variant: "error" })
     } finally {
       setTesting(null)
     }
@@ -157,8 +160,8 @@ export default function IntegrationsPage() {
         [name]: Object.keys(prev[name] || {}).reduce((acc, k) => ({ ...acc, [k]: "" }), {}),
       }))
       loadData()
-    } catch {
-      toast({ title: "Error al desconectar", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al desconectar", description: humanError(e), variant: "error" })
     }
   }
 
@@ -211,7 +214,7 @@ export default function IntegrationsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadData}
+          onClick={() => loadData()}
           disabled={loading}
           className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >
@@ -305,21 +308,23 @@ export default function IntegrationsPage() {
             {/* Campos del formulario */}
             {current.fields.map((field) => (
               <div key={field.key}>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+                <label htmlFor={`integration-field-${current.name}-${field.key}`} className="mb-1.5 block text-sm font-medium text-zinc-300">
                   {field.label}
                   {field.required && <span className="ml-1 text-red-400">*</span>}
                 </label>
                 {field.type === "textarea" ? (
                   <textarea
+                    id={`integration-field-${current.name}-${field.key}`}
                     value={formValues[current.name]?.[field.key] || ""}
                     onChange={(e) => setFormValue(current.name, field.key, e.target.value)}
-                    placeholder={`Pega el contenido del JSON de service account aquí…`}
+                    placeholder={`Pega el contenido del archivo de configuración aquí…`}
                     rows={4}
                     className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                   />
                 ) : (
                   <div className="relative">
                     <Input
+                      id={`integration-field-${current.name}-${field.key}`}
                       type={field.type === "password" && !showPasswords[current.name] ? "password" : "text"}
                       value={formValues[current.name]?.[field.key] || ""}
                       onChange={(e) => setFormValue(current.name, field.key, e.target.value)}
@@ -331,6 +336,7 @@ export default function IntegrationsPage() {
                         type="button"
                         onClick={() => togglePassword(current.name)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                        aria-label={showPasswords[current.name] ? `Ocultar ${field.label}` : `Mostrar ${field.label}`}
                       >
                         {showPasswords[current.name] ? (
                           <EyeOff className="h-4 w-4" />

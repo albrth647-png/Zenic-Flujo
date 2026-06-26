@@ -39,7 +39,7 @@ from src.orbital.models import (
     CicloOrbital,
     RCCResult,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -99,6 +99,11 @@ class RCC:
         """
         Crea y registra un ciclo orbital a partir de nombres de variables.
 
+        Si ya existe un ciclo con el MISMO nombre, lo reemplaza. Esto previene
+        la acumulación de ciclos fantasma con el mismo nombre (bug Sprint 1 #3):
+        el motor llamaba create_cycle("workflow_cycle", ...) en cada ejecución
+        y RCC acumulaba N ciclos fantasma que se evaluaban en cada detect_all().
+
         Args:
             name: Nombre del ciclo
             variable_names: Nombres de las variables que forman el ciclo
@@ -107,6 +112,9 @@ class RCC:
         Returns:
             CicloOrbital creado y registrado
         """
+        # Eliminar ciclo(s) previo(s) con el mismo nombre (fix bug #3 Sprint 1)
+        self.remove_cycles_by_name(name)
+
         cycle = CicloOrbital(
             name=name,
             variable_ids=variable_names,
@@ -114,6 +122,27 @@ class RCC:
         )
         self.register_cycle(cycle)
         return cycle
+
+    def remove_cycles_by_name(self, name: str) -> int:
+        """
+        Elimina TODOS los ciclos registrados con el nombre dado.
+
+        Útil para evitar acumulación de ciclos fantasma cuando el motor
+        registra ciclos con nombre fijo (ej: "workflow_cycle") en cada
+        ejecución de workflow.
+
+        Args:
+            name: Nombre del ciclo a eliminar
+
+        Returns:
+            Número de ciclos eliminados
+        """
+        ids_to_remove = [cid for cid, c in self._cycles.items() if c.name == name]
+        for cid in ids_to_remove:
+            del self._cycles[cid]
+        if ids_to_remove:
+            logger.info(f"RCC: {len(ids_to_remove)} ciclo(s) con nombre '{name}' eliminados")
+        return len(ids_to_remove)
 
     # ── Deteccion de resonancia ────────────────────────────
 
@@ -238,6 +267,24 @@ class RCC:
         if cycle_id in self._cycles:
             del self._cycles[cycle_id]
             logger.info(f"RCC: Ciclo {cycle_id} eliminado")
+
+    def get_cycles(self) -> dict[str, "CicloOrbital"]:
+        """Retorna una COPIA del dict de ciclos registrados.
+
+        Fix Sprint 2 bug #13: antes los callers accedían a self._cycles
+        directamente (ej: context.py, engine.py), violando encapsulamiento.
+        Ahora se expone este método público que retorna una copia para
+        evitar mutación externa accidental.
+        """
+        return dict(self._cycles)
+
+    def get_cycle_count(self) -> int:
+        """Retorna el número de ciclos registrados."""
+        return len(self._cycles)
+
+    def get_cycle_names(self) -> list[str]:
+        """Retorna los nombres de todos los ciclos registrados."""
+        return [c.name for c in self._cycles.values()]
 
     # ── Representacion ─────────────────────────────────────
 

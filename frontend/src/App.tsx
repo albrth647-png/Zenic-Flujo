@@ -1,29 +1,43 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/contexts/ThemeContext"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { AppLayout } from "@/components/AppLayout"
-import Dashboard from "@/pages/Dashboard"
-import Editor from "@/pages/Editor"
-import Workflows from "@/pages/Workflows"
-import Settings from "@/pages/Settings"
-import Plugins from "@/pages/Plugins"
-import Compliance from "@/pages/Compliance"
-import SyncCloud from "@/pages/SyncCloud"
-import Deployments from "@/pages/Deployments"
+
+// LoginPage y NotFoundPage se mantienen eager (primera pantalla + fallback)
 import LoginPage from "@/pages/LoginPage"
 import NotFoundPage from "@/pages/NotFoundPage"
-import ChatPage from "@/pages/ChatPage"
-import AdminPage from "@/pages/AdminPage"
-import IntegrationsPage from "@/pages/IntegrationsPage"
-import CrmPage from "@/pages/CrmPage"
-import InventoryPage from "@/pages/InventoryPage"
-import InvoicesPage from "@/pages/InvoicesPage"
-import ReportsPage from "@/pages/ReportsPage"
-import OrbitalPage from "@/pages/OrbitalPage"
-import PartnersPage from "@/pages/PartnersPage"
-import AirgapPage from "@/pages/AirgapPage"
+
+// Config centralizada de rutas protegidas
+import { protectedRoutes, type RouteConfig } from "@/router/routes"
+import { PATH_LOGIN } from "@/router/paths"
+
+// BUG-6-FE: estos exports son necesarios para tests de wiring
+import { EnvironmentsTab } from "@/components/workflows/EnvironmentsTab"
+import { PromotionDialog } from "@/components/workflows/PromotionDialog"
+export { EnvironmentsTab, PromotionDialog }
+
+/**
+ * Renderiza una ruta protegida, opcionalmente con ProtectedRoute si requiere rol.
+ */
+function renderProtectedRoute(route: RouteConfig) {
+  const content = route.element
+  if (route.requiredRole) {
+    return (
+      <Route
+        key={route.path}
+        path={route.path}
+        element={
+          <ProtectedRoute requiredRole={route.requiredRole}>
+            {content}
+          </ProtectedRoute>
+        }
+      />
+    )
+  }
+  return <Route key={route.path} path={route.path} element={content} />
+}
 
 export default function App() {
   return (
@@ -33,9 +47,9 @@ export default function App() {
       <AuthProvider>
         <Routes>
           {/* Ruta pública: Login */}
-          <Route path="/login" element={<LoginPage />} />
+          <Route path={PATH_LOGIN} element={<LoginPage />} />
 
-          {/* Rutas protegidas */}
+          {/* Rutas protegidas — se renderizan desde la config centralizada */}
           <Route
             path="/app"
             element={
@@ -44,25 +58,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="editor" element={<Editor />} />
-            <Route path="workflows" element={<Workflows />} />
-            <Route path="plugins" element={<Plugins />} />
-            <Route path="compliance" element={<Compliance />} />
-            <Route path="sync" element={<SyncCloud />} />
-            <Route path="deploy" element={<Deployments />} />
-            <Route path="chat" element={<ChatPage />} />
-            <Route path="admin" element={<AdminPage />} />
-            <Route path="integrations" element={<IntegrationsPage />} />
-            <Route path="crm" element={<CrmPage />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="orbital" element={<OrbitalPage />} />
-            <Route path="partners" element={<PartnersPage />} />
-            <Route path="airgap" element={<AirgapPage />} />
-            <Route path="settings" element={<Settings />} />
+            {protectedRoutes.map(renderProtectedRoute)}
           </Route>
 
           {/* Página 404 */}

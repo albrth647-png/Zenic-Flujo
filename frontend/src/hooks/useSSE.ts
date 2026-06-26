@@ -11,8 +11,10 @@ export function useSSE(url: string) {
   const [connected, setConnected] = useState(false)
   const [reconnectCounter, setReconnectCounter] = useState(0)
   const listenersRef = useRef<Map<string, Set<EventHandler>>>(new Map())
-  const eventSourceRef = useRef<EventSource | null>(null)
-  const reconnectRef = useRef<ReturnType<typeof setTimeout>>()
+  // Refs tipados con `undefined` para que TS strict permita la reasignación a undefined
+  // en disconnect() y en el cleanup del useEffect.
+  const eventSourceRef = useRef<EventSource | null | undefined>(undefined)
+  const reconnectRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const on = useCallback((eventType: string, handler: EventHandler) => {
     if (!listenersRef.current.has(eventType)) {
@@ -30,7 +32,7 @@ export function useSSE(url: string) {
   }, [])
 
   const disconnect = useCallback(() => {
-    if (reconnectRef.current) {
+    if (reconnectRef.current !== undefined) {
       clearTimeout(reconnectRef.current)
       reconnectRef.current = undefined
     }
@@ -47,7 +49,7 @@ export function useSSE(url: string) {
 
     es.onopen = () => {
       setConnected(true)
-      if (reconnectRef.current) {
+      if (reconnectRef.current !== undefined) {
         clearTimeout(reconnectRef.current)
         reconnectRef.current = undefined
       }
@@ -108,7 +110,7 @@ export function useSSE(url: string) {
     }
 
     return () => {
-      if (reconnectRef.current) {
+      if (reconnectRef.current !== undefined) {
         clearTimeout(reconnectRef.current)
         reconnectRef.current = undefined
       }

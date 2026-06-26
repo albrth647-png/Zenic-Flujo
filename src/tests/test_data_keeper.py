@@ -8,7 +8,7 @@ class TestDataKeeperService:
 
     def test_create_collection(self, db_manager):
         """Test: crear una colección nueva."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -29,7 +29,7 @@ class TestDataKeeperService:
 
     def test_create_collection_duplicate(self, db_manager):
         """Test: crear colección duplicada lanza error."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -39,7 +39,7 @@ class TestDataKeeperService:
 
     def test_list_collections(self, db_manager):
         """Test: listar colecciones."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -54,7 +54,7 @@ class TestDataKeeperService:
 
     def test_insert_record(self, db_manager):
         """Test: insertar un registro en una colección."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -84,7 +84,7 @@ class TestDataKeeperService:
 
     def test_insert_record_invalid_collection(self, db_manager):
         """Test: insertar en colección inexistente lanza error."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -93,7 +93,7 @@ class TestDataKeeperService:
 
     def test_insert_record_validation(self, db_manager):
         """Test: insertar registro con campo no definido en schema."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -103,7 +103,7 @@ class TestDataKeeperService:
 
     def test_query_records(self, db_manager):
         """Test: consultar registros con filtros."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -131,7 +131,7 @@ class TestDataKeeperService:
 
     def test_update_record(self, db_manager):
         """Test: actualizar un registro."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -144,7 +144,7 @@ class TestDataKeeperService:
 
     def test_delete_record(self, db_manager):
         """Test: eliminar un registro."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -160,7 +160,7 @@ class TestDataKeeperService:
 
     def test_delete_record_not_found(self, db_manager):
         """Test: eliminar registro inexistente retorna False."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -170,7 +170,7 @@ class TestDataKeeperService:
 
     def test_get_collection_info(self, db_manager):
         """Test: obtener info de una colección."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 
@@ -192,7 +192,7 @@ class TestDataKeeperService:
 
     def test_get_tool_definition(self, db_manager):
         """Test: definición de la tool para el editor."""
-        from src.tools.data_keeper.service import DataKeeperService
+        from src.hat.level5_tools.data.data_keeper.service import DataKeeperService
 
         service = DataKeeperService()
 

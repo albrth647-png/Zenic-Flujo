@@ -13,8 +13,9 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from src.data.marketplace_db import MarketplaceDBManager
-from src.utils.logger import setup_logging
+from src.core.db import MarketplaceDBManager
+from src.core.logging import setup_logging
+from src.core.db import build_update_query
 
 logger = setup_logging(__name__)
 
@@ -99,31 +100,29 @@ class ConnectorRepository:
             "display_name", "description", "category", "icon", "author",
             "homepage", "docs_url", "status", "certification_status",
             "current_version", "versions", "tags", "actions", "auth_types",
-            "installs", "rating", "review_count", "featured",
+            "installs", "rating", "review_count", "featured", "updated_at",
         }
-        set_parts: list[str] = []
-        params: list[Any] = []
-
+        # Pre-procesar fields: serializar JSON y convertir featured a int
+        processed_fields: dict[str, Any] = {}
         for key, value in updates.items():
             if key in allowed:
                 if key in ("versions", "tags", "actions", "auth_types"):
                     value = json.dumps(value)
                 elif key == "featured":
                     value = int(value)
-                set_parts.append(f"{key} = ?")
-                params.append(value)
+                processed_fields[key] = value
 
-        if not set_parts:
+        result = build_update_query(
+            "marketplace_connectors",
+            allowed,
+            processed_fields,
+            extra_set={"updated_at": datetime.now().isoformat()},
+        )
+        if result is None:
             return self.get_connector(name)
 
-        set_parts.append("updated_at = ?")
-        params.append(datetime.now().isoformat())
-        params.append(name)
-
-        self._db.execute(
-            "UPDATE marketplace_connectors SET " + ", ".join(set_parts) + " WHERE name = ?",
-            tuple(params),
-        )
+        sql, params = result
+        self._db.execute(sql, (*params, name))
         self._db.commit()
         return self.get_connector(name)
 
@@ -176,14 +175,16 @@ class ConnectorRepository:
             conditions.append("status = ?")
             params.append(status)
 
+        # where se construye solo con strings hardcoded ("status = ?", "category = ?", etc.)
+        # Sin interpolación de input externo. B608 es falso positivo.
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
-        total = self._db.fetchone(f"SELECT COUNT(*) as c FROM marketplace_connectors {where}", tuple(params))
+        total = self._db.fetchone(f"SELECT COUNT(*) as c FROM marketplace_connectors {where}", tuple(params))  # nosec B608 — where construido con literals
         total_count = total["c"] if total else 0
 
         offset = (page - 1) * per_page
         rows = self._db.fetchall(
-            f"SELECT * FROM marketplace_connectors {where} ORDER BY installs DESC, rating DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM marketplace_connectors {where} ORDER BY installs DESC, rating DESC LIMIT ? OFFSET ?",  # nosec B608 — where construido con literals
             (*tuple(params), per_page, offset),
         )
 

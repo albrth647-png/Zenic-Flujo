@@ -6,6 +6,7 @@ Gestiona la version de un conector siguiendo semver.
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from src.cli.commands.helpers import _bump_version, _read_version, _update_version_in_files
@@ -33,7 +34,7 @@ def cmd_version(args: argparse.Namespace) -> int:
 
     current_version = _read_version(connector_path)
     if current_version is None:
-        print(f"Error: No se pudo determinar la version del conector en {connector_path}")
+        print(f"Error: No se pudo determinar la version del conector en {connector_path}", file=sys.stderr)
         return 1
 
     if bump_type is None:
@@ -43,7 +44,7 @@ def cmd_version(args: argparse.Namespace) -> int:
 
     new_version = _bump_version(current_version, bump_type)
     if new_version is None:
-        print(f"Error: No se pudo calcular la nueva version. Version actual: {current_version}")
+        print(f"Error: No se pudo calcular la nueva version. Version actual: {current_version}", file=sys.stderr)
         return 1
 
     updated_files = _update_version_in_files(connector_path, current_version, new_version)

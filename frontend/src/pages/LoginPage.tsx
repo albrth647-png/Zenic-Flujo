@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -43,8 +43,17 @@ export default function LoginPage() {
   const redirectTo = searchParams.get("redirect") || "/app/dashboard"
   const sessionExpired = searchParams.get("expired") === "1"
 
+  // BUG P1-7: antes se llamaba `navigate(redirectTo)` directamente durante el
+  // render (if authenticated { navigate(...); return null }), lo que es un
+  // anti-patrón React que puede causar warnings de "Cannot update a component
+  // while rendering a different component". Ahora se hace en un useEffect.
+  useEffect(() => {
+    if (authenticated) {
+      navigate(redirectTo, { replace: true })
+    }
+  }, [authenticated, navigate, redirectTo])
+
   if (authenticated) {
-    navigate(redirectTo, { replace: true })
     return null
   }
 

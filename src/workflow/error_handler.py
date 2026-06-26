@@ -17,14 +17,28 @@ MEJORA vs version anterior:
 from __future__ import annotations
 
 import hashlib
+import os
 import random
 import time
 from collections.abc import Callable
 
-from src.config import ERROR_BASE_DELAY_SECONDS, ERROR_MAX_RETRIES, ERROR_RETRY_MULTIPLIER, ERROR_USE_FALLBACK
+from src.core.config import ERROR_BASE_DELAY_SECONDS, ERROR_MAX_RETRIES, ERROR_RETRY_MULTIPLIER, ERROR_USE_FALLBACK
+
+# Fix Sprint 4 bug #50: sembrar random con seed configurable para reproducibilidad en tests.
+# Si WFD_ERROR_HANDLER_RANDOM_SEED está seteada, usar ese seed; si no, usar None (no sembrarlo,
+# lo que da valores verdaderamente aleatorios en producción).
+_ERROR_RANDOM_SEED = os.environ.get("WFD_ERROR_HANDLER_RANDOM_SEED")
+if _ERROR_RANDOM_SEED:
+    try:
+        random.seed(int(_ERROR_RANDOM_SEED))
+    except (ValueError, TypeError):
+        pass  # Seed inválida, dejar random sin sembrar
+# En cualquier caso, creamos una instancia local para no afectar al global random
+# de otros módulos.
+_error_rng = random.Random(_ERROR_RANDOM_SEED if _ERROR_RANDOM_SEED else None)
 from src.orbital.context import OrbitalContext
 from src.orbital.models import TWO_PI
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -115,13 +129,16 @@ class ErrorHandler:
                 retries=0,
             )
 
+        # Fix BUG-W8: usar prefijo de execution_id para aislar workflows
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+
         # 1. Crear variable orbital para el error
-        error_var_name = f"error_{step_id}_{error_type}"
+        error_var_name = f"{orbital_prefix}error_{step_id}_{error_type}"
         self._ensure_error_variable(error_var_name, step_id, error_type)
 
         # 2. Calcular TOR(error, contexto)
         orbital_alignment = 0.0
-        context_var_name = f"ctx_{step_id}"
+        context_var_name = f"{orbital_prefix}ctx_{step_id}"
         self._ensure_context_variable(context_var_name, context)
 
         try:
@@ -154,8 +171,11 @@ class ErrorHandler:
                 delay *= 1.5
 
             # Jitter: aleatoriedad para evitar tormentas (Sprint 4)
+            # Fix Sprint 4 bug #50: usar _error_rng (instancia local) en vez de
+            # random.random() global, para reproducibilidad en tests cuando
+            # WFD_ERROR_HANDLER_RANDOM_SEED está seteada.
             if jitter_enabled:
-                jitter_factor = 0.5 + random.random() * 0.5  # 0.5 - 1.0
+                jitter_factor = 0.5 + _error_rng.random() * 0.5  # 0.5 - 1.0
                 delay *= jitter_factor
 
             # Cap máximo de 60s por reintento
@@ -331,7 +351,8 @@ class ErrorHandler:
 
     def _ensure_error_variable(self, var_name: str, step_id: int, error_type: str) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
-            hash_val = int(hashlib.md5(var_name.encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista del var_name (B324 mitigado).
+            hash_val = int(hashlib.md5(var_name.encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,
@@ -344,7 +365,8 @@ class ErrorHandler:
 
     def _ensure_context_variable(self, var_name: str, context: dict) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
-            hash_val = int(hashlib.md5(str(context).encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista del contexto (B324 mitigado).
+            hash_val = int(hashlib.md5(str(context).encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,

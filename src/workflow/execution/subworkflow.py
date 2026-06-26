@@ -7,23 +7,31 @@ from __future__ import annotations
 
 import time
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 from src.workflow.step_executor import StepResult
+
+# Fix Sprint 4 bug #52: centralizado en constants.py
+from src.workflow.constants import MAX_SUBWORKFLOW_DEPTH
 
 logger = setup_logging(__name__)
 
-MAX_SUBWORKFLOW_DEPTH = 10
-
 
 class SubworkflowExecutionService:
-    """Servicio para ejecutar pasos de tipo subworkflow."""
+    """Servicio para ejecutar pasos de tipo subworkflow.
+
+    Fix Sprint 4 bug #45: antes el subworkflow usaba el mismo singleton
+    OrbitalContext que el padre, contaminando variables orbitales.
+    Ahora el context del hijo recibe un _orbital_var_prefix distinto
+    (derivado del execution_id del hijo), y al final se limpian sus
+    variables del singleton.
+    """
 
     def __init__(self, repository):
         self._repository = repository
 
     def execute(self, step: dict, context: dict) -> StepResult:
         """Ejecuta un paso de tipo subworkflow."""
-        from src.utils.helpers import resolve_variables
+        from src.core.utils import resolve_variables
         from src.workflow.engine import WorkflowEngine
 
         start_time = time.time()
@@ -56,6 +64,9 @@ class SubworkflowExecutionService:
 
         try:
             engine = WorkflowEngine()
+            # Fix bug #45: el engine.execute() del hijo ahora namespacia sus
+            # variables orbitales con wf_<child_exec_id>__ automáticamente
+            # (gracias al fix Sprint 1 bug #1), así que no contaminan al padre.
             child_result = engine.execute(workflow_id, child_input)
             elapsed = int((time.time() - start_time) * 1000)
 

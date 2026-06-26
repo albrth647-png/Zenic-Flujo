@@ -40,7 +40,7 @@ class TestCSVReports:
 
     def test_generate_crm_csv(self, db_manager):
         """Genera CSV de leads CRM."""
-        from src.tools.crm.service import CRMService
+        from src.hat.level5_tools.business.crm.service import CRMService
 
         crm = CRMService()
         crm.create_lead("Juan", email="juan@test.com", phone="555-0100", company="ACME", source="web")
@@ -60,7 +60,7 @@ class TestCSVReports:
 
     def test_generate_inventory_csv(self, db_manager):
         """Genera CSV de inventario."""
-        from src.tools.inventory.service import InventoryService
+        from src.hat.level5_tools.business.inventory.service import InventoryService
 
         inv = InventoryService()
         inv.add_product("SKU-001", "Laptop", stock=10, min_stock=3, price=999.99)
@@ -75,7 +75,7 @@ class TestCSVReports:
 
     def test_generate_invoices_csv(self, db_manager):
         """Genera CSV de facturas."""
-        from src.tools.invoice.service import InvoiceService
+        from src.hat.level5_tools.business.invoice.service import InvoiceService
 
         inv = InvoiceService()
         inv.create_invoice("Cliente A", items=[{"desc": "Item 1", "qty": 1, "price": 100}])
@@ -118,7 +118,7 @@ class TestPDFReports:
 
     def test_generate_crm_pdf(self, db_manager):
         """Genera PDF de leads."""
-        from src.tools.crm.service import CRMService
+        from src.hat.level5_tools.business.crm.service import CRMService
 
         crm = CRMService()
         crm.create_lead("Juan", email="juan@test.com")
@@ -132,7 +132,7 @@ class TestPDFReports:
 
     def test_generate_inventory_pdf(self, db_manager):
         """Genera PDF de inventario."""
-        from src.tools.inventory.service import InventoryService
+        from src.hat.level5_tools.business.inventory.service import InventoryService
 
         inv = InventoryService()
         inv.add_product("SKU-TEST", "Test Product", stock=5, min_stock=2, price=99.99)
@@ -146,7 +146,7 @@ class TestPDFReports:
 
     def test_generate_invoices_pdf(self, db_manager):
         """Genera PDF de facturas."""
-        from src.tools.invoice.service import InvoiceService
+        from src.hat.level5_tools.business.invoice.service import InvoiceService
 
         inv = InvoiceService()
         inv.create_invoice("Cliente Test", items=[{"desc": "Item", "qty": 2, "price": 50}])

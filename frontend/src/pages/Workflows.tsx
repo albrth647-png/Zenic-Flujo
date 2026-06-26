@@ -5,9 +5,21 @@ import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/StatusBadge"
 import { apiFetch } from "@/hooks/useApi"
 import {
-  Plus, RefreshCw
+  Plus, RefreshCw, GitBranch
 } from "lucide-react"
 import { Link } from "react-router-dom"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+// BUG-6-FE (Sprint 9): cablear EnvironmentsTab + PromotionDialog.
+// Antes estaban construidos pero huérfanos — ningún componente los importaba,
+// así que las 718 LOC del backend de versioning no se usaban desde la UI.
+// Ahora se abren desde un botón "Entornos" en cada workflow.
+import { EnvironmentsTab } from "@/components/workflows/EnvironmentsTab"
 
 interface Workflow {
   id: number
@@ -22,6 +34,8 @@ export default function Workflows() {
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [loading, setLoading] = useState(true)
   const cancelledRef = useRef(false)
+  // Diálogo de multi-entorno + versioning (Sprint 9 — BUG-6-FE)
+  const [envDialogWf, setEnvDialogWf] = useState<Workflow | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -45,7 +59,7 @@ export default function Workflows() {
   }
 
   const deleteWorkflow = async (id: number) => {
-    if (!confirm("¿Eliminar este workflow?")) return
+    if (!confirm("¿Eliminar este flujo?")) return
     const res = await apiFetch(`/api/workflows/${id}`, { method: "DELETE" })
     if (res) load()
   }
@@ -54,7 +68,7 @@ export default function Workflows() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Workflows</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Flujos</h1>
           <p className="text-muted-foreground text-sm">
             Gestiona tus automatizaciones
           </p>
@@ -73,7 +87,7 @@ export default function Workflows() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Todos los workflows</CardTitle>
+          <CardTitle className="text-lg">Todos los flujos</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -82,7 +96,7 @@ export default function Workflows() {
             </p>
           ) : workflows.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No hay workflows aún.{" "}
+              No hay flujos aún.{" "}
               <Link to="/app/editor" className="text-primary hover:underline">
                 Crea el primero
               </Link>
@@ -114,12 +128,21 @@ export default function Workflows() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={wf.status} />
+                    {/* BUG-6-FE: botón que abre el diálogo de multi-entorno + versioning */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEnvDialogWf(wf)}
+                      title="Entornos y versiones"
+                    >
+                      <GitBranch className="size-3 mr-1" /> Entornos
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleStatus(wf.id, wf.status)}
                     >
-                      {wf.status === "active" ? "⏸" : "▶️"}
+                      {wf.status === "active" ? "Pausar" : "Activar"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -127,7 +150,7 @@ export default function Workflows() {
                       className="text-destructive hover:text-destructive"
                       onClick={() => deleteWorkflow(wf.id)}
                     >
-                      🗑
+                      Eliminar
                     </Button>
                   </div>
                 </div>
@@ -136,8 +159,32 @@ export default function Workflows() {
           )}
         </CardContent>
       </Card>
+
+      {/*
+        BUG-6-FE (Sprint 9): diálogo de multi-entorno + versioning.
+        EnvironmentsTab muestra entornos dev/staging/prod, versiones con rollback
+        e histórico de promociones. Internamente usa PromotionDialog.
+      */}
+      <Dialog open={envDialogWf !== null} onOpenChange={(open) => !open && setEnvDialogWf(null)}>
+        <DialogContent className="sm:max-w-[760px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitBranch className="size-5" />
+              {envDialogWf?.name || "Flujo"} — Entornos y versiones
+            </DialogTitle>
+            <DialogDescription>
+              Gestiona la promoción del workflow entre entornos (dev, staging, prod),
+              consulta el histórico de versiones y realiza rollbacks.
+            </DialogDescription>
+          </DialogHeader>
+          {envDialogWf && (
+            <EnvironmentsTab
+              workflowId={envDialogWf.id}
+              workflowName={envDialogWf.name || "Workflow"}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
-

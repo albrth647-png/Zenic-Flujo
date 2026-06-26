@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { toast } from "@/components/ui/toast"
+import { error as humanError } from "@/utils/humanize"
 import {
   Search,
   Download,
@@ -89,27 +90,30 @@ export default function Plugins() {
   const [showDetail, setShowDetail] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     try {
       const api = getApi()
       const [connRes, catRes] = await Promise.all([
-        api.get("/api/marketplace/connectors"),
-        api.get("/api/marketplace/categories"),
+        api.get("/api/marketplace/connectors", { signal }),
+        api.get("/api/marketplace/categories", { signal }),
       ])
+      if (signal?.aborted) return
       const c = connRes as { connectors: Connector[] }
       if (c?.connectors) setConnectors(c.connectors)
       if (catRes) setCategories(catRes as Category[])
-    } catch {
-      toast({ title: "Error al cargar plugins", variant: "error" })
+    } catch (e) {
+      // AbortError: el componente se desmontó, no mostramos toast (BUG-2-FE).
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar extensiones", description: humanError(e), variant: "error" })
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [loadData])
 
@@ -136,8 +140,8 @@ export default function Plugins() {
       } else {
         toast({ title: `No se pudo instalar ${name}`, variant: "error" })
       }
-    } catch {
-      toast({ title: `Error al instalar ${name}`, variant: "error" })
+    } catch (e) {
+      toast({ title: `Error al instalar ${name}`, description: humanError(e), variant: "error" })
     } finally {
       setInstalling(null)
     }
@@ -150,8 +154,8 @@ export default function Plugins() {
       await api.post(`/api/marketplace/connectors/${name}/uninstall`)
       toast({ title: `❌ ${name} desinstalado`, variant: "success" })
       loadData()
-    } catch {
-      toast({ title: `Error al desinstalar ${name}`, variant: "error" })
+    } catch (e) {
+      toast({ title: `Error al desinstalar ${name}`, description: humanError(e), variant: "error" })
     }
   }
 
@@ -162,8 +166,8 @@ export default function Plugins() {
       const api = getApi()
       const res = await api.get(`/api/marketplace/connectors/${name}`)
       setDetailConnector(res as ConnectorDetail)
-    } catch {
-      toast({ title: "Error al cargar detalles", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al cargar detalles", description: humanError(e), variant: "error" })
       setShowDetail(false)
     } finally {
       setDetailLoading(false)
@@ -175,7 +179,7 @@ export default function Plugins() {
       {/* Encabezado */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-100">Plugins</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100">Extensiones</h1>
           <p className="mt-1 text-sm text-zinc-400">
             Explora, instala y gestiona conectores para extender lo que puede hacer tu plataforma
           </p>
@@ -183,7 +187,7 @@ export default function Plugins() {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadData}
+          onClick={() => loadData()}
           disabled={loading}
           className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >

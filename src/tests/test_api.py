@@ -13,7 +13,7 @@ def app_client(db_manager, monkeypatch):
     Provee un Flask test client configurado con base de datos temporal.
     Monkey-patches module-level db, repo, event_bus in app.py to use the test DB.
     """
-    from src import config
+    from src.core import config
     from src.events.bus import EventBus
     from src.web import app as app_module
     from src.workflow.repository import WorkflowRepository
@@ -713,7 +713,7 @@ class TestAuthStatusAPI:
         """Test: POST /api/auth/login sin hash configurado retorna 401."""
         client, _ = app_client
         # Remove the password hash temporarily
-        from src.data.database_manager import DatabaseManager
+        from src.core.db import DatabaseManager
         from src.web import app as app_module
 
         # Delete the setting from DB directly

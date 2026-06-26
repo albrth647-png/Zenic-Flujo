@@ -29,7 +29,7 @@ class TestBug4SecretsHardcodeados:
 
     def test_config_no_secret_key_hardcoded(self):
         """SECRET_KEY no debe ser un valor hardcodeado conocido."""
-        from src.config import SESSION_SECRET
+        from src.core.config import SESSION_SECRET
 
         insecure_defaults = [
             "REDACTED_generar_aleatorio_64chars",
@@ -42,7 +42,7 @@ class TestBug4SecretsHardcodeados:
 
     def test_config_no_license_secret_hardcoded(self):
         """LICENSE_SECRET_KEY no debe ser un valor hardcodeado conocido."""
-        from src.config import LICENSE_SECRET_KEY
+        from src.core.config import LICENSE_SECRET_KEY
 
         insecure_defaults = [
             "REDACTED_clave_maestra_hmac",
@@ -56,19 +56,19 @@ class TestBug4SecretsHardcodeados:
 
     def test_session_secret_has_minimum_length(self):
         """SESSION_SECRET debe tener al menos 32 caracteres."""
-        from src.config import SESSION_SECRET
+        from src.core.config import SESSION_SECRET
 
         assert len(SESSION_SECRET) >= 32, f"SESSION_SECRET muy corto: {len(SESSION_SECRET)} chars"
 
     def test_license_secret_has_minimum_length(self):
         """LICENSE_SECRET_KEY debe tener al menos 32 caracteres."""
-        from src.config import LICENSE_SECRET_KEY
+        from src.core.config import LICENSE_SECRET_KEY
 
         assert len(LICENSE_SECRET_KEY) >= 32, f"LICENSE_SECRET_KEY muy corto: {len(LICENSE_SECRET_KEY)} chars"
 
     def test_config_validate_returns_warnings_for_defaults(self):
         """validate_config debe detectar secrets por defecto en dev mode."""
-        from src.config import validate_config
+        from src.core.config import validate_config
 
         warnings = validate_config()
         # En dev mode, los secrets son aleatorios, no los defaults

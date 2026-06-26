@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
+import { error as humanError } from "@/utils/humanize"
 import {
   Package,
   Plus,
@@ -57,25 +58,27 @@ export default function InventoryPage() {
     reason: "",
   })
 
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (signal?: AbortSignal) => {
     try {
       const api = getApi()
       const path = lowStockOnly
         ? "/api/tools/inventory/low-stock"
         : "/api/tools/inventory/products"
-      const data = (await api.get(path)) as Product[]
+      const data = (await api.get(path, { signal })) as Product[]
+      if (signal?.aborted) return
       setProducts(data)
-    } catch {
-      toast({ title: "Error al cargar productos", variant: "error" })
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar productos", description: humanError(e), variant: "error" })
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi, lowStockOnly])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadProducts()
+    loadProducts(ac.signal)
     return () => ac.abort()
   }, [loadProducts])
 
@@ -109,7 +112,7 @@ export default function InventoryPage() {
       setForm({ name: "", sku: "", description: "", category: "", stock: 0, min_stock: 10, price: 0 })
       loadProducts()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar el producto")
+      setError(humanError(err))
     } finally {
       setSaving(false)
     }
@@ -132,7 +135,7 @@ export default function InventoryPage() {
       setMovement({ type: "in", quantity: 1, reason: "" })
       loadProducts()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al registrar el movimiento")
+      setError(humanError(err))
     } finally {
       setSaving(false)
     }
@@ -144,8 +147,8 @@ export default function InventoryPage() {
       const api = getApi()
       await api.delete(`/api/tools/inventory/products/${productId}`)
       loadProducts()
-    } catch {
-      toast({ title: "Error al eliminar producto", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al eliminar producto", description: humanError(e), variant: "error" })
     }
   }
 
@@ -275,7 +278,7 @@ export default function InventoryPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={loadProducts}
+                onClick={() => loadProducts()}
                 className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
               >
                 <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -373,6 +376,7 @@ export default function InventoryPage() {
                         }}
                         className="text-zinc-500 hover:text-indigo-400"
                         title="Registrar movimiento"
+                        aria-label={`Registrar movimiento de stock para ${product.name}`}
                       >
                         {product.stock <= product.min_stock ? (
                           <TrendingUp className="h-4 w-4" />
@@ -386,6 +390,7 @@ export default function InventoryPage() {
                         onClick={() => openEdit(product)}
                         className="text-zinc-500 hover:text-zinc-200"
                         title="Editar"
+                        aria-label={`Editar producto ${product.name}`}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -395,6 +400,7 @@ export default function InventoryPage() {
                         onClick={() => handleDelete(product.id, product.name)}
                         className="text-zinc-500 hover:text-red-400"
                         title="Eliminar"
+                        aria-label={`Eliminar producto ${product.name}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -426,10 +432,11 @@ export default function InventoryPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">
+              <label htmlFor="inventory-product-name" className="mb-1 block text-sm text-zinc-300">
                 Nombre <span className="text-red-400">*</span>
               </label>
               <Input
+                id="inventory-product-name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Ej: Laptop Pro X1"
@@ -437,10 +444,11 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">
+              <label htmlFor="inventory-product-sku" className="mb-1 block text-sm text-zinc-300">
                 SKU <span className="text-red-400">*</span>
               </label>
               <Input
+                id="inventory-product-sku"
                 value={form.sku}
                 onChange={(e) => setForm({ ...form, sku: e.target.value })}
                 placeholder="Ej: LP-X1-001"
@@ -448,8 +456,9 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Categoría</label>
+              <label htmlFor="inventory-product-category" className="mb-1 block text-sm text-zinc-300">Categoría</label>
               <Input
+                id="inventory-product-category"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 placeholder="Ej: Electrónicos"
@@ -457,8 +466,9 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Precio</label>
+              <label htmlFor="inventory-product-price" className="mb-1 block text-sm text-zinc-300">Precio</label>
               <Input
+                id="inventory-product-price"
                 type="number"
                 min={0}
                 step={0.01}
@@ -469,8 +479,9 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Stock inicial</label>
+              <label htmlFor="inventory-product-stock" className="mb-1 block text-sm text-zinc-300">Stock inicial</label>
               <Input
+                id="inventory-product-stock"
                 type="number"
                 min={0}
                 value={form.stock}
@@ -479,8 +490,9 @@ export default function InventoryPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">Stock mínimo</label>
+              <label htmlFor="inventory-product-min-stock" className="mb-1 block text-sm text-zinc-300">Stock mínimo</label>
               <Input
+                id="inventory-product-min-stock"
                 type="number"
                 min={0}
                 value={form.min_stock}
@@ -492,8 +504,9 @@ export default function InventoryPage() {
               </p>
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">Descripción</label>
+              <label htmlFor="inventory-product-description" className="mb-1 block text-sm text-zinc-300">Descripción</label>
               <textarea
+                id="inventory-product-description"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Descripción del producto…"
@@ -559,12 +572,12 @@ export default function InventoryPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">Tipo de movimiento</label>
+                <label htmlFor="inventory-movement-type" className="mb-1 block text-sm text-zinc-300">Tipo de movimiento</label>
                 <Select
                   value={movement.type}
                   onValueChange={(v) => setMovement({ ...movement, type: v as typeof movement.type })}
                 >
-                  <SelectTrigger className="border-zinc-700 bg-zinc-800 text-zinc-200">
+                  <SelectTrigger id="inventory-movement-type" className="border-zinc-700 bg-zinc-800 text-zinc-200">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-zinc-700 bg-zinc-800 text-zinc-200">
@@ -591,8 +604,9 @@ export default function InventoryPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">Cantidad</label>
+                <label htmlFor="inventory-movement-quantity" className="mb-1 block text-sm text-zinc-300">Cantidad</label>
                 <Input
+                  id="inventory-movement-quantity"
                   type="number"
                   min={1}
                   value={movement.quantity}
@@ -604,8 +618,9 @@ export default function InventoryPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">Motivo (opcional)</label>
+                <label htmlFor="inventory-movement-reason" className="mb-1 block text-sm text-zinc-300">Motivo (opcional)</label>
                 <Input
+                  id="inventory-movement-reason"
                   value={movement.reason}
                   onChange={(e) => setMovement({ ...movement, reason: e.target.value })}
                   placeholder="Ej: Recepción de proveedor"

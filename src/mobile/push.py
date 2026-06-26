@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from src.utils.logger import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger("mobile.push")
 
@@ -169,7 +169,10 @@ class PushNotificationService:
     _instance: PushNotificationService | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = "push_notifications.db") -> None:
+    def __init__(self, db_path: str = None) -> None:
+        if db_path is None:
+            from src.core.config import PUSH_NOTIFICATIONS_DB_PATH
+            db_path = str(PUSH_NOTIFICATIONS_DB_PATH)
         self._db_path = db_path
         self._conn: sqlite3.Connection | None = None
         self._pending: list[PushNotification] = []
@@ -474,6 +477,91 @@ class PushNotificationService:
             ]
         except sqlite3.Error:
             return []
+
+    def get_preferences(self, device_id: str) -> dict[str, Any] | None:
+        """Get push notification preferences for a device.
+
+        Fix Sprint 2 bug #16: API pública para el endpoint mobile
+        /notifications/preferences. Lee de la tabla push_preferences
+        (creada en _init_db). Retorna None si no hay preferencias guardadas.
+
+        Args:
+            device_id: ID del dispositivo.
+
+        Returns:
+            Dict con preferences + quiet_hours, o None si no hay config previa.
+        """
+        if self._conn is None:
+            return None
+        try:
+            # Crear tabla si no existe (idempotente)
+            self._conn.execute("""
+                CREATE TABLE IF NOT EXISTS push_preferences (
+                    device_id TEXT PRIMARY KEY,
+                    preferences TEXT NOT NULL DEFAULT '{}',
+                    quiet_hours TEXT NOT NULL DEFAULT '{}',
+                    updated_at TEXT DEFAULT (datetime('now'))
+                )
+            """)
+            self._conn.commit()
+
+            cursor = self._conn.execute(
+                "SELECT preferences, quiet_hours FROM push_preferences WHERE device_id = ?",
+                (device_id,),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            return {
+                "preferences": json.loads(row[0]) if row[0] else {},
+                "quiet_hours": json.loads(row[1]) if row[1] else {},
+            }
+        except sqlite3.Error as e:
+            logger.error("Failed to get preferences for %s: %s", device_id, e)
+            return None
+
+    def set_preferences(
+        self,
+        device_id: str,
+        preferences: dict[str, Any],
+        quiet_hours: dict[str, Any] | None = None,
+    ) -> bool:
+        """Save push notification preferences for a device.
+
+        Args:
+            device_id: ID del dispositivo.
+            preferences: Dict con flags de preferencias por categoría.
+            quiet_hours: Dict con config de horas tranquilas (opcional).
+
+        Returns:
+            True si se guardó, False si falló.
+        """
+        if self._conn is None:
+            return False
+        try:
+            self._conn.execute("""
+                CREATE TABLE IF NOT EXISTS push_preferences (
+                    device_id TEXT PRIMARY KEY,
+                    preferences TEXT NOT NULL DEFAULT '{}',
+                    quiet_hours TEXT NOT NULL DEFAULT '{}',
+                    updated_at TEXT DEFAULT (datetime('now'))
+                )
+            """)
+            self._conn.execute(
+                """INSERT OR REPLACE INTO push_preferences
+                   (device_id, preferences, quiet_hours, updated_at)
+                   VALUES (?, ?, ?, datetime('now'))""",
+                (
+                    device_id,
+                    json.dumps(preferences),
+                    json.dumps(quiet_hours or {}),
+                ),
+            )
+            self._conn.commit()
+            return True
+        except sqlite3.Error as e:
+            logger.error("Failed to set preferences for %s: %s", device_id, e)
+            return False
 
     def close(self) -> None:
         """Close database connection."""

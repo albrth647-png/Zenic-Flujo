@@ -6,7 +6,7 @@ engine.py esbelto (~300 líneas).
 
 from __future__ import annotations
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

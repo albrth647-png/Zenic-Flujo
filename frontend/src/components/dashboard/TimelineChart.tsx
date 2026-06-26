@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
+import { useTheme } from "@/hooks/useTheme"
 
 import type { TimelineData } from "@/types/reports"
 
@@ -15,7 +16,9 @@ interface TimelineChartProps {
 }
 
 export function TimelineChart({ data }: TimelineChartProps) {
-  const isDark = document.documentElement.classList.contains("dark")
+  // BUG P1-7: antes se leía `document.documentElement.classList.contains("dark")`
+  // durante el render (no reactivo). Ahora useTheme subscribe al ThemeContext.
+  const { isDark } = useTheme()
   const textColor = isDark ? "#888" : "#6b7280"
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
 

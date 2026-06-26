@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
+import { error as humanError } from "@/utils/humanize"
 import {
   FileText,
   Plus,
@@ -67,23 +68,25 @@ export default function InvoicesPage() {
     items: [{ description: "", quantity: 1, unit_price: 0 }] as InvoiceItem[],
   })
 
-  const loadInvoices = useCallback(async () => {
+  const loadInvoices = useCallback(async (signal?: AbortSignal) => {
     try {
       const api = getApi()
       const query = statusFilter !== "all" ? `?status=${statusFilter}` : ""
-      const data = (await api.get(`/api/tools/invoice/list${query}`)) as Invoice[]
+      const data = (await api.get(`/api/tools/invoice/list${query}`, { signal })) as Invoice[]
+      if (signal?.aborted) return
       setInvoices(data)
-    } catch {
-      toast({ title: "Error al cargar facturas", variant: "error" })
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar facturas", description: humanError(e), variant: "error" })
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi, statusFilter])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadInvoices()
+    loadInvoices(ac.signal)
     return () => ac.abort()
   }, [loadInvoices])
 
@@ -140,7 +143,7 @@ export default function InvoicesPage() {
       })
       loadInvoices()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al crear la factura")
+      setError(humanError(err))
     } finally {
       setSaving(false)
     }
@@ -151,8 +154,8 @@ export default function InvoicesPage() {
       const api = getApi()
       await api.post(`/api/tools/invoice/${invoiceId}/pay`)
       loadInvoices()
-    } catch {
-      toast({ title: "Error al marcar como pagada", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al marcar como pagada", description: humanError(e), variant: "error" })
     }
   }
 
@@ -162,8 +165,8 @@ export default function InvoicesPage() {
       const api = getApi()
       await api.post(`/api/tools/invoice/${invoiceId}/cancel`)
       loadInvoices()
-    } catch {
-      toast({ title: "Error al cancelar factura", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al cancelar factura", description: humanError(e), variant: "error" })
     }
   }
 
@@ -285,7 +288,7 @@ export default function InvoicesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={loadInvoices}
+                onClick={() => loadInvoices()}
                 className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
               >
                 <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -385,6 +388,7 @@ export default function InvoicesPage() {
                         }}
                         className="text-zinc-500 hover:text-zinc-200"
                         title="Ver detalle"
+                        aria-label={`Ver detalle de factura ${inv.number}`}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -396,6 +400,7 @@ export default function InvoicesPage() {
                             onClick={() => handleMarkPaid(inv.id)}
                             className="text-zinc-500 hover:text-emerald-400"
                             title="Marcar como pagada"
+                            aria-label={`Marcar factura ${inv.number} como pagada`}
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </Button>
@@ -405,6 +410,7 @@ export default function InvoicesPage() {
                             onClick={() => handleCancel(inv.id)}
                             className="text-zinc-500 hover:text-red-400"
                             title="Cancelar factura"
+                            aria-label={`Cancelar factura ${inv.number}`}
                           >
                             <XCircle className="h-4 w-4" />
                           </Button>
@@ -438,10 +444,11 @@ export default function InvoicesPage() {
             {/* Datos del cliente */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm text-zinc-300">
+                <label htmlFor="invoice-client-name" className="mb-1 block text-sm text-zinc-300">
                   Cliente <span className="text-red-400">*</span>
                 </label>
                 <Input
+                  id="invoice-client-name"
                   value={form.client_name}
                   onChange={(e) => setForm({ ...form, client_name: e.target.value })}
                   placeholder="Nombre del cliente"
@@ -449,8 +456,9 @@ export default function InvoicesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">Correo del cliente</label>
+                <label htmlFor="invoice-client-email" className="mb-1 block text-sm text-zinc-300">Correo del cliente</label>
                 <Input
+                  id="invoice-client-email"
                   type="email"
                   value={form.client_email}
                   onChange={(e) => setForm({ ...form, client_email: e.target.value })}
@@ -459,8 +467,9 @@ export default function InvoicesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">Días para vencer</label>
+                <label htmlFor="invoice-due-days" className="mb-1 block text-sm text-zinc-300">Días para vencer</label>
                 <Input
+                  id="invoice-due-days"
                   type="number"
                   min={1}
                   value={form.due_days}
@@ -497,8 +506,9 @@ export default function InvoicesPage() {
                       />
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <label className="block text-[10px] text-zinc-500">Cant.</label>
+                          <label htmlFor={`invoice-item-quantity-${index}`} className="block text-[10px] text-zinc-500">Cant.</label>
                           <Input
+                            id={`invoice-item-quantity-${index}`}
                             type="number"
                             min={1}
                             value={item.quantity}
@@ -507,8 +517,9 @@ export default function InvoicesPage() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-[10px] text-zinc-500">Precio unit.</label>
+                          <label htmlFor={`invoice-item-price-${index}`} className="block text-[10px] text-zinc-500">Precio unit.</label>
                           <Input
+                            id={`invoice-item-price-${index}`}
                             type="number"
                             min={0}
                             step={0.01}
@@ -529,6 +540,7 @@ export default function InvoicesPage() {
                             size="sm"
                             onClick={() => removeItem(index)}
                             className="mt-5 text-zinc-500 hover:text-red-400"
+                            aria-label={`Eliminar concepto ${index + 1}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -543,8 +555,9 @@ export default function InvoicesPage() {
             {/* Impuestos y descuentos */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">IVA / Impuesto (%)</label>
+                <label htmlFor="invoice-tax-rate" className="mb-1 block text-sm text-zinc-300">IVA / Impuesto (%)</label>
                 <Input
+                  id="invoice-tax-rate"
                   type="number"
                   min={0}
                   max={100}
@@ -554,8 +567,9 @@ export default function InvoicesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-zinc-300">Descuento ($)</label>
+                <label htmlFor="invoice-discount" className="mb-1 block text-sm text-zinc-300">Descuento ($)</label>
                 <Input
+                  id="invoice-discount"
                   type="number"
                   min={0}
                   step={0.01}
@@ -591,8 +605,9 @@ export default function InvoicesPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Notas (opcional)</label>
+              <label htmlFor="invoice-notes" className="mb-1 block text-sm text-zinc-300">Notas (opcional)</label>
               <textarea
+                id="invoice-notes"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="Condiciones de pago, información adicional…"

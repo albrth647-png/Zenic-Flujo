@@ -6,12 +6,12 @@ Todos los tests usan mocks para no hacer llamadas reales a APIs.
 
 from unittest.mock import MagicMock, patch
 
-from src.tools.integrations.drive_service import DriveService
-from src.tools.integrations.mercadopago_service import MercadoPagoService
-from src.tools.integrations.ollama_service import OllamaService
-from src.tools.integrations.openai_service import OpenAIService
-from src.tools.integrations.postgresql_service import PostgreSQLService
-from src.tools.integrations.stripe_service import StripeService
+from src.hat.level5_tools.data.drive_service import DriveService
+from src.hat.level5_tools.payments.mercadopago_service import MercadoPagoService
+from src.hat.level5_tools.automation.ollama_service import OllamaService
+from src.hat.level5_tools.automation.openai_service import OpenAIService
+from src.hat.level5_tools.data.postgresql_service import PostgreSQLService
+from src.hat.level5_tools.payments.stripe_service import StripeService
 
 # ===================================================================
 # OpenAI

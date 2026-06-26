@@ -60,16 +60,16 @@ _INTEGRATIONS = {
 def _get_integration_service(name: str):
     """Importa y retorna la instancia del servicio de integración."""
     if name == "gmail":
-        from src.tools.integrations.gmail_service import GmailService
+        from src.hat.level5_tools.communications.gmail_service import GmailService
         return GmailService()
     elif name == "sheets":
-        from src.tools.integrations.sheets_service import SheetsService
+        from src.hat.level5_tools.data.sheets_service import SheetsService
         return SheetsService()
     elif name == "telegram":
-        from src.tools.integrations.telegram_service import TelegramService
+        from src.hat.level5_tools.communications.telegram_service import TelegramService
         return TelegramService()
     elif name == "slack":
-        from src.tools.integrations.slack_service import SlackService
+        from src.hat.level5_tools.communications.slack_service import SlackService
         return SlackService()
     return None
 

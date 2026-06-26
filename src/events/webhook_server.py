@@ -9,10 +9,10 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from src.config import WEBHOOK_API_KEY_ENABLED, WEBHOOK_PORT
-from src.data.database_manager import DatabaseManager
+from src.core.config import WEBHOOK_API_KEY_ENABLED, WEBHOOK_PORT
+from src.core.db import DatabaseManager
 from src.events.bus import EventBus
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

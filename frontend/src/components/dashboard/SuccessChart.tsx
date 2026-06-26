@@ -5,6 +5,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
+import { useTheme } from "@/hooks/useTheme"
 
 interface SuccessChartProps {
   completed: number
@@ -12,7 +13,11 @@ interface SuccessChartProps {
 }
 
 export function SuccessChart({ completed, failed }: SuccessChartProps) {
-  const isDark = document.documentElement.classList.contains("dark")
+  // BUG P1-7: antes se leía `document.documentElement.classList.contains("dark")`
+  // durante el render, lo que (a) no es reactivo y (b) hace que el chart no se
+  // actualice al cambiar el tema. Ahora se usa el hook useTheme que subscribe
+  // al ThemeContext, forzando re-render cuando el tema cambia.
+  const { isDark } = useTheme()
   const textColor = isDark ? "#888" : "#6b7280"
   const total = completed + failed
 

@@ -5,17 +5,17 @@ from __future__ import annotations
 import base64
 from typing import Any
 
+from src.core.logging import setup_logging
 from src.sdk.base import BaseConnector
 from src.sdk.http_client import HttpClient, HTTPClientError
 from src.sdk.schema import ActionDefinition, AuthRequirement, ConnectorSchema
-from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
 
 class TotvsConnector(BaseConnector):
     name = "totvs"
-    version = "1.0.0"
+    version = "1.1.0"
     description = "Integra con Totvs Protheus via REST API para datos maestros, fiscais e financeiros"
     category = "erp"
     icon = "database"
@@ -43,8 +43,23 @@ class TotvsConnector(BaseConnector):
         self._connected = True; self._log_operation("connect", f"totvs={self._base_url}"); return True
 
     def execute(self, action: str, params: dict[str, Any]) -> Any:
-        action_map = {"get_products": self._get_products, "get_customers": self._get_customers, "get_suppliers": self._get_suppliers,
-                       "get_invoices": self._get_invoices, "get_sales_orders": self._get_sales_orders, "get_financial": self._get_financial}
+        action_map = {
+            # Read actions (existentes)
+            "get_products": self._get_products,
+            "get_customers": self._get_customers,
+            "get_suppliers": self._get_suppliers,
+            "get_invoices": self._get_invoices,
+            "get_sales_orders": self._get_sales_orders,
+            "get_financial": self._get_financial,
+            # Write actions (Foso 2 SF7)
+            "create_product": self._create_product,
+            "update_product": self._update_product,
+            "create_customer": self._create_customer,
+            "update_customer": self._update_customer,
+            "create_invoice": self._create_invoice,
+            "create_sales_order": self._create_sales_order,
+            "post_financial_entry": self._post_financial_entry,
+        }
         handler = action_map.get(action)
         return handler(params) if handler else {"error": f"Accion '{action}' no soportada", "available": list(action_map.keys())}
 
@@ -68,8 +83,51 @@ class TotvsConnector(BaseConnector):
     def _get_sales_orders(self, p: dict) -> dict: return self._api("get", "/sales-orders", params=p)
     def _get_financial(self, p: dict) -> dict: return self._api("get", "/financial", params=p)
 
+    # ── Write actions (Foso 2 SF7) ───────────────────────────────────
+    # Totvs Protheus REST API acepta POST/PUT sobre los mismos endpoints
+    # con body JSON. La respuesta incluye el recurso creado/actualizado.
+    def _create_product(self, p: dict) -> dict:
+        """Crea un producto (SB1) en Protheus."""
+        return self._api("post", "/products", json=p)
 
-TOTVS_SCHEMA = ConnectorSchema(name="totvs", version="1.0.0", description="Integra con Totvs Protheus para ERP brasileiro",
+    def _update_product(self, p: dict) -> dict:
+        """Actualiza un producto existente por product_id."""
+        pid = p.pop("product_id", None)
+        if not pid:
+            return {"success": False, "error": "product_id requerido"}
+        return self._api("put", f"/products/{pid}", json=p)
+
+    def _create_customer(self, p: dict) -> dict:
+        """Crea un cliente (SA1) en Protheus."""
+        return self._api("post", "/customers", json=p)
+
+    def _update_customer(self, p: dict) -> dict:
+        """Actualiza un cliente existente por customer_id."""
+        cid = p.pop("customer_id", None)
+        if not cid:
+            return {"success": False, "error": "customer_id requerido"}
+        return self._api("put", f"/customers/{cid}", json=p)
+
+    def _create_invoice(self, p: dict) -> dict:
+        """Crea una factura (SF2+SD2) en Protheus."""
+        return self._api("post", "/invoices", json=p)
+
+    def _create_sales_order(self, p: dict) -> dict:
+        """Crea un pedido de venta (SC5+SC6) en Protheus."""
+        return self._api("post", "/sales-orders", json=p)
+
+    def _post_financial_entry(self, p: dict) -> dict:
+        """Crea un título financiero (SE1 o SE2) en Protheus.
+
+        El campo `entry_type` ("receivable" | "payable") determina si se
+        registra en SE1 (cuentas a cobrar) o SE2 (cuentas a pagar).
+        """
+        entry_type = p.pop("entry_type", "receivable")
+        endpoint = "/financial/receivables" if entry_type == "receivable" else "/financial/payables"
+        return self._api("post", endpoint, json=p)
+
+
+TOTVS_SCHEMA = ConnectorSchema(name="totvs", version="1.1.0", description="Integra con Totvs Protheus para ERP brasileiro (read + write)",
     category="erp", icon="database", author="Zenic-Flijo", actions=[
     ActionDefinition(name="get_products", description="Lista productos del ERP", category="read"),
     ActionDefinition(name="get_customers", description="Lista clientes del ERP", category="read"),
@@ -77,4 +135,11 @@ TOTVS_SCHEMA = ConnectorSchema(name="totvs", version="1.0.0", description="Integ
     ActionDefinition(name="get_invoices", description="Lista facturas del ERP", category="read"),
     ActionDefinition(name="get_sales_orders", description="Lista pedidos de venta", category="read"),
     ActionDefinition(name="get_financial", description="Lista movimientos financieros", category="read"),
+    ActionDefinition(name="create_product", description="Crea un producto (SB1)", category="write"),
+    ActionDefinition(name="update_product", description="Actualiza un producto por product_id", category="write"),
+    ActionDefinition(name="create_customer", description="Crea un cliente (SA1)", category="write"),
+    ActionDefinition(name="update_customer", description="Actualiza un cliente por customer_id", category="write"),
+    ActionDefinition(name="create_invoice", description="Crea una factura (SF2+SD2)", category="write"),
+    ActionDefinition(name="create_sales_order", description="Crea un pedido de venta (SC5+SC6)", category="write"),
+    ActionDefinition(name="post_financial_entry", description="Crea un título financiero (SE1/SE2)", category="write"),
 ], auth_requirements=[AuthRequirement(auth_type="basic", required_fields=["base_url", "username", "password"])])

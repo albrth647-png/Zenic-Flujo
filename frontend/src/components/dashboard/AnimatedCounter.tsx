@@ -18,7 +18,9 @@ export function AnimatedCounter({
 }: AnimatedCounterProps) {
   const [displayValue, setDisplayValue] = useState(value)
   const prevValue = useRef(value)
-  const frameRef = useRef<number>()
+  // requestAnimationFrame devuelve number en browser, pero useRef sin inicial
+  // falla en strict mode. Usamos undefined como valor inicial explícito.
+  const frameRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     const start = prevValue.current

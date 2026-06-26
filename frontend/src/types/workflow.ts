@@ -35,7 +35,10 @@ export interface WorkflowStep {
 
 export type NodeType = "trigger" | "action"
 
+// Index signature `[key: string]: unknown` es requerida por @xyflow/react v12
+// para que el tipo data del Node satisfaga el constraint Record<string, unknown>.
 export interface TriggerNodeData {
+  [key: string]: unknown
   nodeType: "trigger"
   triggerType: TriggerType
   triggerConfig: TriggerConfig
@@ -43,6 +46,7 @@ export interface TriggerNodeData {
 }
 
 export interface ActionNodeData {
+  [key: string]: unknown
   nodeType: "action"
   label: string
   tool: string
@@ -53,7 +57,7 @@ export interface ActionNodeData {
 
 export type WorkflowNodeData = TriggerNodeData | ActionNodeData
 
-export type WorkflowNode = Node<WorkflowNodeData>
+export type WorkflowNode = Node<WorkflowNodeData, NodeType>
 export type WorkflowEdge = Edge
 
 // ── Tool configuration ──────────────────────────────────────

@@ -11,7 +11,7 @@ class TestNotificationModels:
 
     def test_notification_channels_defined(self):
         """Test: NOTIFICATION_CHANNELS contiene los canales correctos."""
-        from src.tools.notification.models import NOTIFICATION_CHANNELS
+        from src.hat.level5_tools.communications.notification.models import NOTIFICATION_CHANNELS
 
         assert "email" in NOTIFICATION_CHANNELS
         assert "log" in NOTIFICATION_CHANNELS
@@ -20,7 +20,7 @@ class TestNotificationModels:
 
     def test_notification_statuses_defined(self):
         """Test: NOTIFICATION_STATUSES contiene los estados correctos."""
-        from src.tools.notification.models import NOTIFICATION_STATUSES
+        from src.hat.level5_tools.communications.notification.models import NOTIFICATION_STATUSES
 
         assert "pending" in NOTIFICATION_STATUSES
         assert "sent" in NOTIFICATION_STATUSES
@@ -29,7 +29,7 @@ class TestNotificationModels:
 
     def test_email_templates_defined(self):
         """Test: EMAIL_TEMPLATES contiene las plantillas predefinidas."""
-        from src.tools.notification.models import EMAIL_TEMPLATES
+        from src.hat.level5_tools.communications.notification.models import EMAIL_TEMPLATES
 
         assert "welcome" in EMAIL_TEMPLATES
         assert "invoice_created" in EMAIL_TEMPLATES
@@ -39,7 +39,7 @@ class TestNotificationModels:
 
     def test_email_templates_have_subject_and_body(self):
         """Test: cada plantilla tiene subject y body."""
-        from src.tools.notification.models import EMAIL_TEMPLATES
+        from src.hat.level5_tools.communications.notification.models import EMAIL_TEMPLATES
 
         for name, template in EMAIL_TEMPLATES.items():
             assert "subject" in template, f"Template '{name}' missing subject"
@@ -143,7 +143,7 @@ class TestNotificationService:
 
     def test_template_rendering(self):
         """Test: las plantillas se renderizan correctamente con variables."""
-        from src.tools.notification.models import EMAIL_TEMPLATES
+        from src.hat.level5_tools.communications.notification.models import EMAIL_TEMPLATES
 
         template = EMAIL_TEMPLATES["welcome"]
         rendered = template["body"].format(nombre="Carlos")
@@ -152,7 +152,7 @@ class TestNotificationService:
 
     def test_template_invoice_created_rendering(self):
         """Test: la plantilla invoice_created se renderiza con variables."""
-        from src.tools.notification.models import EMAIL_TEMPLATES
+        from src.hat.level5_tools.communications.notification.models import EMAIL_TEMPLATES
 
         template = EMAIL_TEMPLATES["invoice_created"]
         rendered = template["body"].format(cliente="Ana", numero="FAC-2025-001", total="150.00")
@@ -223,7 +223,7 @@ class TestNotificationService:
 
     def test_channel_validation(self):
         """Test: solo los canales definidos son válidos."""
-        from src.tools.notification.models import NOTIFICATION_CHANNELS
+        from src.hat.level5_tools.communications.notification.models import NOTIFICATION_CHANNELS
 
         # Verify each expected channel
         for channel in ["email", "log", "slack", "sms"]:

@@ -1,11 +1,16 @@
-"""BPMN API Routes — REST endpoints for BPMN process management.
+"""
+BPMN API Routes — REST endpoints for BPMN process management.
 
 Provides HTTP API for:
 - BPMN XML import/export
 - BPMN process validation
 - BPMN to workflow conversion
 - BPMN process listing and management
+
+# Audience: External
+# Purpose: Import/export/validate procesos BPMN. Paralelo a Flask /api/workflows/* para integraciones BPMN externas.
 """
+
 
 from __future__ import annotations
 
@@ -16,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from src.api_v2.dependencies import require_permission
 from src.bpmn import BPMNExporter, BPMNParser, BPMNProcess, BPMNToWorkflowConverter
 
-router = APIRouter(prefix="/bpmn", tags=["bpmn"])
+router = APIRouter(prefix="/api/v2/bpmn", tags=["bpmn"])
 
 # In-memory process store (production would use database)
 _processes: dict[str, BPMNProcess] = {}

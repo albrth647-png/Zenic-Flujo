@@ -1,0 +1,21 @@
+{
+  "crm.leads": "Leads",
+  "crm.stage_closed_lost": "Fechado Perdido",
+  "crm.stage_closed_won": "Fechado Ganho",
+  "crm.stage_contacted": "Contatado",
+  "crm.stage_negotiation": "Negociação",
+  "crm.stage_new": "Novo",
+  "crm.stage_proposal": "Proposta",
+  "crm.stage_qualified": "Qualificado",
+  "inventory.stats_value": "Valor Total",
+  "minegocio.critical_stock": "Estoque Crítico",
+  "minegocio.leads_in_pipeline": "no pipeline",
+  "minegocio.month_revenue": "Receita do Mês",
+  "minegocio.out_of_stock": "esgotados",
+  "minegocio.overdue_invoices": "vencidas",
+  "minegocio.pending_invoices": "Faturas Pendentes",
+  "minegocio.products_below_min": "produtos abaixo do mínimo",
+  "minegocio.sales_pipeline": "Pipeline de Vendas",
+  "minegocio.title": "Meu Negócio",
+  "minegocio.total_invoiced": "total faturado"
+}

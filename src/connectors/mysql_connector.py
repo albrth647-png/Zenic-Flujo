@@ -17,7 +17,7 @@ from typing import Any
 from src.sdk.base import BaseConnector
 from src.sdk.http_client import HttpClient, HTTPClientError
 from src.sdk.schema import ActionDefinition, AuthRequirement, ConnectorSchema
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -293,11 +293,15 @@ class MysqlConnectorConnector(BaseConnector):
         if not re.match(r'^[a-zA-Z0-9_]+$', table_name):
             return {"success": False, "error": f"Nombre de tabla invalido: {table_name}"}
 
-        query = "DESCRIBE ?"
+        # Fix NEW-BUG-1 (verificación Sprint 4): antes era "DESCRIBE ?" con
+        # placeholder, pero MySQL NO acepta placeholders para identificadores
+        # en DDL → runtime failure. Como table_name está validado con regex
+        # estricto arriba, es seguro interpolar directamente.
+        query = f"DESCRIBE {table_name}"  # nosec B608 — table_name validado con regex ^[a-zA-Z0-9_]+$
         if self._use_http:
-            return self._execute_query_http(query, [table_name])
+            return self._execute_query_http(query, [])
 
-        result = self._execute_query_driver(query, [table_name])
+        result = self._execute_query_driver(query, [])
         if result["success"]:
             return {
                 "success": True,
@@ -330,7 +334,8 @@ class MysqlConnectorConnector(BaseConnector):
         columns = ", ".join(data.keys())
         placeholders = ", ".join(["%s"] * len(data))
         values = list(data.values())
-        query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+        # table_name y columns validados con regex ^[a-zA-Z0-9_]+$ arriba (B608 mitigado).
+        query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"  # nosec B608 — identificadores validados con regex
 
         if self._use_http:
             return self._execute_query_http(query, values)

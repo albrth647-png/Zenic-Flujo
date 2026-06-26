@@ -87,6 +87,7 @@ export function ToastContainer() {
           <button
             onClick={() => dismiss(t.id)}
             className="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+            aria-label="Cerrar notificación"
           >
             <X className="size-3.5" />
           </button>

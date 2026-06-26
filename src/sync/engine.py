@@ -32,13 +32,13 @@ from src.sync.models import (
     SyncPackage,
     SyncStatus,
 )
-from src.utils.logger import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger("sync.engine")
 
 # ── Constants ─────────────────────────────────────────────
 
-SYNC_DB_PATH = "sync_cloud.db"
+from src.core.config import SYNC_CLOUD_DB_PATH as SYNC_DB_PATH
 PACKAGE_TTL_SECONDS = 86400 * 7  # 7 days
 MAX_WORKFLOWS_PER_PACKAGE = 100
 HMAC_KEY_SALT = b"zenic-flijo-sync-hmac-v1"

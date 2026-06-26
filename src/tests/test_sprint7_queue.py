@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 
-from src.data.database_manager import DatabaseManager
+from src.core.db import DatabaseManager
 from src.events.work_queue import DEFAULT_MAX_RETRIES, WorkQueue
 from src.events.worker_manager import Worker, WorkerManager
 

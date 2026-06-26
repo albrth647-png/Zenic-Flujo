@@ -176,7 +176,7 @@ def api_orbital_create_variable():
             velocity=float(data.get("velocity", 0.1)),
             orbit_group=data.get("orbit_group", "default"),
         )
-        return jsonify({"status": "created", "name": var.name, "theta": var.theta}), 201
+        return jsonify({"status": "created", "name": var.name, "theta": var.theta}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -207,7 +207,7 @@ def api_orbital_create_cycle():
         return jsonify({"error": "name y variables son requeridos"}), 400
     try:
         cycle = engine.create_cycle(name, variables, threshold)
-        return jsonify({"status": "created", "cycle_id": cycle.id, "name": cycle.name}), 201
+        return jsonify({"status": "created", "cycle_id": cycle.id, "name": cycle.name}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 

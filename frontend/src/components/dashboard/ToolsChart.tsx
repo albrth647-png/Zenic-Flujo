@@ -6,6 +6,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
+import { useTheme } from "@/hooks/useTheme"
 
 import type { ToolData } from "@/types/reports"
 
@@ -26,7 +27,9 @@ const toolLabels: Record<string, string> = {
 }
 
 export function ToolsChart({ data }: ToolsChartProps) {
-  const isDark = document.documentElement.classList.contains("dark")
+  // BUG P1-7: antes se leía `document.documentElement.classList.contains("dark")`
+  // durante el render (no reactivo). Ahora useTheme subscribe al ThemeContext.
+  const { isDark } = useTheme()
   const textColor = isDark ? "#888" : "#6b7280"
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
 
@@ -74,7 +77,9 @@ export function ToolsChart({ data }: ToolsChartProps) {
             fontSize: "12px",
           }}
           labelStyle={{ color: textColor }}
-          formatter={(value: number) => [value, "Ejecuciones"]}
+          // Recharts v3 cambió la firma del formatter: ahora recibe (value, name, item, index, payload).
+          // Sin tipar explícito, TS infiere los tipos correctos desde el componente Tooltip.
+          formatter={(value) => [String(value), "Ejecuciones"]}
         />
         <Bar
           dataKey="count"
@@ -85,7 +90,8 @@ export function ToolsChart({ data }: ToolsChartProps) {
             position: "right",
             fill: textColor,
             fontSize: 10,
-            formatter: (value: number) => value,
+            // En label de Bar, formatter recibe el valor y debe retornar ReactNode.
+            formatter: (value: unknown) => String(value),
           }}
         />
       </BarChart>

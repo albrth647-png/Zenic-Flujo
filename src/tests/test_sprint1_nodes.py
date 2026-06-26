@@ -171,7 +171,7 @@ class TestAPIConnectorRegistration:
 
     def test_api_connector_tool_definition(self):
         """APIConnectorService tiene definición de tool."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         api = APIConnectorService()
         definition = api.get_tool_definition()
@@ -181,7 +181,7 @@ class TestAPIConnectorRegistration:
 
     def test_api_connector_validate_url(self):
         """Validación de URLs funciona."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         assert APIConnectorService.validate_url("https://api.example.com") is True
         assert APIConnectorService.validate_url("http://localhost:8080/api") is True
@@ -191,7 +191,7 @@ class TestAPIConnectorRegistration:
 
     def test_api_connector_allowed_methods(self):
         """Solo métodos HTTP válidos."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         api = APIConnectorService()
         for method in ["GET", "POST", "PUT", "DELETE", "PATCH"]:

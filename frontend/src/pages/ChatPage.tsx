@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { error as humanError } from "@/utils/humanize"
 import { Bot, Sparkles, Send, Loader2, Lightbulb, FileText, Workflow, CheckCircle2 } from "lucide-react"
 
 type Message = {
@@ -71,24 +72,22 @@ export default function ChatPage() {
       const api = getApi()
 
       if (mode === "chat") {
-        // Modo "Sugerencias de workflows" → /api/workflows/chat
-        const res = await api.post("/api/workflows/chat", { text })
+        // M10: HATRouter (5 niveles) → /api/workflows/chat
+        const res = await api.post("/api/workflows/chat", { message: text })
         const data = res as {
-          suggestions?: Array<{
-            template_name: string
-            confidence: number
-            description: string
-            trigger: string
-            steps: number
-          }>
-          message?: string
+          dispatch_id?: string
+          domain?: string
+          response?: string
+          status?: string
+          orbital_resonance?: number
+          anti_dup_layer_hit?: string
+          duration_ms?: number
         }
         const assistantMsg: Message = {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content: data.message || "Estas son las sugerencias que encontré:",
+          content: data.response || data.status || "No pude procesar tu solicitud.",
           mode: "chat",
-          suggestions: data.suggestions || [],
         }
         setMessages((prev) => [...prev, assistantMsg])
       } else if (mode === "analyze") {
@@ -142,7 +141,9 @@ export default function ChatPage() {
             {
               id: `assistant-${Date.now()}`,
               role: "assistant",
-              content: data.error,
+              // data.error es string | undefined; ya validamos que existe con el if,
+              // pero TS no lo infiere dentro del callback. Usamos ?? para garantizar string.
+              content: data.error ?? "Error desconocido al generar el workflow",
               mode: "generate",
             },
           ])
@@ -186,10 +187,7 @@ export default function ChatPage() {
         setAiProvider(data.ai_provider || "")
       }
     } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : "Ocurrió un error al procesar tu solicitud. Intenta de nuevo."
+      const errorMsg = humanError(err)
       setMessages((prev) => [
         ...prev,
         {
@@ -462,6 +460,7 @@ export default function ChatPage() {
               onClick={handleSend}
               disabled={loading || !input.trim()}
               className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+              aria-label={loading ? "Enviando solicitud" : "Enviar solicitud"}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

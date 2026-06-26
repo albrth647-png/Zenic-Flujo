@@ -1,4 +1,16 @@
-export type LeadStage = "new" | "contacted" | "qualified" | "won" | "lost"
+// Etapas del pipeline CRM. Debe coincidir con tools/crm/service.py:STAGES.
+// Single source of truth: CrmPage.tsx y otros componentes deben importar desde aquí.
+export const STAGES = [
+  "new",
+  "contacted",
+  "qualified",
+  "proposal",
+  "negotiation",
+  "closed_won",
+  "closed_lost",
+] as const
+
+export type LeadStage = (typeof STAGES)[number]
 
 export interface Lead {
   id: number

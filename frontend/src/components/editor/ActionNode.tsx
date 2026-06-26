@@ -1,8 +1,11 @@
 import { memo } from "react"
-import { Handle, Position, type NodeProps } from "@xyflow/react"
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react"
 import { TOOL_ACTIONS } from "@/types/workflow"
 import type { ActionNodeData } from "@/types/workflow"
 import { cn } from "@/lib/utils"
+
+// En @xyflow/react v12, NodeProps<T> requiere que T sea un Node completo.
+type ActionNodeType = Node<ActionNodeData, "action">
 
 const toolIcons: Record<string, string> = {
   crm: "👤",
@@ -13,7 +16,7 @@ const toolIcons: Record<string, string> = {
   subworkflow: "🔀",
 }
 
-function ActionNode({ data, selected }: NodeProps<ActionNodeData>) {
+function ActionNode({ data, selected }: NodeProps<ActionNodeType>) {
   const toolConfig = TOOL_ACTIONS[data.tool]
   const color = toolConfig?.color || "#6366f1"
   const icon = toolIcons[data.tool] || "⚡"

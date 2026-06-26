@@ -31,6 +31,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
         className="h-8 w-8 text-zinc-400 hover:text-zinc-200"
         disabled={currentPage <= 1}
         onClick={() => onPageChange(currentPage - 1)}
+        aria-label="Página anterior"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -64,6 +65,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
         className="h-8 w-8 text-zinc-400 hover:text-zinc-200"
         disabled={currentPage >= totalPages}
         onClick={() => onPageChange(currentPage + 1)}
+        aria-label="Página siguiente"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>

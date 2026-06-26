@@ -13,7 +13,11 @@ Endpoints de administracion de multi-tenancy:
 - POST   /api/v2/tenants/{id}/users               — Agregar usuario
 - GET    /api/v2/tenants/{id}/features            — Listar features
 - PUT    /api/v2/tenants/{id}/features/{feature}  — Toggle feature
+
+# Audience: External
+# Purpose: Multi-tenancy management. API para gestionar tenants, users, roles, permissions.
 """
+
 
 from __future__ import annotations
 
@@ -23,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.api_v2.auth import require_permission
 from src.api_v2.dependencies import get_db, get_tenant_service
-from src.data.user_repository import UserRepository
+from src.core.repositories import UserRepository
 from src.api_v2.models import (
     ErrorResponse,
     TenantCreate,
@@ -33,7 +37,7 @@ from src.api_v2.models import (
     TenantUserCreate,
     TenantUserResponse,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

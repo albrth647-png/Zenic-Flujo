@@ -17,7 +17,7 @@ from src.partnership.models import (
     PartnerStatus,
     PartnerTier,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -33,7 +33,10 @@ class PartnershipService:
     _instance: PartnershipService | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = "partners.db") -> None:
+    def __init__(self, db_path: str = None) -> None:
+        if db_path is None:
+            from src.core.config import PARTNERS_DB_PATH
+            db_path = str(PARTNERS_DB_PATH)
         self._db_path = db_path
         self._conn: sqlite3.Connection | None = None
         self._repo = ConnectorRepository()

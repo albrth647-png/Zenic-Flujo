@@ -10,7 +10,7 @@ class TestWhatsAppService:
 
     def test_send_text_message_success(self, db_manager):
         """Envía mensaje de texto exitosamente."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
         ns.configure_whatsapp(token="EAATestToken", phone_number_id="123456789")
@@ -31,7 +31,7 @@ class TestWhatsAppService:
 
     def test_send_whatsapp_not_configured(self, db_manager):
         """Error si WhatsApp no está configurado."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
 
@@ -41,7 +41,7 @@ class TestWhatsAppService:
 
     def test_configure_whatsapp(self, db_manager):
         """Configurar credenciales de WhatsApp (token cifrado)."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
 
@@ -52,7 +52,7 @@ class TestWhatsAppService:
         assert result is True
 
         # Verificar que se guardaron (el token está cifrado, phone_id no)
-        from src.data.database_manager import DatabaseManager
+        from src.core.db import DatabaseManager
 
         db = DatabaseManager()
         stored_token = db.get_setting("whatsapp_token")
@@ -67,7 +67,7 @@ class TestWhatsAppService:
 
     def test_send_whatsapp_after_configure(self, db_manager):
         """Envía después de configurar credenciales."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
         ns.configure_whatsapp(token="EAAToken", phone_number_id="123")
@@ -91,7 +91,7 @@ class TestWhatsAppService:
 
     def test_send_whatsapp_api_error(self, db_manager):
         """Maneja errores de la API de WhatsApp."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
         ns.configure_whatsapp(token="EAAToken", phone_number_id="123")
@@ -110,7 +110,7 @@ class TestWhatsAppService:
         """Maneja errores de conexión."""
         import requests
 
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
         ns.configure_whatsapp(token="EAAToken", phone_number_id="123")
@@ -122,7 +122,7 @@ class TestWhatsAppService:
 
     def test_send_template_message(self, db_manager):
         """Envía mensaje template (para fuera de ventana 24h)."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
         ns.configure_whatsapp(token="EAAToken", phone_number_id="123")
@@ -145,7 +145,7 @@ class TestWhatsAppService:
 
     def test_whatsapp_get_status(self, db_manager):
         """Verifica estado de configuración WhatsApp."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
 
@@ -158,7 +158,7 @@ class TestWhatsAppService:
 
     def test_encrypt_decrypt_roundtrip(self, db_manager):
         """Verifica que cifrado y descifrado sean consistentes."""
-        from src.tools.notification.service import NotificationService
+        from src.hat.level5_tools.communications.notification.service import NotificationService
 
         ns = NotificationService()
 

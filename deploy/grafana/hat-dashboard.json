@@ -1,0 +1,45 @@
+{
+  "dashboard": {
+    "title": "HAT-ORBITAL Dashboard",
+    "tags": ["hat", "zenic-flujo"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Latencia p50 (ms)",
+        "type": "stat",
+        "targets": [{"expr": "hat_latency_p50_ms"}],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "title": "Latencia p99 (ms)",
+        "type": "stat",
+        "targets": [{"expr": "hat_latency_p99_ms"}],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "title": "Tasa de Exito (%)",
+        "type": "stat",
+        "targets": [{"expr": "hat_success_rate * 100"}],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "title": "Anti-dup Hits",
+        "type": "stat",
+        "targets": [{"expr": "hat_anti_dup_blocked_total"}],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "title": "Tokens Consumidos",
+        "type": "stat",
+        "targets": [{"expr": "hat_tokens_consumed_total"}],
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "title": "Dispatches/min",
+        "type": "graph",
+        "targets": [{"expr": "rate(hat_dispatches_total[1m]) * 60"}],
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 4}
+      }
+    ]
+  }
+}

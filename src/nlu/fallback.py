@@ -319,9 +319,15 @@ class FallbackOrchestrator:
             compile_result = deterministic_func(text, effective_lang)
             level1_time = (time.monotonic() - level1_start) * 1000
 
-            # Extraer intents del compile_result
-            intents = getattr(compile_result, "nlu_result", None)
-            if intents is None:
+            # Extraer intents del compile_result (Fix B-01).
+            # ANTES (bug): getattr(compile_result, "nlu_result", None) devolvía el
+            # NLUResult object (no la tupla de intents), causando TypeError al
+            # indexar intents[0].score en should_fallback_deterministic.
+            # DESPUÉS: extraer correctamente los intents del NLUResult.
+            nlu_result = getattr(compile_result, "nlu_result", None)
+            if nlu_result is not None and hasattr(nlu_result, "intents"):
+                intents = nlu_result.intents
+            else:
                 intents = getattr(compile_result, "intents", ())
 
             should_fallback, reason = self._analyzer.should_fallback_deterministic(

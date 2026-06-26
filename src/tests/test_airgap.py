@@ -72,7 +72,7 @@ class TestAirGapConfig:
 
     def test_get_local_connectors(self, airgap_config):
         locals_ = airgap_config.get_local_connectors()
-        assert "ruv" in locals_
+        assert "ruv" not in locals_  # RuvConnector removido en Fase 2B
         assert "totvs" in locals_
         assert "vault" in locals_
         assert "sat_mexico" in locals_
@@ -125,7 +125,7 @@ class TestOfflineLicense:
     """Tests for offline license creation and verification."""
 
     def test_create_license(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.config.LICENSE_SECRET_KEY", "test-secret-key-for-testing-only")
+        monkeypatch.setattr("src.core.config.LICENSE_SECRET_KEY", "test-secret-key-for-testing-only")
         license_path = str(tmp_path / "license.json")
 
         config = AirGapConfig()
@@ -144,7 +144,7 @@ class TestOfflineLicense:
         assert Path(license_path).exists()
 
     def test_verify_valid_license(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.config.LICENSE_SECRET_KEY", "test-secret-key-for-testing-only")
+        monkeypatch.setattr("src.core.config.LICENSE_SECRET_KEY", "test-secret-key-for-testing-only")
         license_path = str(tmp_path / "license.json")
 
         config = AirGapConfig()
@@ -166,7 +166,7 @@ class TestOfflineLicense:
         assert "not found" in result["error"]
 
     def test_verify_tampered_license(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.config.LICENSE_SECRET_KEY", "test-secret-key-for-testing-only")
+        monkeypatch.setattr("src.core.config.LICENSE_SECRET_KEY", "test-secret-key-for-testing-only")
         license_path = str(tmp_path / "license.json")
 
         config = AirGapConfig()
@@ -181,7 +181,7 @@ class TestOfflineLicense:
         assert result["valid"] is False
 
     def test_create_and_verify_cycle(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("src.config.LICENSE_SECRET_KEY", "a" * 64)
+        monkeypatch.setattr("src.core.config.LICENSE_SECRET_KEY", "a" * 64)
         license_path = str(tmp_path / "license.json")
 
         config = AirGapConfig()

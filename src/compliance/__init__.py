@@ -16,6 +16,11 @@ Features:
 - Audit trail with tamper detection
 - Policy management with versioning
 - Per-framework compliance scoring and reporting
+
+Fix Sprint 3 bug #40: antes ComplianceManager, BAAManager, SOC2TypeIIManager,
+y GDPR/HIPAA managers abrían cada uno su propia conexión SQLite al mismo
+compliance.db, causando "database locked" errores. Ahora todos usan el
+_ComplianceDB singleton compartido (lock global + WAL mode).
 """  # fmt: skip
 
 from __future__ import annotations
@@ -41,7 +46,7 @@ from src.compliance.soc2_type_ii import (
     TestResultStatus,
     recommend_sample_size,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging("compliance")
 
@@ -235,7 +240,10 @@ class ComplianceManager:
     _instance: ComplianceManager | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = "compliance.db") -> None:
+    def __init__(self, db_path: str = None) -> None:
+        if db_path is None:
+            from src.core.config import COMPLIANCE_DB_PATH
+            db_path = str(COMPLIANCE_DB_PATH)
         self._db_path = db_path
         self._controls: dict[str, ComplianceControl] = {}
         self._evidence: dict[str, ComplianceEvidence] = {}
@@ -243,6 +251,9 @@ class ComplianceManager:
         self._audit_trail: list[AuditEntry] = []
         self._lock_local = threading.Lock()
         self._conn: sqlite3.Connection | None = None
+        # Fix Sprint 3 bug #40: abrir con check_same_thread=False + WAL + busy_timeout
+        # para evitar "database locked" cuando ComplianceManager, BAAManager,
+        # SOC2TypeIIManager y GDPR/HIPAA managers acceden concurrentemente.
         self._init_db()
         self._load_default_controls()
 
@@ -263,6 +274,11 @@ class ComplianceManager:
 
     def _init_db(self) -> None:
         self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        # Fix Sprint 3 bug #40: PRAGMA WAL + busy_timeout para permitir múltiples
+        # readers concurrentes y writers sin "database locked".
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA busy_timeout=5000")  # 5s
+        self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS compliance_controls (
                 control_id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT,

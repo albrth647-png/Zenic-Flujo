@@ -28,7 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.api_v2.models import APIInfoResponse, ErrorResponse, HealthResponse
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 
     # Inicializar servicios
     try:
-        from src.data.database_manager import DatabaseManager
+        from src.core.db import DatabaseManager
 
         db = DatabaseManager()
         _ensure_api_v2_tables(db)
@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Error inicializando base de datos: {e}")
 
     try:
-        from src.observability.telemetry import TelemetryService
+        from src.core.observability.telemetry import TelemetryService
 
         telemetry = TelemetryService()
         telemetry.initialize()
@@ -82,7 +82,7 @@ async def lifespan(app: FastAPI):
     logger.info("Zenic-Flijo API v2 cerrando...")
 
     try:
-        from src.observability.telemetry import TelemetryService
+        from src.core.observability.telemetry import TelemetryService
 
         telemetry = TelemetryService()
         telemetry.shutdown()
@@ -91,7 +91,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Error cerrando telemetria: {e}")
 
     try:
-        from src.data.database_manager import DatabaseManager
+        from src.core.db import DatabaseManager
 
         db = DatabaseManager()
         db.close_all()
@@ -100,7 +100,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Error cerrando base de datos: {e}")
 
     try:
-        from src.data.redis_service import RedisService
+        from src.core.db import RedisService
 
         redis = RedisService()
         redis.close()
@@ -177,9 +177,13 @@ def _ensure_api_v2_tables(db: Any) -> None:
 
 # ── Crear aplicacion FastAPI ───────────────────────────────────
 
+# Fix Sprint 3 bug #28: versión centralizada para evitar drift.
+# Antes app.version="2.1.0" pero api_info retornaba "2.0.0" hardcoded.
+API_V2_VERSION = "2.1.0"
+
 app = FastAPI(
     title="Zenic-Flijo API v2",
-    version="2.1.0",
+    version=API_V2_VERSION,
     description=(
         "API publica v2 de Zenic-Flijo con mas de 70 endpoints para "
         "gestion de workflows, conectores, NLU, multi-tenancy, marketplace, "
@@ -194,11 +198,14 @@ app = FastAPI(
 
 # ── CORS Middleware ────────────────────────────────────────────
 
-_cors_origins = os.environ.get("WFD_API_V2_CORS_ORIGINS", "").split(",")
-_cors_allow_all = len(_cors_origins) == 1 and _cors_origins[0] == ""
+_cors_env = os.environ.get("WFD_API_V2_CORS_ORIGINS", "")
+if _cors_env:
+    _cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    # Default seguro: solo localhost en desarrollo
+    _cors_origins = ["http://localhost:8080", "http://localhost:3000", "http://127.0.0.1:8080"]
 
-# En producción, CORS debe ser explícito. Por defecto, no permitir orígenes arbitrarios.
-allow_origins = [] if _cors_allow_all else _cors_origins
+allow_origins = _cors_origins
 
 # Métodos HTTP estándar REST — explícitos, sin wildcard
 _cors_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -345,14 +352,12 @@ from src.api_v2.routers.bpmn import router as bpmn_router
 from src.api_v2.routers.compliance import router as compliance_router
 from src.api_v2.routers.connectors import router as connectors_router
 from src.api_v2.routers.marketplace import router as marketplace_router
-from src.api_v2.routers.nlu import router as nlu_router
 from src.api_v2.routers.tenants import router as tenants_router
 from src.api_v2.routers.workflows import router as workflows_router
 from src.mobile.api import router as mobile_router
 
 app.include_router(workflows_router)
 app.include_router(connectors_router)
-app.include_router(nlu_router)
 app.include_router(tenants_router)
 app.include_router(marketplace_router)
 app.include_router(auth_router)
@@ -360,6 +365,23 @@ app.include_router(agents_router)
 app.include_router(bpmn_router)
 app.include_router(compliance_router)
 app.include_router(mobile_router)
+# M8: HAT router (Nivel 1) — POST /api/hat/chat
+from src.hat.level1_orchestrator.api.routes import router as hat_router
+app.include_router(hat_router)
+# Foso 3: routers CRM + Inventory + Invoices v2
+from src.api_v2.routers.crm import router as crm_router
+from src.api_v2.routers.inventory import router as inventory_router
+from src.api_v2.routers.invoices_v2 import router as invoices_v2_router
+app.include_router(crm_router)
+app.include_router(inventory_router)
+app.include_router(invoices_v2_router)
+# Foso 2: router Fiscal Dispatcher (LATAM e-invoicing con crypto REAL)
+from src.api_v2.routers.fiscal import router as fiscal_router
+app.include_router(fiscal_router)
+
+# Feature 7: router WhatsApp (mensajería WhatsApp Business Cloud API)
+from src.api_v2.routers.whatsapp import router as whatsapp_router
+app.include_router(whatsapp_router)
 
 
 # ── Health Check Endpoint ──────────────────────────────────────
@@ -378,7 +400,7 @@ async def health_check() -> HealthResponse:
 
     # Verificar base de datos
     try:
-        from src.data.database_manager import DatabaseManager
+        from src.core.db import DatabaseManager
 
         db = DatabaseManager()
         db.fetchone("SELECT 1 as test")
@@ -388,7 +410,7 @@ async def health_check() -> HealthResponse:
 
     # Verificar Redis
     try:
-        from src.data.redis_service import RedisService
+        from src.core.db import RedisService
 
         redis = RedisService()
         if redis.ping():
@@ -428,7 +450,7 @@ async def health_check() -> HealthResponse:
 
     # Verificar agent runtime (Phase 3)
     try:
-        from src.agents.runtime import AgentRuntime
+        from src.hat.agents_legacy.runtime import AgentRuntime
 
         runtime = AgentRuntime.get_instance()
         stats = runtime.get_stats()
@@ -449,10 +471,23 @@ async def health_check() -> HealthResponse:
         services["compliance"] = "unhealthy"
 
     # Verificar BPMN engine (Phase 3)
+    # Fix Sprint 3 bug #27: antes era try: vacío que siempre decía "healthy".
+    # Ahora valida que bpmn.parser importe y al menos reporta el estado real.
     try:
+        from src.bpmn.parser import BPMNParser
 
+        bpmn_parser = BPMNParser()
+        # Si el parser se instancia correctamente, BPMN está healthy.
+        # Si hay procesos cargados, reportar count; si no, "no processes".
+        processes_count = 0
+        if hasattr(bpmn_parser, "_processes"):
+            processes_count = len(bpmn_parser._processes)
         services["bpmn_engine"] = "healthy"
-    except Exception:
+        services["bpmn_processes"] = processes_count
+    except ImportError:
+        services["bpmn_engine"] = "unavailable"
+    except Exception as e:
+        logger.warning(f"Health check: BPMN engine error: {e}")
         services["bpmn_engine"] = "unhealthy"
 
     # Determinar estado general
@@ -461,7 +496,7 @@ async def health_check() -> HealthResponse:
 
     return HealthResponse(
         status=overall_status,
-        version="2.1.0",
+        version=API_V2_VERSION,
         uptime_seconds=time.time() - _start_time if _start_time else 0,
         services=services,
     )
@@ -487,7 +522,7 @@ async def api_info() -> APIInfoResponse:
 
     return APIInfoResponse(
         name="Zenic-Flijo API v2",
-        version="2.0.0",
+        version=API_V2_VERSION,
         endpoints=endpoint_count,
         documentation="/api/v2/docs",
     )

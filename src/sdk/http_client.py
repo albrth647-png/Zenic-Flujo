@@ -29,7 +29,7 @@ import os
 import time
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -482,7 +482,10 @@ class HttpClient:
             self._session = requests.Session()
             self._session.headers.update(self._default_headers)
             self._session.headers.update(self._auth_header)
-            self._session.verify = self._verify_SSL
+            # Fix Sprint 2 bug #34: era self._verify_SSL (mayúsculas) — atributo
+            # real es _verify_ssl (minúsculas). AttributeError silenciado hacía
+            # que context-manager mode no aplicara verify_ssl → MITM risk.
+            self._session.verify = self._verify_ssl
         except ImportError:
             pass
         return self

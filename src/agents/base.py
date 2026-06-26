@@ -14,6 +14,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from src.utils.logger import get_logger
+
+logger = get_logger("agent.base")
+
 
 class AgentState(Enum):
     """Agent lifecycle states following a strict state machine."""
@@ -125,6 +129,13 @@ class BaseAgent(ABC):
         self._parent_id: str | None = None
         self._child_ids: list[str] = []
         self._context: dict[str, Any] = {}
+        logger.info(
+            "Agent initialized: id=%s name=%s capabilities=%s max_iterations=%d",
+            self.agent_id,
+            self.name,
+            [c.value for c in self.config.capabilities],
+            self.config.max_iterations,
+        )
 
     # ── Properties ──────────────────────────────────────────
 
@@ -162,17 +173,37 @@ class BaseAgent(ABC):
     def transition_to(self, new_state: AgentState) -> bool:
         """Attempt a state transition. Returns True if successful."""
         with self._state_lock:
-            if new_state not in VALID_TRANSITIONS.get(self._state, set()):
+            old_state = self._state
+            if new_state not in VALID_TRANSITIONS.get(old_state, set()):
+                logger.warning(
+                    "Invalid state transition: agent=%s from=%s to=%s",
+                    self.agent_id,
+                    old_state.value,
+                    new_state.value,
+                )
                 return False
             self._state = new_state
             self._last_active = time.time()
+            logger.debug(
+                "State transition: agent=%s from=%s to=%s",
+                self.agent_id,
+                old_state.value,
+                new_state.value,
+            )
             return True
 
     def force_state(self, new_state: AgentState) -> None:
         """Force a state transition regardless of rules (admin only)."""
         with self._state_lock:
+            old_state = self._state
             self._state = new_state
             self._last_active = time.time()
+            logger.warning(
+                "Forced state transition: agent=%s from=%s to=%s",
+                self.agent_id,
+                old_state.value,
+                new_state.value,
+            )
 
     # ── Lifecycle ───────────────────────────────────────────
 
@@ -181,8 +212,15 @@ class BaseAgent(ABC):
         self.transition_to(AgentState.THINKING)
         result = None
 
+        logger.info(
+            "Agent run started: id=%s max_iterations=%d",
+            self.agent_id,
+            self.config.max_iterations,
+        )
+
         for iteration in range(self.config.max_iterations):
             self._iteration_count = iteration + 1
+            iter_start = time.time()
 
             try:
                 # Think phase
@@ -190,12 +228,19 @@ class BaseAgent(ABC):
                 decision = self.think(input_data if iteration == 0 else result)
 
                 if decision is None:
+                    logger.info(
+                        "Agent run finished: id=%s iterations=%d decision=None",
+                        self.agent_id,
+                        iteration + 1,
+                    )
                     self.transition_to(AgentState.IDLE)
                     break
 
                 # Act phase
                 self.transition_to(AgentState.EXECUTING)
                 result = self.act(decision)
+
+                iter_duration = time.time() - iter_start
 
                 # Record execution
                 self._execution_history.append({
@@ -205,8 +250,20 @@ class BaseAgent(ABC):
                     "timestamp": time.time(),
                 })
 
+                logger.debug(
+                    "Agent iteration completed: id=%s iteration=%d duration=%.3fs",
+                    self.agent_id,
+                    iteration + 1,
+                    iter_duration,
+                )
+
                 # Check if agent should stop
                 if self._should_stop(result):
+                    logger.info(
+                        "Agent run finished: id=%s iterations=%d stop signal received",
+                        self.agent_id,
+                        iteration + 1,
+                    )
                     self.transition_to(AgentState.IDLE)
                     break
 
@@ -217,6 +274,12 @@ class BaseAgent(ABC):
                     "error": str(exc),
                     "timestamp": time.time(),
                 })
+                logger.error(
+                    "Agent run error: id=%s iteration=%d error=%s",
+                    self.agent_id,
+                    iteration + 1,
+                    exc,
+                )
                 self.transition_to(AgentState.ERROR)
                 raise
 
@@ -224,17 +287,31 @@ class BaseAgent(ABC):
 
     def pause(self) -> bool:
         """Pause the agent execution."""
-        return self.transition_to(AgentState.PAUSED)
+        result = self.transition_to(AgentState.PAUSED)
+        if result:
+            logger.info("Agent paused: id=%s", self.agent_id)
+        return result
 
     def resume(self) -> bool:
         """Resume a paused agent."""
         if self.state == AgentState.PAUSED:
-            return self.transition_to(AgentState.THINKING)
+            result = self.transition_to(AgentState.THINKING)
+            if result:
+                logger.info("Agent resumed: id=%s", self.agent_id)
+            return result
+        logger.warning(
+            "Cannot resume agent not in PAUSED state: id=%s state=%s",
+            self.agent_id,
+            self.state.value,
+        )
         return False
 
     def terminate(self) -> bool:
         """Terminate the agent."""
-        return self.transition_to(AgentState.TERMINATED)
+        result = self.transition_to(AgentState.TERMINATED)
+        if result:
+            logger.info("Agent terminated: id=%s", self.agent_id)
+        return result
 
     # ── Abstract Methods ────────────────────────────────────
 

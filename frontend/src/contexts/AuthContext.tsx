@@ -65,13 +65,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // ── Verifica si hay sesión activa al cargar ──────────────────
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (signal?: AbortSignal) => {
     if (checkInProgress.current) return
     checkInProgress.current = true
     try {
-      const res = await fetch("/api/auth/status", { credentials: "include" })
+      const res = await fetch("/api/auth/status", { credentials: "include", signal })
+      if (signal?.aborted) {
+        checkInProgress.current = false
+        return
+      }
       if (res.ok) {
         const data = await res.json()
+        if (signal?.aborted) {
+          checkInProgress.current = false
+          return
+        }
         setState({
           user: data.user || null,
           authenticated: data.authenticated === true,
@@ -83,6 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Si hay error de red, no pasa nada
     }
+    if (signal?.aborted) {
+      checkInProgress.current = false
+      return
+    }
     setState({ user: null, authenticated: false, loading: false })
     checkInProgress.current = false
   }, [])
@@ -90,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    checkAuth()
+    checkAuth(ac.signal)
     return () => ac.abort()
   }, [checkAuth])
 
@@ -107,11 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json() as LoginResponse
 
       if (res.ok && data.status === "ok") {
+        // Fix Sprint 4 bug #57: antes hardcodeaba id:1 y default role:'admin'.
+        // Ahora usa data.user_id real del backend (o fallback a 0 si no viene),
+        // y default role:'viewer' (least-privilege) si el backend no envía role.
         setState({
           user: {
-            id: 1,
+            id: (data as { user_id?: number }).user_id ?? 0,
             username: data.user,
-            role: (data.role as User["role"]) || "admin",
+            role: (data.role as User["role"]) || "viewer",
           },
           authenticated: true,
           loading: false,

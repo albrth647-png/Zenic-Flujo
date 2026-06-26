@@ -154,6 +154,7 @@ export default function Deployments() {
                           size="icon"
                           className="size-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => handleCopy(step, `${section.id}-${i}`)}
+                          aria-label={copiedId === `${section.id}-${i}` ? "Comando copiado" : "Copiar comando al portapapeles"}
                         >
                           {copiedId === `${section.id}-${i}` ? (
                             <CheckCircle2 className="size-3.5 text-emerald-500" />

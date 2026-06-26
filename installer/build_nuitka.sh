@@ -16,10 +16,17 @@ set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────────────
 APP_NAME="WorkflowDeterminista"
-APP_VERSION="1.0.0"
+# Fix Sprint 4 bug #70: leer versión de VERSION file (single source of truth).
 COMPANY_NAME="Workflow Determinista"
 PRODUCT_NAME="Workflow Determinista"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -z "${APP_VERSION:-}" ]; then
+    if [ -f "$PROJECT_DIR/VERSION" ]; then
+        APP_VERSION="$(tr -d '[:space:]' < "$PROJECT_DIR/VERSION")"
+    else
+        APP_VERSION="0.0.0-dev"
+    fi
+fi
 BUILD_DIR="$PROJECT_DIR/dist"
 ENTRY_POINT="$PROJECT_DIR/src/main.py"
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from contextlib import suppress
 from pathlib import Path
 
@@ -41,7 +42,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     print("Paso 1/3: Validando conector...")
     validation = _run_validation(connector_path)
     if not validation["passed"]:
-        print("  Validacion FALLIDA. Corrija los errores antes de publicar.")
+        print("  Validacion FALLIDA. Corrija los errores antes de publicar.", file=sys.stderr)
         print()
         print(_format_validation_report(validation))
         return 1
@@ -52,7 +53,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     print("Paso 2/3: Empaquetando conector...")
     zip_path = _package_connector(connector_path)
     if zip_path is None:
-        print("  Error: No se pudo empaquetar el conector")
+        print("  Error: No se pudo empaquetar el conector", file=sys.stderr)
         return 1
     zip_size_kb = os.path.getsize(zip_path) / 1024
     print(f"  Paquete creado: {zip_path} ({zip_size_kb:.1f} KB)")
@@ -64,7 +65,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     if success:
         print("  Publicacion exitosa!")
     else:
-        print("  Error: No se pudo subir al marketplace")
+        print("  Error: No se pudo subir al marketplace", file=sys.stderr)
         print("  Nota: Verifique su ZENIC_API_KEY y la conectividad al registro")
         return 1
 

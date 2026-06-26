@@ -12,7 +12,7 @@ from typing import Any
 
 from src.tenant.context import clear_tenant_context, set_current_tenant_id
 from src.tenant.service import TenantService
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

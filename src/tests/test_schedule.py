@@ -51,7 +51,7 @@ class TestCronParser:
 
     def test_parse_every_minute(self):
         """Test: * * * * * → cada minuto."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         result = parse_cron_expression("* * * * *")
         assert 0 in result["minute"]
@@ -61,7 +61,7 @@ class TestCronParser:
 
     def test_parse_specific_time(self):
         """Test: 30 9 * * * → a las 9:30 cada día."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         result = parse_cron_expression("30 9 * * *")
         assert result["minute"] == [30]
@@ -69,14 +69,14 @@ class TestCronParser:
 
     def test_parse_range(self):
         """Test: 0 9-17 * * * → cada hora de 9 a 17."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         result = parse_cron_expression("0 9-17 * * *")
         assert result["hour"] == [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
     def test_parse_step(self):
         """Test: */15 * * * * → cada 15 minutos."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         result = parse_cron_expression("*/15 * * * *")
         assert 0 in result["minute"]
@@ -86,28 +86,28 @@ class TestCronParser:
 
     def test_parse_comma_separated(self):
         """Test: 0 9,12,18 * * * → a las 9, 12 y 18."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         result = parse_cron_expression("0 9,12,18 * * *")
         assert result["hour"] == [9, 12, 18]
 
     def test_parse_day_of_week(self):
         """Test: 0 9 * * 1 → cada lunes a las 9."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         result = parse_cron_expression("0 9 * * 1")
         assert result["day_of_week"] == [1]
 
     def test_invalid_cron_raises(self):
         """Test: expresión cron inválida lanza ValueError."""
-        from src.utils.helpers import parse_cron_expression
+        from src.core.utils import parse_cron_expression
 
         with pytest.raises(ValueError):
             parse_cron_expression("invalid")
 
     def test_should_run_now_specific_time(self):
         """Test: should_run_now coincide con la hora actual."""
-        from src.utils.helpers import parse_cron_expression, should_run_now
+        from src.core.utils import parse_cron_expression, should_run_now
 
         now = datetime(2026, 6, 7, 9, 30, 0)  # 9:30 AM
         cron = parse_cron_expression("30 9 * * *")
@@ -118,7 +118,7 @@ class TestCronParser:
 
     def test_should_run_now_every_minute(self):
         """Test: * * * * * siempre coincide."""
-        from src.utils.helpers import parse_cron_expression, should_run_now
+        from src.core.utils import parse_cron_expression, should_run_now
 
         now = datetime(2026, 6, 7, 14, 22, 0)
         cron = parse_cron_expression("* * * * *")
@@ -126,6 +126,6 @@ class TestCronParser:
 
     def test_schedule_interval_60_seconds(self):
         """Test: SCHEDULE_INTERVAL_SECONDS es 60 (spec requirement)."""
-        from src.config import SCHEDULE_INTERVAL_SECONDS
+        from src.core.config import SCHEDULE_INTERVAL_SECONDS
 
         assert SCHEDULE_INTERVAL_SECONDS == 60

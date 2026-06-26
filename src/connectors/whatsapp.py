@@ -23,11 +23,14 @@ from typing import Any
 from src.sdk.base import BaseConnector
 from src.sdk.http_client import HttpClient, HTTPClientError
 from src.sdk.schema import ActionDefinition, AuthRequirement, ConnectorSchema
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
-WHATSAPP_API_BASE = "https://graph.facebook.com/v18.0"
+# BUG-1 fix: unificado a v22.0 (antes v18.0 aquí y v22.0 en NotificationService,
+# lo que causaba dos implementaciones paralelas con versiones distintas).
+# v22.0 es la versión más reciente de Meta Cloud API.
+WHATSAPP_API_BASE = "https://graph.facebook.com/v22.0"
 
 
 class WhatsAppConnector(BaseConnector):

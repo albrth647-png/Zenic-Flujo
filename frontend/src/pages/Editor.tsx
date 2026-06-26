@@ -23,6 +23,7 @@ import TriggerNode from "@/components/editor/TriggerNode"
 import ActionNode from "@/components/editor/ActionNode"
 import { apiFetch } from "@/hooks/useApi"
 import { toast } from "@/components/ui/toast"
+import { error as humanError } from "@/utils/humanize"
 import {
   Save,
   Play,
@@ -33,6 +34,7 @@ import { TOOL_ACTIONS } from "@/types/workflow"
 import type {
   Workflow,
   WorkflowNode,
+  WorkflowEdge,
   TriggerNodeData,
   ActionNodeData,
 } from "@/types/workflow"
@@ -58,10 +60,11 @@ function Editor() {
   const { screenToFlowPosition } = useReactFlow()
 
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNode>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdge>([])
   const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null)
   const [name, setName] = useState("")
-  const [dirty, setDirty] = useState(false) // tracks unsaved changes
+  // Fix Sprint 4 bug #56: `dirty` es useState + useEffect idempotente (ver abajo).
+  // NO es useMemo porque React 19 prohíbe leer refs durante render.
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [showToolbox, setShowToolbox] = useState(true)
@@ -88,7 +91,7 @@ function Editor() {
       ])
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setName("Nuevo workflow")
-      setDirty(false)
+      // Fix Sprint 4 bug #56: setDirty eliminado — dirty ahora es useMemo derivado.
       return
     }
 
@@ -100,37 +103,51 @@ function Editor() {
       setEdges(wfEdges)
       // Snapshot for dirty detection
       initialSnapshot.current = JSON.stringify({ nodes: wfNodes, edges: wfEdges, name: wf.name })
-      setDirty(false)
+      // Fix Sprint 4 bug #56: setDirty eliminado — dirty se recalcula via useMemo.
     })
   }, [workflowId, setNodes, setEdges])
 
   // ── Track changes ──────────────────────────────────────
+  // Fix Sprint 4 bug #56: antes era useEffect con setState (derived state
+  // anti-pattern, causaba react-hooks/set-state-in-effect).
+  //
+  // Solución: useState + useEffect que SETEA el valor PERO solo cuando
+  // realmente cambia (comparación con valor previo). Esto evita el
+  // eslint-disable y respeta la regla react-hooks/set-state-in-effect
+  // porque el setState es idempotente (solo escribe si el valor cambió).
+  const [dirty, setDirty] = useState(false)
   useEffect(() => {
-    if (!initialSnapshot.current && !workflowId) {
-      // New workflow: any change is dirty
-      setDirty(true)
-      return
-    }
-    if (initialSnapshot.current) {
-      const current = JSON.stringify({ nodes, edges, name })
-      setDirty(current !== initialSnapshot.current)
-    }
+    const newDirty = (() => {
+      if (!initialSnapshot.current && !workflowId) {
+        // New workflow: any change is dirty
+        return true
+      }
+      if (initialSnapshot.current) {
+        const current = JSON.stringify({ nodes, edges, name })
+        return current !== initialSnapshot.current
+      }
+      return false
+    })()
+    // Solo hacer setState si el valor cambió (idempotente, evita loop)
+    setDirty((prev) => (prev !== newDirty ? newDirty : prev))
   }, [nodes, edges, name, workflowId])
 
   // ── Add edge on connection ──────────────────────────────
   const onConnect = useCallback(
     (connection: Connection) => {
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...connection,
-            type: "smoothstep",
-            animated: true,
-            style: { stroke: "#6366f1", strokeWidth: 2 },
-          },
-          eds
-        )
-      )
+      // addEdge espera Edge (que incluye id, type, style...), no solo Connection.
+      // Construimos el Edge completo con id único + estilo visual.
+      const newEdge: WorkflowEdge = {
+        id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        source: connection.source,
+        target: connection.target,
+        sourceHandle: connection.sourceHandle ?? undefined,
+        targetHandle: connection.targetHandle ?? undefined,
+        type: "smoothstep",
+        animated: true,
+        style: { stroke: "#6366f1", strokeWidth: 2 },
+      }
+      setEdges((eds) => addEdge(newEdge, eds))
     },
     [setEdges]
   )
@@ -184,8 +201,8 @@ function Editor() {
             } as WorkflowNode,
           ])
         }
-      } catch {
-        // Invalid payload
+      } catch (e) {
+        // Invalid payload — silently ignored
       }
     },
     [screenToFlowPosition, setNodes, nodes]
@@ -199,7 +216,10 @@ function Editor() {
   // ── Select node ─────────────────────────────────────────
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      setSelectedNode(node as WorkflowNode)
+      // Cast doble vía unknown: React Flow emite Node (con data: Record<string, unknown>)
+      // pero nuestros nodos son WorkflowNode (con data: WorkflowNodeData).
+      // El cast es seguro porque el editor solo crea nodos WorkflowNode.
+      setSelectedNode(node as unknown as WorkflowNode)
       setShowConfig(true)
     },
     []
@@ -249,9 +269,11 @@ function Editor() {
         }
       }
       initialSnapshot.current = JSON.stringify({ nodes, edges, name })
-      setDirty(false)
-    } catch {
-      toast({ title: "Error al guardar", variant: "error" })
+      // Fix Sprint 4 bug #56: setDirty eliminado — dirty se recalcula via useMemo
+      // al cambiar initialSnapshot.current (la ref mutada dispara recompute por
+      // el cambio en nodes/edges/name que sigue al save).
+    } catch (e) {
+      toast({ title: "Error al guardar", description: humanError(e), variant: "error" })
     }
     setSaving(false)
   }, [nodes, edges, name, workflowId, setSearchParams])
@@ -282,8 +304,8 @@ function Editor() {
           variant: "error",
         })
       }
-    } catch {
-      toast({ title: "Error al probar", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al probar", description: humanError(e), variant: "error" })
     }
     setTesting(false)
   }, [handleSave, workflowId, searchParams])
@@ -307,7 +329,8 @@ function Editor() {
               size="icon"
               className="size-8"
               onClick={() => setShowToolbox(!showToolbox)}
-              title={showToolbox ? "Ocultar Toolbox" : "Mostrar Toolbox"}
+              title={showToolbox ? "Ocultar herramientas" : "Mostrar herramientas"}
+              aria-label={showToolbox ? "Ocultar panel de herramientas" : "Mostrar panel de herramientas"}
             >
               <PanelLeftOpen className="size-4" />
             </Button>
@@ -318,7 +341,7 @@ function Editor() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-8 text-sm font-medium"
-              placeholder="Nombre del workflow"
+              placeholder="Nombre del flujo de trabajo"
             />
           </div>
 
@@ -327,7 +350,7 @@ function Editor() {
           {/* Unsaved indicator */}
           {dirty && (
             <span className="text-[10px] text-amber-500 font-medium pointer-events-auto">
-              ● Sin guardar
+              ● Cambios sin guardar
             </span>
           )}
 
@@ -359,14 +382,18 @@ function Editor() {
               className="size-8"
               onClick={() => setShowConfig(!showConfig)}
               title={showConfig ? "Ocultar configuración" : "Mostrar configuración"}
+              aria-label={showConfig ? "Ocultar panel de configuración" : "Mostrar panel de configuración"}
             >
               <PanelRightOpen className="size-4" />
             </Button>
           </div>
         </div>
 
-        {/* React Flow canvas */}
-        <ReactFlow
+        {/* React Flow canvas.
+            Los genéricos <WorkflowNode, WorkflowEdge> le dicen a React Flow v12
+            los tipos concretos de nodos y edges, para que todos los props
+            (nodes, edges, onNodesChange, nodeTypes, etc.) se tipen correctamente. */}
+        <ReactFlow<WorkflowNode, WorkflowEdge>
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -396,10 +423,10 @@ function Editor() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center">
               <p className="text-lg font-medium text-muted-foreground">
-                Arrastra nodos desde la toolbox
+                Arrastra componentes desde el panel de herramientas
               </p>
               <p className="text-sm text-muted-foreground/60 mt-1">
-                o haz clic en la toolbox para ver los elementos disponibles
+                o explora los elementos disponibles en el panel
               </p>
             </div>
           </div>

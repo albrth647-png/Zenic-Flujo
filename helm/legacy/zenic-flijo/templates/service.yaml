@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zenic-flijo.fullname" . }}-svc
+  labels:
+    app.kubernetes.io/name: {{ include "zenic-flijo.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: web
+      port: {{ .Values.app.ports.web }}
+      targetPort: web
+      protocol: TCP
+    - name: webhook
+      port: {{ .Values.app.ports.webhook }}
+      targetPort: webhook
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "zenic-flijo.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

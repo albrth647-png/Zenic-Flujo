@@ -13,11 +13,11 @@ import sqlite3
 import threading
 from datetime import datetime
 
-from src.config import SCHEDULE_INTERVAL_SECONDS
-from src.data.database_manager import DatabaseManager
+from src.core.config import SCHEDULE_INTERVAL_SECONDS
+from src.core.db import DatabaseManager
 from src.events.bus import EventBus
-from src.utils.helpers import parse_cron_expression, should_run_now
-from src.utils.logger import setup_logging
+from src.core.utils import parse_cron_expression, should_run_now
+from src.core.logging import setup_logging
 from src.workflow.repository import WorkflowRepository
 
 logger = setup_logging(__name__)
@@ -80,16 +80,6 @@ class ScheduleWorker:
         self._timer = threading.Timer(self._interval, self._tick)
         self._timer.daemon = True
         self._timer.start()
-
-    def _get_interval_minutes(self, workflow_id: int) -> int | None:
-        """Obtiene los minutos de intervalo para un workflow."""
-        val = self._db.get_setting(f"interval_{workflow_id}")
-        if val:
-            try:
-                return int(val)
-            except ValueError:
-                pass
-        return None
 
     def _tick(self) -> None:
         """Revisa y ejecuta workflows programados para este minuto.
@@ -179,11 +169,3 @@ class ScheduleWorker:
             self._db.set_setting(f"interval_{workflow_id}", "")
             self._interval_cache.pop(workflow_id, None)
             logger.info(f"Intervalo eliminado: workflow {workflow_id}")
-
-    def _get_interval_minutes(self, workflow_id: int) -> int | None:
-        """Obtiene los minutos de intervalo desde la caché."""
-        with self._lock:
-            entry = self._interval_cache.get(workflow_id)
-            if entry:
-                return entry[1]
-        return None

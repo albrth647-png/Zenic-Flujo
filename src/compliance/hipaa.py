@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from src.utils.logger import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger("hipaa")
 
@@ -176,7 +176,10 @@ class BAAManager:
     _instance: BAAManager | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = "compliance.db") -> None:
+    def __init__(self, db_path: str = None) -> None:
+        if db_path is None:
+            from src.core.config import COMPLIANCE_DB_PATH
+            db_path = str(COMPLIANCE_DB_PATH)
         self._db_path = db_path
         self._conn: sqlite3.Connection | None = None
         self._init_db()
@@ -191,6 +194,10 @@ class BAAManager:
 
     def _init_db(self) -> None:
         self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        # Fix NEW-BUG-6: PRAGMA WAL + busy_timeout (mismo fix que compliance/__init__.py bug #40)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA busy_timeout=5000")
+        self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS hipaa_baas (
                 baa_id TEXT PRIMARY KEY,

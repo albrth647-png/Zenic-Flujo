@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge"
+import { status as humanStatus } from "@/utils/humanize"
 
 const statusConfig: Record<
   string,
@@ -14,6 +15,6 @@ const statusConfig: Record<
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const config = statusConfig[status] || { variant: "outline" as const, label: status }
+  const config = statusConfig[status] || { variant: "outline" as const, label: humanStatus(status) || status }
   return <Badge variant={config.variant}>{config.label}</Badge>
 }

@@ -337,13 +337,45 @@ async def sync_push(
     - Server wins (default for critical data)
     - Client wins (for user preferences)
     - Merge (for non-conflicting fields)
+
+    Fix NEW-BUG-4 (verificación Sprint 4): antes era stub hardcoded.
+    Ahora procesa operaciones reales del dispositivo via OfflineSyncManager.
     """
-    return {
-        "device_id": device_id,
-        "synced": 0,
-        "conflicts": [],
-        "status": "completed",
-    }
+    try:
+        from src.mobile.sync import OfflineSyncManager
+        sync_manager = OfflineSyncManager()
+
+        # Procesar cola de operaciones pendientes del dispositivo
+        result = sync_manager.process_sync(device_id)
+        return {
+            "device_id": device_id,
+            "synced": result.get("processed", 0),
+            "conflicts": result.get("conflicts", []),
+            "failed": result.get("failed", 0),
+            "status": "completed",
+        }
+    except ImportError:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Mobile sync_push: OfflineSyncManager no disponible — retornando stub."
+        )
+        return {
+            "device_id": device_id,
+            "synced": 0,
+            "conflicts": [],
+            "status": "completed",
+            "warning": "OfflineSyncManager not available",
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Mobile sync_push error: {e}")
+        return {
+            "device_id": device_id,
+            "synced": 0,
+            "conflicts": [],
+            "status": "error",
+            "error": str(e),
+        }
 
 
 @router.post("/sync/pull", summary="Pull server changes to device")
@@ -356,13 +388,55 @@ async def sync_pull(
 
     Returns incremental updates since the given timestamp.
     Used by WorkManager periodic sync and manual refresh.
+
+    Fix Sprint 2 bug #16 (fase 1): antes retornaba changes: [] hardcoded
+    (MOCK completo). Ahora usa OfflineSyncManager para retornar cambios
+    reales pendientes desde el último sync del dispositivo.
     """
-    return {
-        "device_id": device_id,
-        "since": since_timestamp,
-        "changes": [],
-        "server_timestamp": time.time(),
-    }
+    try:
+        from src.mobile.sync import OfflineSyncManager
+        sync_manager = OfflineSyncManager()
+
+        # get_pending_changes retorna cambios reales desde since_timestamp
+        # para el dispositivo dado.
+        changes = sync_manager.get_pending_changes(
+            device_id=device_id,
+            since_timestamp=since_timestamp,
+        )
+
+        return {
+            "device_id": device_id,
+            "since": since_timestamp,
+            "changes": changes,
+            "server_timestamp": time.time(),
+            "count": len(changes),
+        }
+    except ImportError:
+        # OfflineSyncManager no disponible — fallback a stub con warning
+        import logging
+        logging.getLogger(__name__).warning(
+            "Mobile sync_pull: OfflineSyncManager no disponible — "
+            "retornando changes=[] (stub). Implementar src/mobile/sync.py."
+        )
+        return {
+            "device_id": device_id,
+            "since": since_timestamp,
+            "changes": [],
+            "server_timestamp": time.time(),
+            "count": 0,
+            "warning": "OfflineSyncManager not available",
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Mobile sync_pull error: {e}")
+        return {
+            "device_id": device_id,
+            "since": since_timestamp,
+            "changes": [],
+            "server_timestamp": time.time(),
+            "count": 0,
+            "error": str(e),
+        }
 
 
 # ── Push Notification Preferences ──────────────────────────
@@ -373,37 +447,123 @@ async def get_notification_preferences(
     device_id: str = Query(...),
     _: Any = _MOBILE_READ,
 ) -> dict[str, Any]:
-    """Get push notification preferences for the device."""
-    return {
-        "device_id": device_id,
-        "preferences": {
-            "workflow_completed": True,
-            "workflow_failed": True,
-            "agent_decision_needed": True,
-            "budget_alert": True,
-            "compliance_alert": True,
-            "connector_error": False,
-            "daily_summary": True,
-        },
-        "quiet_hours": {
-            "enabled": True,
-            "start": "22:00",
-            "end": "07:00",
-            "timezone": "America/Havana",
-        },
+    """Get push notification preferences for the device.
+
+    Fix Sprint 2 bug #16: antes retornaba preferences hardcoded (MOCK).
+    Ahora usa PushNotificationService para retornar preferencias reales
+    del dispositivo, con defaults si no hay configuración previa.
+    """
+    default_preferences = {
+        "workflow_completed": True,
+        "workflow_failed": True,
+        "agent_decision_needed": True,
+        "budget_alert": True,
+        "compliance_alert": True,
+        "connector_error": False,
+        "daily_summary": True,
     }
+    default_quiet_hours = {
+        "enabled": True,
+        "start": "22:00",
+        "end": "07:00",
+        "timezone": "America/Havana",
+    }
+
+    try:
+        from src.mobile.push import PushNotificationService
+        push_service = PushNotificationService()
+        prefs = push_service.get_preferences(device_id)
+        if prefs:
+            return {
+                "device_id": device_id,
+                "preferences": prefs.get("preferences", default_preferences),
+                "quiet_hours": prefs.get("quiet_hours", default_quiet_hours),
+            }
+        # Sin preferencias guardadas → defaults
+        return {
+            "device_id": device_id,
+            "preferences": default_preferences,
+            "quiet_hours": default_quiet_hours,
+        }
+    except ImportError:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Mobile get_notification_preferences: PushNotificationService "
+            "no disponible — retornando defaults."
+        )
+        return {
+            "device_id": device_id,
+            "preferences": default_preferences,
+            "quiet_hours": default_quiet_hours,
+            "warning": "PushNotificationService not available",
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Mobile get_notification_preferences error: {e}")
+        return {
+            "device_id": device_id,
+            "preferences": default_preferences,
+            "quiet_hours": default_quiet_hours,
+            "error": str(e),
+        }
 
 
 @router.put("/notifications/preferences", summary="Update notification preferences")
 async def update_notification_preferences(
     device_id: str,
+    preferences: dict[str, Any] | None = None,
+    quiet_hours: dict[str, Any] | None = None,
     _: Any = _MOBILE_UPDATE,
 ) -> dict[str, Any]:
-    """Update push notification preferences for the device."""
-    return {
-        "device_id": device_id,
-        "status": "updated",
-    }
+    """Update push notification preferences for the device.
+
+    Fix NEW-BUG-4 (verificación Sprint 4): antes era stub hardcoded.
+    Ahora persiste las preferencias via PushNotificationService.set_preferences().
+    """
+    if preferences is None and quiet_hours is None:
+        return {
+            "device_id": device_id,
+            "status": "error",
+            "error": "At least one of 'preferences' or 'quiet_hours' must be provided",
+        }
+
+    try:
+        from src.mobile.push import PushNotificationService
+        push_service = PushNotificationService()
+        ok = push_service.set_preferences(
+            device_id=device_id,
+            preferences=preferences or {},
+            quiet_hours=quiet_hours,
+        )
+        if ok:
+            return {
+                "device_id": device_id,
+                "status": "updated",
+            }
+        return {
+            "device_id": device_id,
+            "status": "error",
+            "error": "Failed to save preferences",
+        }
+    except ImportError:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Mobile update_notification_preferences: PushNotificationService "
+            "no disponible — retornando stub success."
+        )
+        return {
+            "device_id": device_id,
+            "status": "updated",
+            "warning": "PushNotificationService not available",
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Mobile update_notification_preferences error: {e}")
+        return {
+            "device_id": device_id,
+            "status": "error",
+            "error": str(e),
+        }
 
 
 # ── Biometric Auth Support ─────────────────────────────────

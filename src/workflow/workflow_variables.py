@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -77,7 +77,7 @@ class WorkflowVariables:
         Returns:
             dict con {name, value, found: bool}
         """
-        from src.utils.helpers import safe_get
+        from src.core.utils import safe_get
 
         # Soporte para notación de puntos (ej: "steps_output.2.result")
         if "." in name:
@@ -119,7 +119,7 @@ class WorkflowVariables:
         Returns:
             dict con {name, exists: bool}
         """
-        from src.utils.helpers import safe_get
+        from src.core.utils import safe_get
 
         if "." in name:
             value = safe_get(context, name)

@@ -1,4 +1,5 @@
-"""Compliance API Routes — REST endpoints for SOC 2 compliance management.
+"""
+Compliance API Routes — REST endpoints for SOC 2 compliance management.
 
 Provides HTTP API for:
 - Compliance control management
@@ -6,7 +7,11 @@ Provides HTTP API for:
 - Audit trail queries
 - Policy management
 - Compliance scoring and reporting
+
+# Audience: External
+# Purpose: Compliance management (GDPR, HIPAA, SOC2 Type II). API pública para auditorías externas y tools de compliance.
 """
+
 
 from __future__ import annotations
 
@@ -23,7 +28,7 @@ from src.compliance import (
     TrustServiceCriteria,
 )
 
-router = APIRouter(prefix="/compliance", tags=["compliance"])
+router = APIRouter(prefix="/api/v2/compliance", tags=["compliance"])
 
 
 @router.get("/score", summary="Get compliance score")
@@ -234,3 +239,80 @@ async def get_compliance_stats(
     """Get compliance manager statistics."""
     manager = ComplianceManager.get_instance()
     return manager.get_stats()
+
+
+# ── Foso 1 — Compliance Reproducible Banca LATAM ─────────────────────
+
+
+@router.get(
+    "/reproducibility/{execution_id}",
+    summary="Generate reproducibility report for a workflow execution",
+)
+async def get_reproducibility_report(
+    execution_id: int,
+    country_code: str = Query("MX", description="ISO 3166-1 alpha-2 país del regulador"),
+    tenant_id: str = Query("default", description="Tenant ID"),
+    _: Any = Depends(require_permission("compliance", "read")),
+) -> dict[str, Any]:
+    """Genera reporte de reproducibilidad para una ejecución de workflow.
+
+    Verifica criptográficamente que la ejecución es matemáticamente reproducible:
+    - input_fingerprint: SHA-256(canonical_json(pre-tick state))
+    - result_hash: SHA-256(canonical_json(OrbitalResult.to_dict()))
+    - result_signature: Ed25519(result_hash, tenant_key)
+    - chain integrity: audit_log_chain con hash chain inmutable
+    - COD convergence proof: Lyapunov + Conley + Haken + FEP + Brouwer
+
+    Genera PDF firmado para entregar al regulador (SBS, CNBV, BACEN, etc.).
+    Cumple SOC2 CC7.2 y retención LATAM (5-10 años por país).
+    """
+    from src.compliance.reproducibility_reporter import ReproducibilityReporter
+
+    reporter = ReproducibilityReporter()
+    report = reporter.generate_report(
+        workflow_execution_id=execution_id,
+        country_code=country_code,
+        tenant_id=tenant_id,
+    )
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    return report
+
+
+@router.get(
+    "/audit-chain/verify",
+    summary="Verify audit log chain integrity for a tenant",
+)
+async def verify_audit_chain(
+    tenant_id: str = Query("default", description="Tenant ID whose chain to verify"),
+    _: Any = Depends(require_permission("compliance", "read")),
+) -> dict[str, Any]:
+    """Verifica la integridad de la cadena de audit log de un tenant.
+
+    Recorre todos los entries del tenant en orden cronológico y verifica:
+    - previous_hash de cada entry coincide con el entry_hash del anterior
+    - Recompute de entry_hash coincide con el almacenado
+
+    Si cualquier entry falla → tampering detectado.
+    """
+    from src.core.repositories.audit_chain_repository import AuditChainRepository
+
+    repo = AuditChainRepository()
+    return repo.verify_chain(tenant_id=tenant_id)
+
+
+@router.get(
+    "/retention-policies",
+    summary="List retention policies by country and data type",
+)
+async def list_retention_policies(
+    _: Any = Depends(require_permission("compliance", "read")),
+) -> list[dict[str, Any]]:
+    """Lista todas las políticas de retención LATAM (5-10 años por país).
+
+    Útil para mostrar en UI de compliance y para validar que el purge
+    automático respeta las regulaciones locales.
+    """
+    from src.compliance.retention_policy import list_retention_policies as list_policies
+
+    return list_policies()

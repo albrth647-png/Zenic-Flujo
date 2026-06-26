@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from src.utils.logger import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger("mobile.sync")
 
@@ -149,7 +149,10 @@ class OfflineSyncManager:
     _instance: OfflineSyncManager | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = "sync_queue.db") -> None:
+    def __init__(self, db_path: str = None) -> None:
+        if db_path is None:
+            from src.core.config import SYNC_QUEUE_DB_PATH
+            db_path = str(SYNC_QUEUE_DB_PATH)
         self._db_path = db_path
         self._conn: sqlite3.Connection | None = None
         self._device_last_sync: dict[str, float] = {}
@@ -393,6 +396,48 @@ class OfflineSyncManager:
             )
 
     # ── Query Methods ───────────────────────────────────────
+
+    def get_pending_changes(self, device_id: str, since_timestamp: float = 0.0) -> list[dict[str, Any]]:
+        """Retorna cambios pendientes para un dispositivo desde un timestamp.
+
+        API pública para el endpoint mobile /sync/pull (fix Sprint 2 bug #16).
+        Convierte SyncOperation a dicts serializables para JSON response.
+
+        Args:
+            device_id: ID del dispositivo que pide cambios.
+            since_timestamp: Timestamp Unix a partir del cual retornar cambios.
+
+        Returns:
+            Lista de dicts con: operation_id, entity_type, entity_id, action,
+            data, timestamp, status.
+        """
+        if self._conn is None:
+            return []
+        try:
+            cursor = self._conn.execute(
+                """SELECT operation_id, device_id, entity_type, entity_id, action,
+                          data, timestamp, status
+                   FROM sync_queue
+                   WHERE device_id = ? AND timestamp >= ? AND status IN ('pending', 'failed', 'completed')
+                   ORDER BY timestamp ASC
+                   LIMIT 500""",
+                (device_id, since_timestamp),
+            )
+            changes = []
+            for row in cursor.fetchall():
+                changes.append({
+                    "operation_id": row[0],
+                    "entity_type": row[2],
+                    "entity_id": row[3],
+                    "action": row[4],
+                    "data": json.loads(row[5]) if row[5] else {},
+                    "timestamp": row[6],
+                    "status": row[7],
+                })
+            return changes
+        except sqlite3.Error as e:
+            logger.error(f"OfflineSyncManager.get_pending_changes error: {e}")
+            return []
 
     def _get_pending_operations(self, device_id: str) -> list[SyncOperation]:
         """Get pending operations for a device."""

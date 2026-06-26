@@ -4,18 +4,16 @@ Genera, almacena y carga pares de claves Ed25519 para licencias asimétricas.
 La clave privada se cifra con una contraseña derivada del admin (PBKDF2).
 """
 
-import base64
 import json
 import os
-from pathlib import Path
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from src.config import DATA_DIR
-from src.utils.logger import setup_logging
+from src.core.config import DATA_DIR
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -128,7 +126,7 @@ def get_embedded_public_key() -> str:
     """Retorna la clave pública en formato PEM como string para embeber en el binario."""
     if not PUBLIC_KEY_FILE.exists():
         return ""
-    with open(PUBLIC_KEY_FILE, "r") as f:
+    with open(PUBLIC_KEY_FILE) as f:
         return f.read()
 
 

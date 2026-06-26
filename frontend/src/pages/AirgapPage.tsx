@@ -30,6 +30,7 @@ import {
 
 import type { LicenseInfo, LicenseValidation } from "@/types/license"
 
+import { error as humanError } from "@/utils/humanize"
 import type { AirgapStatus, AirgapConfig } from "@/types/airgap"
 
 // ── Componentes ────────────────────────────────
@@ -99,30 +100,32 @@ export default function AirgapPage() {
   const [validateResult, setValidateResult] = useState<LicenseValidation | null>(null)
   const [validating, setValidating] = useState(false)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     setError(null)
     try {
       const api = getApi()
       const [statusRes, configRes, licenseRes] = await Promise.all([
-        api.get("/api/airgap/status"),
-        api.get("/api/airgap/config"),
-        api.get("/api/license/info"),
+        api.get("/api/airgap/status", { signal }),
+        api.get("/api/airgap/config", { signal }),
+        api.get("/api/license/info", { signal }),
       ])
+      if (signal?.aborted) return
       setStatus(statusRes as AirgapStatus)
       setConfig(configRes as AirgapConfig)
       setLicenseInfo(licenseRes as LicenseInfo)
-    } catch {
-      toast({ title: "Error al cargar datos airgap", variant: "error" })
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar datos", description: humanError(e), variant: "error" })
       setError("No se pudo conectar con el servidor. Verifica que esté corriendo.")
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [loadData])
 
@@ -137,8 +140,8 @@ export default function AirgapPage() {
         days: parseInt(licenseForm.days) || 365,
       })
       setLicenseResult(res as { license_key: string; signature: string })
-    } catch {
-      toast({ title: "Error al crear licencia", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al crear licencia", description: humanError(e), variant: "error" })
     } finally {
       setCreating(false)
     }
@@ -152,8 +155,8 @@ export default function AirgapPage() {
       const api = getApi()
       const res = await api.post("/api/airgap/license/verify", { license_key: verifyKey.trim() })
       setVerifyResult(res as { valid: boolean; customer?: string; days_remaining?: number })
-    } catch {
-      toast({ title: "Error al verificar licencia", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al verificar licencia", description: humanError(e), variant: "error" })
     } finally {
       setVerifying(false)
     }
@@ -168,8 +171,8 @@ export default function AirgapPage() {
       const res = await api.post("/api/license/validate", { key: validateKey.trim() })
       setValidateResult(res as LicenseValidation)
       loadData()
-    } catch {
-      toast({ title: "Error al validar licencia", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al validar licencia", description: humanError(e), variant: "error" })
     } finally {
       setValidating(false)
     }
@@ -205,7 +208,7 @@ export default function AirgapPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadData}
+              onClick={() => loadData()}
               className="mt-4 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
               <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -256,7 +259,7 @@ export default function AirgapPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadData}
+          onClick={() => loadData()}
           className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >
           <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -346,7 +349,7 @@ export default function AirgapPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4" />
-                Checks de validación
+                Verificaciones
                 {totalChecks > 0 && (
                   <span className="text-xs font-normal text-zinc-600">
                     ({passedChecks}/{totalChecks} aprobados)
@@ -594,18 +597,19 @@ export default function AirgapPage() {
       <Dialog open={showLicenseDialog} onOpenChange={setShowLicenseDialog}>
         <DialogContent className="max-w-md border-zinc-800 bg-zinc-900 text-zinc-200">
           <DialogHeader>
-            <DialogTitle>Crear licencia offline</DialogTitle>
+            <DialogTitle>            Crear licencia sin conexión</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Genera una licencia firmada para entornos air-gapped
+              Genera una licencia firmada para entornos sin conexión
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">
+              <label htmlFor="airgap-license-client" className="mb-1 block text-sm text-zinc-300">
                 Cliente <span className="text-red-400">*</span>
               </label>
               <Input
+                id="airgap-license-client"
                 value={licenseForm.client}
                 onChange={(e) => setLicenseForm({ ...licenseForm, client: e.target.value })}
                 placeholder="Nombre del cliente o empresa"
@@ -613,8 +617,9 @@ export default function AirgapPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Días de validez</label>
+              <label htmlFor="airgap-license-days" className="mb-1 block text-sm text-zinc-300">Días de validez</label>
               <Input
+                id="airgap-license-days"
                 type="number"
                 min={1}
                 value={licenseForm.days}
@@ -668,8 +673,9 @@ export default function AirgapPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Clave de licencia</label>
+              <label htmlFor="airgap-verify-key" className="mb-1 block text-sm text-zinc-300">Clave de licencia</label>
               <Input
+                id="airgap-verify-key"
                 value={verifyKey}
                 onChange={(e) => setVerifyKey(e.target.value)}
                 placeholder="ag-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -745,8 +751,9 @@ export default function AirgapPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Clave de licencia</label>
+              <label htmlFor="airgap-validate-key" className="mb-1 block text-sm text-zinc-300">Clave de licencia</label>
               <Input
+                id="airgap-validate-key"
                 value={validateKey}
                 onChange={(e) => setValidateKey(e.target.value)}
                 placeholder="WFD-XXXX-XXXX-XXXX-XXXX"

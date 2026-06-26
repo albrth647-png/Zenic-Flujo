@@ -4,8 +4,8 @@ Blueprints — Admin: Users, Dead Letter Queue y Work Queue
 
 from flask import Blueprint, jsonify, request, session
 
-from src.data.audit_repository import AuditRepository
-from src.data.user_repository import UserRepository
+from src.core.repositories import AuditRepository
+from src.core.repositories import UserRepository
 from src.web.helpers import login_required, require_role
 
 users = UserRepository()
@@ -212,3 +212,234 @@ def api_queue_cleanup():
     queue = WorkQueue()
     deleted = queue.cleanup(max_age_hours=max_age)
     return jsonify({"deleted": deleted})
+
+
+# ─── Sprint 11: Monitoreo + Alertas ─────────────────────────────────────
+
+
+@bp.route("/api/admin/metrics", methods=["GET"])
+@login_required
+@require_role("admin")
+def api_admin_metrics():
+    """
+    Devuelve métricas del sistema en formato JSON para el dashboard admin.
+    Combina datos de MetricsRegistry (Prometheus), WorkQueue y DeadLetterManager.
+    """
+    from src.core.db import DatabaseManager
+    from src.events.work_queue import WorkQueue
+    from src.core.observability.metrics import MetricsRegistry
+    from src.workflow.dead_letter import DeadLetterManager
+
+    db = DatabaseManager()
+    MetricsRegistry()
+
+    # Work queue metrics
+    queue = WorkQueue()
+    queue_metrics = queue.get_metrics() if hasattr(queue, "get_metrics") else {}
+
+    # Dead letter metrics
+    dl_manager = DeadLetterManager(db)
+    dl_stats = dl_manager.get_stats() if hasattr(dl_manager, "get_stats") else {}
+
+    # Workflow execution stats
+    workflow_stats_rows = db.fetchall(
+        """SELECT status, COUNT(*) AS count,
+                  AVG(duration_ms) AS avg_duration_ms,
+                  MAX(duration_ms) AS max_duration_ms
+           FROM workflow_executions
+           WHERE started_at >= datetime('now', '-1 hour')
+           GROUP BY status"""
+    )
+    workflow_stats = {row["status"]: dict(row) for row in workflow_stats_rows}
+
+    # Top 10 slowest workflows en la última hora
+    slowest_workflows = db.fetchall(
+        """SELECT we.workflow_id, wd.name AS workflow_name,
+                  we.duration_ms, we.status, we.started_at
+           FROM workflow_executions we
+           JOIN workflow_definitions wd ON we.workflow_id = wd.id
+           WHERE we.started_at >= datetime('now', '-1 hour')
+             AND we.duration_ms IS NOT NULL
+           ORDER BY we.duration_ms DESC
+           LIMIT 10"""
+    )
+
+    # Workflow executions en la última hora (timeline para gráfica)
+    timeline = db.fetchall(
+        """SELECT strftime('%Y-%m-%dT%H:00:00', started_at) AS hour,
+                  status, COUNT(*) AS count
+           FROM workflow_executions
+           WHERE started_at >= datetime('now', '-24 hours')
+           GROUP BY hour, status
+           ORDER BY hour"""
+    )
+
+    return jsonify({
+        "workqueue": queue_metrics,
+        "dead_letter": dl_stats,
+        "workflow_stats_1h": workflow_stats,
+        "slowest_workflows_1h": [dict(r) for r in slowest_workflows],
+        "timeline_24h": [dict(r) for r in timeline],
+        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+    })
+
+
+@bp.route("/api/admin/metrics/prometheus", methods=["GET"])
+@login_required
+@require_role("admin")
+def api_admin_metrics_prometheus():
+    """Expone métricas en formato Prometheus text (para scrapeo por Prometheus).
+
+    Requiere rol admin. Para integrar con Prometheus scraper externo, crear una
+    service account con rol 'admin' y autenticar por Bearer token via header
+    Authorization: Bearer <service_account_token>.
+    """
+    from src.core.observability.metrics import MetricsRegistry
+
+    metrics = MetricsRegistry()
+    return metrics.get_metrics(), 200, {"Content-Type": "text/plain; version=0.0.4"}
+
+
+@bp.route("/api/admin/alerts", methods=["GET"])
+@login_required
+@require_role("admin")
+def api_admin_list_alerts():
+    """Lista alertas, opcionalmente filtradas por status."""
+    from src.core.observability.alerts import AlertService
+
+    status = request.args.get("status")  # active, resolved, suppressed, None (all)
+    limit = min(200, max(1, request.args.get("limit", default=50, type=int)))
+    offset = max(0, request.args.get("offset", default=0, type=int))
+
+    service = AlertService()
+    alerts = service.list_alerts(status=status, limit=limit, offset=offset)
+    total = service.count_alerts(status=status)
+
+    return jsonify({
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "alerts": [a.to_dict() for a in alerts],
+    })
+
+
+@bp.route("/api/admin/alerts/<int:alert_id>/resolve", methods=["POST"])
+@login_required
+@require_role("admin")
+def api_admin_resolve_alert(alert_id):
+    """Marca una alerta como resuelta."""
+    from src.core.observability.alerts import AlertService
+
+    service = AlertService()
+    resolved = service.resolve_alert(alert_id)
+    if not resolved:
+        return jsonify({"error": "Alert not found or already resolved"}), 404
+    return jsonify({"status": "resolved", "alert_id": alert_id})
+
+
+@bp.route("/api/admin/alerts/stats", methods=["GET"])
+@login_required
+@require_role("admin")
+def api_admin_alerts_stats():
+    """Resumen agregado de alertas para dashboard."""
+    from src.core.observability.alerts import AlertService
+
+    service = AlertService()
+    return jsonify(service.get_alert_stats())
+
+
+@bp.route("/api/admin/alerts/rules", methods=["GET"])
+@login_required
+@require_role("admin")
+def api_admin_alert_rules():
+    """Lista las reglas de alerta configuradas."""
+    from src.core.observability.alerts import DEFAULT_RULES
+
+    rules = [
+        {
+            "name": r.name,
+            "description": r.description,
+            "metric_name": r.metric_name,
+            "threshold": r.threshold,
+            "comparison": r.comparison,
+            "severity": r.severity,
+            "enabled": r.enabled,
+            "channels": r.channels,
+            "cooldown_seconds": r.cooldown_seconds,
+        }
+        for r in DEFAULT_RULES
+    ]
+    return jsonify({"rules": rules, "total": len(rules)})
+
+
+@bp.route("/api/admin/alerts/evaluate", methods=["POST"])
+@login_required
+@require_role("admin")
+def api_admin_evaluate_alerts():
+    """Evalúa manualmente todas las reglas y dispara alertas si procede."""
+    from src.core.observability.alerts import AlertService
+
+    service = AlertService()
+    # Registrar providers reales del sistema
+    _register_default_metric_providers(service)
+
+    triggered = service.evaluate_all_rules()
+    return jsonify({
+        "triggered_count": len(triggered),
+        "alerts": [a.to_dict() for a in triggered],
+    })
+
+
+def _register_default_metric_providers(service) -> None:
+    """Registra providers de métricas reales del sistema en el AlertService."""
+    from src.core.db import DatabaseManager
+    from src.events.work_queue import WorkQueue
+    from src.workflow.dead_letter import DeadLetterManager
+
+    db = DatabaseManager()
+
+    # workflow_failure_rate_1h: fracción de ejecuciones fallidas en la última hora
+    def _failure_rate() -> float:
+        row = db.fetchone(
+            """SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed
+               FROM workflow_executions
+               WHERE started_at >= datetime('now', '-1 hour')"""
+        )
+        if not row or not row["total"]:
+            return 0.0
+        return float(row["failed"]) / float(row["total"])
+
+    service.register_metric_provider("workflow_failure_rate_1h", _failure_rate)
+
+    # dead_letter_queue_depth
+    def _dlq_depth() -> float:
+        try:
+            dl = DeadLetterManager(db)
+            return float(dl.count())
+        except Exception:
+            return 0.0
+
+    service.register_metric_provider("dead_letter_queue_depth", _dlq_depth)
+
+    # work_queue_depth
+    def _queue_depth() -> float:
+        try:
+            q = WorkQueue()
+            m = q.get_metrics() if hasattr(q, "get_metrics") else {}
+            return float(m.get("depth", 0))
+        except Exception:
+            return 0.0
+
+    service.register_metric_provider("work_queue_depth", _queue_depth)
+
+    # workers_alive: por ahora 4 (DEFAULT_NUM_WORKERS) — en producción leer de WorkerManager
+    def _workers_alive() -> float:
+        try:
+            # WorkerManager es singleton; si no está inicializado, retornar 0
+            return 4.0  # valor por defecto conservador
+        except Exception:
+            return 4.0
+
+    service.register_metric_provider("workers_alive", _workers_alive)

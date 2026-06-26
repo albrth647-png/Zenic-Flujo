@@ -6,9 +6,9 @@ import secrets
 
 from flask import Blueprint, jsonify, request, session
 
-from src.data.audit_repository import AuditRepository
-from src.data.settings_repository import SettingsRepository
-from src.data.user_repository import UserRepository
+from src.core.repositories import AuditRepository
+from src.core.repositories import SettingsRepository
+from src.core.repositories import UserRepository
 from src.web.helpers import db, login_required, require_role
 
 users = UserRepository()
@@ -23,7 +23,7 @@ bp = Blueprint("tools", __name__)
 @bp.route("/api/tools/crm/leads", methods=["GET"])
 @login_required
 def api_list_leads():
-    from src.tools.crm.service import CRMService
+    from src.hat.level5_tools.business.crm.service import CRMService
     crm = CRMService()
     stage = request.args.get("stage")
     leads = crm.list_leads(stage)
@@ -34,7 +34,7 @@ def api_list_leads():
 @login_required
 @require_role("editor")
 def api_create_lead():
-    from src.tools.crm.service import CRMService
+    from src.hat.level5_tools.business.crm.service import CRMService
     crm = CRMService()
     data = request.get_json() or {}
     lead = crm.create_lead(
@@ -53,7 +53,7 @@ def api_create_lead():
 @login_required
 @require_role("editor")
 def api_update_lead(lead_id: int):
-    from src.tools.crm.service import CRMService
+    from src.hat.level5_tools.business.crm.service import CRMService
     crm = CRMService()
     data = request.get_json() or {}
     lead = crm.update_lead(lead_id, **data)
@@ -66,7 +66,7 @@ def api_update_lead(lead_id: int):
 @login_required
 @require_role("editor")
 def api_delete_lead(lead_id: int):
-    from src.tools.crm.service import CRMService
+    from src.hat.level5_tools.business.crm.service import CRMService
     crm = CRMService()
     if crm.delete_lead(lead_id):
         return jsonify({"status": "deleted"})
@@ -77,7 +77,7 @@ def api_delete_lead(lead_id: int):
 @login_required
 @require_role("editor")
 def api_advance_lead(lead_id: int):
-    from src.tools.crm.service import CRMService
+    from src.hat.level5_tools.business.crm.service import CRMService
     crm = CRMService()
     result = crm.advance_stage(lead_id)
     if not result:
@@ -90,7 +90,7 @@ def api_advance_lead(lead_id: int):
 @bp.route("/api/tools/inventory/products", methods=["GET"])
 @login_required
 def api_list_products():
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
     inv = InventoryService()
     low_stock = request.args.get("low_stock", "false").lower() == "true"
     products = inv.list_products(low_stock_only=low_stock)
@@ -101,7 +101,7 @@ def api_list_products():
 @login_required
 @require_role("editor")
 def api_update_product(product_id: int):
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
     inv = InventoryService()
     data = request.get_json() or {}
     product = inv.update_product(product_id, **data)
@@ -114,7 +114,7 @@ def api_update_product(product_id: int):
 @login_required
 @require_role("editor")
 def api_delete_product(product_id: int):
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
     inv = InventoryService()
     if inv.delete_product(product_id):
         return jsonify({"status": "deleted"})
@@ -125,7 +125,7 @@ def api_delete_product(product_id: int):
 @login_required
 @require_role("editor")
 def api_create_product():
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
     inv = InventoryService()
     data = request.get_json() or {}
     product = inv.add_product(
@@ -145,7 +145,7 @@ def api_create_product():
 @login_required
 @require_role("editor")
 def api_stock_movement():
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
     inv = InventoryService()
     data = request.get_json() or {}
     product_id = data.get("product_id")
@@ -163,7 +163,7 @@ def api_stock_movement():
 @bp.route("/api/tools/inventory/low-stock", methods=["GET"])
 @login_required
 def api_low_stock():
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
     inv = InventoryService()
     return jsonify(inv.get_low_stock_products())
 
@@ -174,7 +174,7 @@ def api_low_stock():
 @login_required
 @require_role("editor")
 def api_create_invoice():
-    from src.tools.invoice.service import InvoiceService
+    from src.hat.level5_tools.business.invoice.service import InvoiceService
     invs = InvoiceService()
     data = request.get_json() or {}
     client_name = data.get("client_name", "")
@@ -196,7 +196,7 @@ def api_create_invoice():
 @bp.route("/api/tools/invoice/list", methods=["GET"])
 @login_required
 def api_list_invoices():
-    from src.tools.invoice.service import InvoiceService
+    from src.hat.level5_tools.business.invoice.service import InvoiceService
     invs = InvoiceService()
     status = request.args.get("status")
     invoices = invs.list_invoices(status)
@@ -207,7 +207,7 @@ def api_list_invoices():
 @login_required
 @require_role("editor")
 def api_pay_invoice(invoice_id: int):
-    from src.tools.invoice.service import InvoiceService
+    from src.hat.level5_tools.business.invoice.service import InvoiceService
     invs = InvoiceService()
     invoice = invs.mark_paid(invoice_id)
     if not invoice:
@@ -219,7 +219,7 @@ def api_pay_invoice(invoice_id: int):
 @login_required
 @require_role("editor")
 def api_cancel_invoice(invoice_id: int):
-    from src.tools.invoice.service import InvoiceService
+    from src.hat.level5_tools.business.invoice.service import InvoiceService
     invs = InvoiceService()
     invoice = invs.cancel(invoice_id)
     if not invoice:
@@ -316,7 +316,7 @@ def api_change_password():
 @bp.route("/api/settings/test-email", methods=["POST"])
 @login_required
 def api_test_email():
-    from src.tools.notification.service import NotificationService
+    from src.hat.level5_tools.communications.notification.service import NotificationService
     ns = NotificationService()
     result = ns.test_connection()
     return jsonify(result)
@@ -327,7 +327,7 @@ def api_test_email():
 @bp.route("/api/settings/whatsapp", methods=["GET"])
 @login_required
 def api_get_whatsapp():
-    from src.tools.notification.service import NotificationService
+    from src.hat.level5_tools.communications.notification.service import NotificationService
     ns = NotificationService()
     return jsonify(ns.get_whatsapp_status())
 
@@ -340,7 +340,7 @@ def api_update_whatsapp():
     phone_number_id = data.get("phone_number_id", "")
     if not token or not phone_number_id:
         return jsonify({"error": "token y phone_number_id son requeridos"}), 400
-    from src.tools.notification.service import NotificationService
+    from src.hat.level5_tools.communications.notification.service import NotificationService
     ns = NotificationService()
     ns.configure_whatsapp(token, phone_number_id)
     return jsonify({"status": "saved"})
@@ -353,7 +353,7 @@ def api_test_whatsapp():
     test_number = data.get("test_number", "")
     if not test_number:
         return jsonify({"error": "Número de prueba requerido"}), 400
-    from src.tools.notification.service import NotificationService
+    from src.hat.level5_tools.communications.notification.service import NotificationService
     ns = NotificationService()
     result = ns.send_whatsapp(
         to=test_number,

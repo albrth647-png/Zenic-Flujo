@@ -1,0 +1,157 @@
+# ── Global ────────────────────────────────────────────
+global:
+  environment: production
+  region: us-east-1
+
+# ── Application ───────────────────────────────────────
+app:
+  name: zenic-flijo
+  replicaCount: 2
+  image:
+    repository: zenicflijo/app
+    tag: latest
+    pullPolicy: IfNotPresent
+  ports:
+    web: 8080
+    webhook: 8081
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  livenessProbe:
+    path: /api/auth/status
+    initialDelaySeconds: 30
+    periodSeconds: 15
+  readinessProbe:
+    path: /api/auth/status
+    initialDelaySeconds: 20
+    periodSeconds: 10
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ── Ingress ───────────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: zenic-flijo.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: zenic-flijo-tls
+      hosts:
+        - zenic-flijo.example.com
+
+# ── Database ──────────────────────────────────────────
+postgresql:
+  enabled: true
+  auth:
+    database: zenic_flijo
+    username: zenic
+    password: ""  # Set via --set or sealed secrets
+  primary:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    persistence:
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: ""  # Set via --set or sealed secrets
+  master:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      size: 5Gi
+
+# ── Application Config ───────────────────────────────
+config:
+  logLevel: INFO
+  webPort: 8080
+  webhookPort: 8081
+  webhookApiKeyEnabled: true
+  errorMaxRetries: 3
+  errorBaseDelaySeconds: 1
+  errorRetryMultiplier: 2
+  errorUseFallback: true
+
+secrets:
+  sessionSecret: ""  # Set via --set, sealed-secrets, or external secret store
+  encryptionMasterKey: ""
+  # AI provider keys (if using cloud providers)
+  openaiApiKey: ""
+  anthropicApiKey: ""
+
+# ── Air-Gapped Deployment ────────────────────────────
+airgap:
+  enabled: false
+  allowLocalAI: false
+  registryMirror: ""
+  licenseFile: /etc/zenic-flijo/license.json
+  # Filter connectors: cloud connectors are disabled when enabled=true
+  disableCloudConnectors: true
+  # Local AI (Ollama) config for air-gapped mode
+  ollama:
+    enabled: false
+    image: ollama/ollama:latest
+    models:
+      - llama3.2
+      - nomic-embed-text
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 4Gi
+
+# ── Multi-region ─────────────────────────────────────
+multiRegion:
+  enabled: false
+  regions:
+    - name: us-east-1
+      provider: aws
+    - name: sa-east-1
+      provider: aws
+    - name: westeurope
+      provider: azure
+    - name: brazilsouth
+      provider: azure
+  disasterRecovery:
+    rpo: "1h"
+    rto: "4h"
+
+# ── Partnership Program ──────────────────────────────
+partnership:
+  enabled: true
+  defaultTier: community
+  autoPromote: true
+  dbPath: partners.db
+  # Revenue share defaults by tier
+  revenueShare:
+    silver: 30
+    gold: 50
+    platinum: 70

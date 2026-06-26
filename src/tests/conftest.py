@@ -24,18 +24,18 @@ def db_manager(db_path, monkeypatch):
     Provee un DatabaseManager configurado con base de datos temporal.
     Usa monkeypatch para redirigir DB_PATH al archivo temporal.
     """
-    from src import config
+    from src.core import config
+    from src.core.db import sqlite_manager
 
     monkeypatch.setattr(config, "DB_PATH", db_path)
     monkeypatch.setattr(config, "DATA_DIR", db_path.parent)
 
-    from src.data import database_manager
-    from src.data.database_manager import DatabaseManager
+    from src.core.db import DatabaseManager
     from src.workflow.engine import WorkflowEngine
 
-    # Also patch the imported DB_PATH in database_manager module
-    # (it uses 'from src.config import DB_PATH' which creates a local binding)
-    monkeypatch.setattr(database_manager, "DB_PATH", db_path)
+    # Also patch the imported DB_PATH in sqlite_manager module
+    # (it uses 'from src.core.config import DB_PATH' which creates a local binding)
+    monkeypatch.setattr(sqlite_manager, "DB_PATH", db_path)
 
     # Reset singletons para usar nueva DB
     DatabaseManager._instance = None
@@ -89,7 +89,7 @@ def sample_context():
 @pytest.fixture
 def crm_service(db_manager):
     """Provee un CRMService con base de datos temporal."""
-    from src.tools.crm.service import CRMService
+    from src.hat.level5_tools.business.crm.service import CRMService
 
     return CRMService()
 
@@ -97,7 +97,7 @@ def crm_service(db_manager):
 @pytest.fixture
 def invoice_service(db_manager):
     """Provee un InvoiceService con base de datos temporal."""
-    from src.tools.invoice.service import InvoiceService
+    from src.hat.level5_tools.business.invoice.service import InvoiceService
 
     return InvoiceService()
 
@@ -105,7 +105,7 @@ def invoice_service(db_manager):
 @pytest.fixture
 def inventory_service(db_manager):
     """Provee un InventoryService con base de datos temporal."""
-    from src.tools.inventory.service import InventoryService
+    from src.hat.level5_tools.business.inventory.service import InventoryService
 
     return InventoryService()
 
@@ -113,7 +113,7 @@ def inventory_service(db_manager):
 @pytest.fixture
 def notification_service(db_manager):
     """Provee un NotificationService con base de datos temporal."""
-    from src.tools.notification.service import NotificationService
+    from src.hat.level5_tools.communications.notification.service import NotificationService
 
     return NotificationService()
 
@@ -121,20 +121,17 @@ def notification_service(db_manager):
 @pytest.fixture(autouse=True)
 def _ensure_test_license_keys(monkeypatch, db_path):
     """Genera claves Ed25519 para tests en el directorio temporal de la BD.
-    
+
     Parchea las rutas de keys.py (ya vinculadas a nivel de módulo)
     para que apunten al directorio temporal de la BD de test.
     """
-    import os
-    from pathlib import Path
-    
-    from src import license
+
     from src.license import keys as license_keys
-    
+
     # Parchear las constantes de keys.py (ya vinculadas a nivel de módulo)
     test_keys_dir = db_path.parent / "license_keys"
     test_keys_dir.mkdir(parents=True, exist_ok=True)
-    
+
     monkeypatch.setattr(license_keys, "KEYS_DIR", test_keys_dir)
     monkeypatch.setattr(license_keys, "PRIVATE_KEY_FILE", test_keys_dir / "private_key.enc")
     monkeypatch.setattr(license_keys, "PUBLIC_KEY_FILE", test_keys_dir / "public_key.pem")
@@ -147,7 +144,7 @@ def _ensure_test_license_keys(monkeypatch, db_path):
             license_keys.generate_keypair("test-admin-pw")
         except Exception as e:
             import warnings
-            warnings.warn(f"No se pudieron generar keys Ed25519 para tests: {e}")
+            warnings.warn(f"No se pudieron generar keys Ed25519 para tests: {e}", stacklevel=2)
 
 
 @pytest.fixture
@@ -176,23 +173,50 @@ def condition_evaluator():
 
 @pytest.fixture
 def branch_handler():
-    """Provee un BranchHandler."""
+    """Provee un BranchHandler con OrbitalContext limpio (ver loop_handler)."""
+    from src.orbital.context import OrbitalContext
     from src.workflow.branch_handler import BranchHandler
+
+    OrbitalContext._reset()
+    ctx = OrbitalContext()
+    ctx.ovc.reset()
+    if hasattr(ctx.tor, "clear_cache"):
+        ctx.tor.clear_cache()
 
     return BranchHandler()
 
 
 @pytest.fixture
 def loop_handler():
-    """Provee un LoopHandler."""
+    """Provee un LoopHandler con OrbitalContext limpio.
+
+    Fix Sprint 4: resetea el singleton OrbitalContext antes de cada test
+    para evitar contaminación de variables orbitales entre tests (que
+    causaba que test_execute_while_loop fallara en suite pero pasara aislado).
+    """
+    from src.orbital.context import OrbitalContext
     from src.workflow.loop_handler import LoopHandler
+
+    # Reset singleton y sus pilares para garantizar estado limpio
+    OrbitalContext._reset()
+    ctx = OrbitalContext()
+    ctx.ovc.reset()
+    if hasattr(ctx.tor, "clear_cache"):
+        ctx.tor.clear_cache()
 
     return LoopHandler()
 
 
 @pytest.fixture
 def error_handler():
-    """Provee un ErrorHandler."""
+    """Provee un ErrorHandler con OrbitalContext limpio (ver loop_handler)."""
+    from src.orbital.context import OrbitalContext
     from src.workflow.error_handler import ErrorHandler
+
+    OrbitalContext._reset()
+    ctx = OrbitalContext()
+    ctx.ovc.reset()
+    if hasattr(ctx.tor, "clear_cache"):
+        ctx.tor.clear_cache()
 
     return ErrorHandler()

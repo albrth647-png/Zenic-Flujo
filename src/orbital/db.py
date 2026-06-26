@@ -22,7 +22,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -35,9 +35,14 @@ ORBITAL_SCHEMA = """
 -- ============================================================
 
 -- Variables Orbitales (OVC)
+-- UNIQUE compuesto (workflow_id, name): dos workflows pueden tener
+-- variables con el mismo nombre (ej: "step_1_notification") sin pisarse.
+-- Fix bug Sprint 1 #5: antes era UNIQUE(name) sola, lo que causaba
+-- INSERT OR REPLACE y pérdida de variables entre workflows.
 CREATE TABLE IF NOT EXISTS orbital_variables (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    workflow_id TEXT NOT NULL DEFAULT '__global__',
     theta REAL NOT NULL DEFAULT 0.0,
     amplitude REAL NOT NULL DEFAULT 1.0,
     velocity REAL NOT NULL DEFAULT 0.1,
@@ -45,7 +50,8 @@ CREATE TABLE IF NOT EXISTS orbital_variables (
     orbit_group TEXT NOT NULL DEFAULT 'default',
     metadata TEXT DEFAULT '{}',
     created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(workflow_id, name)
 );
 
 -- Ciclos Orbitales (RCC)
@@ -94,9 +100,17 @@ CREATE TABLE IF NOT EXISTS orbital_executions (
 -- Indices
 CREATE INDEX IF NOT EXISTS idx_orbital_variables_group ON orbital_variables(orbit_group);
 CREATE INDEX IF NOT EXISTS idx_orbital_variables_name ON orbital_variables(name);
+CREATE INDEX IF NOT EXISTS idx_orbital_variables_workflow ON orbital_variables(workflow_id, name);
 CREATE INDEX IF NOT EXISTS idx_orbital_spectrum_cycle ON orbital_spectrum(cycle_id, tick);
 CREATE INDEX IF NOT EXISTS idx_orbital_executions_tick ON orbital_executions(tick);
 """
+
+# Migración para DBs existentes: añadir columna workflow_id si no existe.
+# Se ejecuta tras initialize_schema() de forma idempotente.
+_ORBITAL_MIGRATION_ADD_WORKFLOW_ID = [
+    # SQLite no soporta "ADD COLUMN IF NOT EXISTS", se usa PRAGMA para check
+    "ALTER TABLE orbital_variables ADD COLUMN workflow_id TEXT NOT NULL DEFAULT '__global__'",
+]
 
 
 class OrbitalDB:
@@ -115,7 +129,7 @@ class OrbitalDB:
             db_path: Ruta al archivo SQLite. Si es None, usa la config global.
         """
         if db_path is None:
-            from src.config import DB_PATH
+            from src.core.config import DB_PATH
 
             db_path = DB_PATH
 
@@ -133,20 +147,46 @@ class OrbitalDB:
         return self._conn
 
     def initialize_schema(self) -> None:
-        """Crea las tablas orbitales si no existen."""
+        """Crea las tablas orbitales si no existen + aplica migraciones idempotentes."""
         conn = self._get_connection()
         conn.executescript(ORBITAL_SCHEMA)
+
+        # Migración idempotente: añadir workflow_id si la DB pre-existe sin esa columna.
+        # Fix bug Sprint 1 #5: UNIQUE(name) → UNIQUE(workflow_id, name).
+        cols = [row[1] for row in conn.execute("PRAGMA table_info(orbital_variables)").fetchall()]
+        if "workflow_id" not in cols:
+            try:
+                conn.execute(
+                    "ALTER TABLE orbital_variables ADD COLUMN workflow_id TEXT NOT NULL DEFAULT '__global__'"
+                )
+                # El UNIQUE compuesto no se puede añadir con ALTER en SQLite; se crea vía
+                # CREATE UNIQUE INDEX IF NOT EXISTS que es equivalente para validación.
+                conn.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_orbital_variables_workflow_name "
+                    "ON orbital_variables(workflow_id, name)"
+                )
+                logger.info("OrbitalDB: migración workflow_id aplicada")
+            except sqlite3.OperationalError as e:
+                # "duplicate column name" si ya existe — ignorar
+                if "duplicate column" not in str(e):
+                    raise
+
         conn.commit()
         logger.info("OrbitalDB: Esquema inicializado")
 
     # ── Variables Orbitales (OVC) ──────────────────────────
 
-    def save_variable(self, var: dict[str, Any]) -> str:
+    def save_variable(self, var: dict[str, Any], workflow_id: str = "__global__") -> str:
         """
         Guarda una variable orbital en la base de datos.
 
+        Usa UNIQUE(workflow_id, name) para que dos workflows puedan tener
+        variables con el mismo nombre sin pisarse. Fix bug Sprint 1 #5.
+
         Args:
             var: Diccionario con los datos de la variable (de VariableOrbital.to_dict())
+            workflow_id: ID del workflow dueño de la variable. Default '__global__'
+                para variables globales no asociadas a un workflow específico.
 
         Returns:
             ID de la variable
@@ -157,12 +197,13 @@ class OrbitalDB:
         conn.execute(
             """
             INSERT OR REPLACE INTO orbital_variables
-            (id, name, theta, amplitude, velocity, value, orbit_group, metadata, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, name, workflow_id, theta, amplitude, velocity, value, orbit_group, metadata, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 var_id,
                 var.get("name", ""),
+                workflow_id,
                 var.get("theta", 0.0),
                 var.get("amplitude", 1.0),
                 var.get("velocity", 0.1),
@@ -354,8 +395,20 @@ class OrbitalDB:
     def close(self) -> None:
         """Cierra la conexion a la base de datos."""
         if self._conn:
-            self._conn.close()
+            try:
+                self._conn.close()
+            except Exception:
+                pass  # Conexión ya cerrada o inválida
             self._conn = None
 
-    def __del__(self):
+    # Fix Sprint 4 bug #54: __del__ no es fiable en Python (no se garantiza
+    # que se llame, especialmente en shutdown). Eliminado __del__ y añadido
+    # soporte para context manager (__enter__/__exit__) como reemplazo.
+    # Uso recomendado: `with OrbitalDB() as db: ...`
+    def __enter__(self) -> "OrbitalDB":
+        self._get_connection()  # Asegura que la conexión esté abierta
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.close()
+        return False  # No suprimir excepciones

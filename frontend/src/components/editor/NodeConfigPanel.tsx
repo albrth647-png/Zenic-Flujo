@@ -28,10 +28,14 @@ interface NodeConfigPanelProps {
 export function NodeConfigPanel({ node, onClose, onDelete }: NodeConfigPanelProps) {
   const { updateNodeData, deleteElements } = useReactFlow()
 
+  // Actualiza los datos del nodo. Acepta un Partial del tipo data y lo pasa
+  // a updateNodeData (que internamente espera Record<string, unknown>).
+  // El index signature en TriggerNodeData/ActionNodeData garantiza que son
+  // compatibles con Record<string, unknown>.
   const updateData = useCallback(
-    <T extends Record<string, unknown>>(data: Partial<T>) => {
+    (data: Partial<TriggerNodeData> | Partial<ActionNodeData>) => {
       if (!node) return
-      updateNodeData(node.id, data)
+      updateNodeData(node.id, data as Record<string, unknown>)
     },
     [node, updateNodeData]
   )
@@ -59,7 +63,7 @@ export function NodeConfigPanel({ node, onClose, onDelete }: NodeConfigPanelProp
         <h3 className="text-sm font-semibold">
           {node.data.nodeType === "trigger" ? "⚡ Configurar Trigger" : "🔧 Configurar Acción"}
         </h3>
-        <Button variant="ghost" size="icon" className="size-7" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="size-7" onClick={onClose} aria-label="Cerrar panel de configuración">
           <X className="size-3.5" />
         </Button>
       </div>
@@ -69,12 +73,12 @@ export function NodeConfigPanel({ node, onClose, onDelete }: NodeConfigPanelProp
           {node.data.nodeType === "trigger" ? (
             <TriggerConfig
               data={node.data as TriggerNodeData}
-              onChange={(d) => updateData<TriggerNodeData>(d)}
+              onChange={(d) => updateData(d)}
             />
           ) : (
             <ActionConfig
               data={node.data as ActionNodeData}
-              onChange={(d) => updateData<ActionNodeData>(d)}
+              onChange={(d) => updateData(d)}
             />
           )}
         </div>
@@ -145,8 +149,9 @@ function TriggerConfig({
       {/* Event selection */}
       {data.triggerType === "event" && (
         <div className="space-y-2">
-          <Label>Evento</Label>
+          <Label htmlFor="trigger-event">Evento</Label>
           <select
+            id="trigger-event"
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
             value={data.triggerConfig?.event || EVENT_OPTIONS[0]}
             onChange={(e) =>
@@ -169,8 +174,9 @@ function TriggerConfig({
       {data.triggerType === "schedule" && (
         <>
           <div className="space-y-2">
-            <Label>Frecuencia</Label>
+            <Label htmlFor="trigger-frequency">Frecuencia</Label>
             <select
+              id="trigger-frequency"
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               value={data.triggerConfig?.frequency || "daily"}
               onChange={(e) =>
@@ -186,8 +192,9 @@ function TriggerConfig({
             </select>
           </div>
           <div className="space-y-2">
-            <Label>Hora</Label>
+            <Label htmlFor="trigger-time">Hora</Label>
             <Input
+              id="trigger-time"
               type="time"
               value={data.triggerConfig?.time || "23:00"}
               onChange={(e) =>
@@ -204,8 +211,9 @@ function TriggerConfig({
       {/* Webhook config */}
       {data.triggerType === "webhook" && (
         <div className="space-y-2">
-          <Label>Path personalizado</Label>
+          <Label htmlFor="trigger-path">Path personalizado</Label>
           <Input
+            id="trigger-path"
             value={data.triggerConfig?.path || "webhook"}
             onChange={(e) =>
               onChange({
@@ -273,8 +281,9 @@ function ActionConfig({
     <div className="space-y-4">
       {/* Tool selector */}
       <div className="space-y-2">
-        <Label>Herramienta</Label>
+        <Label htmlFor="action-tool">Herramienta</Label>
         <select
+          id="action-tool"
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
           value={data.tool}
           onChange={(e) => handleToolChange(e.target.value)}
@@ -289,8 +298,9 @@ function ActionConfig({
 
       {/* Action selector */}
       <div className="space-y-2">
-        <Label>Acción</Label>
+        <Label htmlFor="action-name">Acción</Label>
         <select
+          id="action-name"
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
           value={data.action}
           onChange={(e) => handleActionChange(e.target.value)}
@@ -313,8 +323,9 @@ function ActionConfig({
           </Label>
           {params.map((p) => (
             <div key={p} className="space-y-1.5">
-              <Label className="text-xs">{PARAM_LABELS[p] || p}</Label>
+              <Label htmlFor={`action-param-${p}`} className="text-xs">{PARAM_LABELS[p] || p}</Label>
               <Input
+                id={`action-param-${p}`}
                 value={data.params[p] || ""}
                 onChange={(e) => handleParamChange(p, e.target.value)}
                 placeholder={PARAM_LABELS[p] || p}
@@ -333,10 +344,11 @@ function ActionConfig({
 
       {/* Condition */}
       <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+        <Label htmlFor="action-condition" className="text-xs text-muted-foreground uppercase tracking-wider">
           Condición (opcional)
         </Label>
         <Input
+          id="action-condition"
           value={data.condition || ""}
           onChange={(e) => onChange({ condition: e.target.value || undefined })}
           placeholder="Ej: stock &lt; 10"

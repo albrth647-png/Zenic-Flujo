@@ -33,6 +33,7 @@ IA: complemento opcional que genera workflows desde texto libre.
 
 from __future__ import annotations
 
+from src.core.logging import setup_logging
 from src.nlu.ai_generator import AIGenerationResult, WorkflowAIGenerator
 from src.nlu.compiler import WorkflowCompiler
 from src.nlu.disambiguator import Disambiguator
@@ -52,7 +53,6 @@ from src.nlu.normalizer import normalize
 from src.nlu.slot_filler import SlotFiller
 from src.nlu.tokenizer import tokenize
 from src.nlu.validator import WorkflowValidator
-from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -255,6 +255,8 @@ class Pipeline:
         Returns:
             NLUResult con tokens, entidades, intenciones, slots y traza
         """
+        import time as _time_mod
+        _nlu_start = _time_mod.monotonic()
         trace: list[str] = []
 
         # ── Etapa 1: Normalizer ───────────────────────────
@@ -292,7 +294,7 @@ class Pipeline:
         # ── Confidence: usar el score de la mejor intención ──
         confidence = intents[0].score if intents else 0.0
 
-        return NLUResult(
+        result = NLUResult(
             text=text,
             lang=detected_lang,
             tokens=tuple(tokens),
@@ -302,6 +304,22 @@ class Pipeline:
             confidence=confidence,
             trace=tuple(trace),
         )
+
+        # M10.4 — Metrics: best-effort, nunca romper el flujo principal.
+        try:
+            from src.core.observability.telemetry import TelemetryService
+            intent_name = (
+                intents[0].intent if intents else "unknown"
+            )
+            TelemetryService().record_nlu_result(
+                intent=intent_name,
+                confidence=float(confidence) if confidence is not None else 0.0,
+                duration=float(_time_mod.monotonic() - _nlu_start),
+            )
+        except Exception:
+            pass
+
+        return result
 
     def simulate(
         self,
@@ -351,7 +369,10 @@ class Pipeline:
             lang: Idioma forzado (auto-detect si None)
 
         Returns:
-            CompileResult con workflow, explanation y status
+            CompileResult con workflow, explanation, status y nlu_result.
+            El campo nlu_result (propagado desde la etapa 1) expone los
+            intents detectados para que FallbackOrchestrator pueda decidir
+            si activar el Nivel 2 (ORBITAL) sin reconstruir el NLUResult.
         """
         # Etapas 1-6: NLU analysis
         nlu_result = self.process(text, lang)
@@ -369,6 +390,7 @@ class Pipeline:
                 ),
                 missing_slots=(),
                 status="unknown",
+                nlu_result=nlu_result,  # Fix B-01
             )
 
         # ── Caso: score 0.0 = ninguna keyword matcheo ─────
@@ -381,6 +403,7 @@ class Pipeline:
                 ),
                 missing_slots=(),
                 status="unknown",
+                nlu_result=nlu_result,  # Fix B-01
             )
 
         # ── Caso: ambigüedad entre múltiples intenciones ──
@@ -393,6 +416,7 @@ class Pipeline:
                 ),
                 missing_slots=(),
                 status="ambiguous",
+                nlu_result=nlu_result,  # Fix B-01
             )
 
         # ── Caso normal: compilar workflow ─────────────────
@@ -412,6 +436,7 @@ class Pipeline:
                 explanation=explanation,
                 missing_slots=compile_result.missing_slots,
                 status="needs_clarification",
+                nlu_result=nlu_result,  # Fix B-01
             )
 
         # Etapa 10: Validator
@@ -423,6 +448,7 @@ class Pipeline:
                 explanation=f"Errores de validación: {errors_str}",
                 missing_slots=compile_result.missing_slots,
                 status="validation_error",
+                nlu_result=nlu_result,  # Fix B-01
             )
 
         # Etapa 11: Explainer
@@ -433,6 +459,7 @@ class Pipeline:
             explanation=explanation,
             missing_slots=(),
             status="ready",
+            nlu_result=nlu_result,  # Fix B-01
         )
 
     def compile_with_guardrails(

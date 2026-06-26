@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts"
+import { error as humanError } from "@/utils/humanize"
 import {
   BarChart3,
   FileText,
@@ -112,16 +113,17 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("resumen")
   const [invoices, setInvoices] = useState<Invoice[]>([])
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     try {
       const api = getApi()
       const [dashRes, leadsRes, productsRes, lowStockRes, invoicesRes] = await Promise.all([
-        api.get("/api/dashboard/stats"),
-        api.get("/api/tools/crm/leads"),
-        api.get("/api/tools/inventory/products"),
-        api.get("/api/tools/inventory/low-stock"),
-        api.get("/api/tools/invoice/list"),
+        api.get("/api/dashboard/stats", { signal }),
+        api.get("/api/tools/crm/leads", { signal }),
+        api.get("/api/tools/inventory/products", { signal }),
+        api.get("/api/tools/inventory/low-stock", { signal }),
+        api.get("/api/tools/invoice/list", { signal }),
       ])
+      if (signal?.aborted) return
 
       const dash = dashRes as DashboardStats | null
       if (dash?.stats) {
@@ -153,17 +155,18 @@ export default function ReportsPage() {
       }
       setInvoiceCounts(counts)
       setTotalRevenue(revenue)
-    } catch {
-      toast({ title: "Error al cargar reportes", variant: "error" })
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar reportes", description: humanError(e), variant: "error" })
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [loadData])
 
@@ -174,7 +177,7 @@ export default function ReportsPage() {
 
   // Datos para gráficos
   const moduleData = [
-    { name: "Workflows", value: workflowStats.total, color: "#6366f1" },
+    { name: "Flujos", value: workflowStats.total, color: "#6366f1" },
     { name: "Clientes", value: leadCount, color: "#22c55e" },
     { name: "Productos", value: productCount, color: "#f59e0b" },
     { name: "Facturas", value: invoiceCounts.total, color: "#ef4444" },
@@ -226,7 +229,7 @@ export default function ReportsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadData}
+          onClick={() => loadData()}
           className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >
           <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -237,7 +240,7 @@ export default function ReportsPage() {
       {/* Tarjetas de módulos */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <ReportCard
-          title="Workflows"
+          title="Flujos de trabajo"
           icon={Activity}
           count={workflowStats.total}
           subtitle={`${workflowStats.active} activos · ${workflowStats.failed} errores`}
@@ -250,7 +253,7 @@ export default function ReportsPage() {
           title="Clientes CRM"
           icon={Users}
           count={leadCount}
-          subtitle="Leads registrados"
+          subtitle="Prospectos registrados"
           color="text-emerald-400"
           bgColor="bg-emerald-500/10"
           csvUrl="/api/reports/crm/csv"
@@ -293,7 +296,7 @@ export default function ReportsPage() {
             className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100"
           >
             <Activity className="mr-1.5 h-4 w-4" />
-            Workflows
+            Flujos
           </TabsTrigger>
           <TabsTrigger
             value="facturas"
@@ -492,7 +495,7 @@ export default function ReportsPage() {
             <CardContent className="p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-200">Workflows registrados</h3>
+                  <h3 className="text-sm font-medium text-zinc-200">Flujos registrados</h3>
                   <p className="text-xs text-zinc-500">
                     Total: {workflowStats.total} · Activos: {workflowStats.active} · Errores: {workflowStats.failed} · Pausados: {workflowStats.paused}
                   </p>

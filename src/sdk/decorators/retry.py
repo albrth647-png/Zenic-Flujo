@@ -11,7 +11,7 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from src.sdk.decorators._helpers import _get_connector_name
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 F = TypeVar("F", bound=Callable[..., Any])

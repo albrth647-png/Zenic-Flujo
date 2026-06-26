@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { ThemeContext } from "./ThemeContextValue"
 import type { Theme } from "@/types/theme"
 
@@ -21,11 +21,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, theme)
   }, [theme])
 
-  const toggleTheme = () => setThemeState((prev) => (prev === "dark" ? "light" : "dark"))
-  const setTheme = (t: Theme) => setThemeState(t)
+  // BUG P1-6: antes toggleTheme/setTheme eran funciones nuevas en cada render,
+  // lo que causaba re-renders innecesarios en TODOS los consumers del contexto.
+  // Ahora están estabilizadas con useCallback, y el value del Provider se
+  // memoiza con useMemo para que solo cambie cuando `theme` cambie.
+  const toggleTheme = useCallback(
+    () => setThemeState((prev) => (prev === "dark" ? "light" : "dark")),
+    [],
+  )
+  const setTheme = useCallback((t: Theme) => setThemeState(t), [])
+
+  const value = useMemo(
+    () => ({ theme, toggleTheme, setTheme, isDark: theme === "dark" }),
+    [theme, toggleTheme, setTheme],
+  )
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, isDark: theme === "dark" }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )

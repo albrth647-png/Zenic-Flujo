@@ -19,16 +19,17 @@ Para tracking orbital, usar OrbitalContext directamente.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
 
 class EventBus:
     """
-    Bus de eventos simple en memoria.
+    Bus de eventos simple en memoria, THREAD-SAFE.
 
     API:
         subscribe(event_type, handler)  → None
@@ -36,11 +37,15 @@ class EventBus:
         publish(event_type, data)       → None
 
     No es singleton. Cada instancia tiene su propio registro de handlers.
+    Usa threading.RLock para proteger _handlers y _global_handler contra
+    race conditions cuando múltiples workers daemon publican/suscriben
+    concurrentemente (ver BUG-FE-06 fix en Sprint 1).
     """
 
     def __init__(self):
         self._handlers: dict[str, list[Callable]] = {}
         self._global_handler: Callable[[str, dict], None] | None = None
+        self._lock = threading.RLock()
 
     # ── Suscripciones ───────────────────────────────────────
 
@@ -52,9 +57,10 @@ class EventBus:
             event_type: Tipo de evento (ej. 'crm.lead.created')
             handler: Callable que recibe (data: dict)
         """
-        if event_type not in self._handlers:
-            self._handlers[event_type] = []
-        self._handlers[event_type].append(handler)
+        with self._lock:
+            if event_type not in self._handlers:
+                self._handlers[event_type] = []
+            self._handlers[event_type].append(handler)
 
     def unsubscribe(self, event_type: str, handler: Callable) -> None:
         """
@@ -64,8 +70,14 @@ class EventBus:
             event_type: Tipo de evento
             handler: Handler a eliminar
         """
-        if event_type in self._handlers:
-            self._handlers[event_type] = [h for h in self._handlers[event_type] if h != handler]
+        with self._lock:
+            if event_type in self._handlers:
+                self._handlers[event_type] = [
+                    h for h in self._handlers[event_type] if h != handler
+                ]
+                # Limpiar listas vacías para evitar crecimiento indefinido
+                if not self._handlers[event_type]:
+                    del self._handlers[event_type]
 
     # ── Global handler ─────────────────────────────────────
 
@@ -77,7 +89,8 @@ class EventBus:
         Args:
             handler: Callable que recibe (event_type: str, data: dict) o None para limpiar
         """
-        self._global_handler = handler
+        with self._lock:
+            self._global_handler = handler
 
     # ── Publicación ─────────────────────────────────────────
 
@@ -86,22 +99,29 @@ class EventBus:
         Publica un evento. Todos los handlers suscritos son llamados.
         Si hay un global_handler registrado, también se llama con (event_type, data).
 
+        Thread-safe: copia la lista de handlers bajo lock, luego invoca fuera
+        del lock para evitar deadlocks si un handler publica recursivamente.
+
         Args:
             event_type: Tipo de evento
             data: Datos del evento (dict)
         """
-        # 1. Handlers específicos del tipo de evento
-        if event_type in self._handlers:
-            for handler in self._handlers[event_type]:
-                try:
-                    handler(data)
-                except Exception as e:
-                    logger.error(f"EventBus: error en handler para evento '{event_type}': {e}")
+        # Snapshot de handlers bajo lock (copy-on-read)
+        with self._lock:
+            handlers_snapshot = list(self._handlers.get(event_type, []))
+            global_handler = self._global_handler
+
+        # 1. Handlers específicos del tipo de evento (fuera del lock)
+        for handler in handlers_snapshot:
+            try:
+                handler(data)
+            except Exception as e:
+                logger.error(f"EventBus: error en handler para evento '{event_type}': {e}")
 
         # 2. Global handler (para WorkflowSubscriber y otros suscriptores universales)
-        if self._global_handler:
+        if global_handler:
             try:
-                self._global_handler(event_type, data)
+                global_handler(event_type, data)
             except Exception as e:
                 logger.error(f"EventBus: error en global handler para evento '{event_type}': {e}")
 

@@ -1,0 +1,21 @@
+{
+  "crm.leads": "Leads",
+  "crm.stage_closed_lost": "Closed Lost",
+  "crm.stage_closed_won": "Closed Won",
+  "crm.stage_contacted": "Contacted",
+  "crm.stage_negotiation": "Negotiation",
+  "crm.stage_new": "New",
+  "crm.stage_proposal": "Proposal",
+  "crm.stage_qualified": "Qualified",
+  "inventory.stats_value": "Total Value",
+  "minegocio.critical_stock": "Critical Stock",
+  "minegocio.leads_in_pipeline": "in pipeline",
+  "minegocio.month_revenue": "Month Revenue",
+  "minegocio.out_of_stock": "out of stock",
+  "minegocio.overdue_invoices": "overdue",
+  "minegocio.pending_invoices": "Pending Invoices",
+  "minegocio.products_below_min": "products below minimum",
+  "minegocio.sales_pipeline": "Sales Pipeline",
+  "minegocio.title": "My Business",
+  "minegocio.total_invoiced": "total invoiced"
+}

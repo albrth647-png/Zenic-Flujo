@@ -9,18 +9,64 @@ para persistencia y RedisService para cache.
 
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import Any
 
-from src.data.redis_service import RedisService
+from src.core.db import RedisService
+from src.core.db.sqlite_manager import DatabaseManager
+from src.core.logging import setup_logging
 from src.marketplace.certification import CertificationEngine, CertificationStatus
 from src.marketplace.repository import ConnectorRepository
-from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
 # TTL del cache en segundos
 _CACHE_TTL = 300  # 5 minutos
 _STATS_CACHE_TTL = 60  # 1 minuto
+
+# Fix MISC-02: constantes de validacion estricta de api_key.
+# Antes del fix, publish_connector solo verificaba len(api_key) >= 10,
+# permitiendo que cualquier string aleatorio publicara conectores.
+_MIN_API_KEY_LENGTH = 32  # Minimo razonable para una api_key criptograficamente fuerte.
+_HAS_UPPERCASE = re.compile(r"[A-Z]")
+_HAS_LOWERCASE = re.compile(r"[a-z]")
+_HAS_DIGIT = re.compile(r"\d")
+
+
+def _hash_api_key(api_key: str) -> str:
+    """Hash SHA-256 hex de una api_key para almacenamiento y comparacion.
+
+    Usamos SHA-256 (en vez de bcrypt) para no anadir dependencias nuevas.
+    En produccion se deberia usar bcrypt o argon2 con sal individual por key.
+    """
+    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+
+
+def _validate_api_key_structure(api_key: str) -> tuple[bool, str]:
+    """Valida la estructura de una api_key de publisher.
+
+    Fix MISC-02: la validacion anterior (``len >= 10``) aceptaba cualquier
+    string. Ahora exigimos:
+    1. Longitud >= 32 caracteres (minimo razonable para una api_key fuerte).
+    2. Al menos una mayuscula.
+    3. Al menos una minuscula.
+    4. Al menos un digito.
+
+    Returns:
+        Tupla (valido: bool, razon: str). Si valido es True, razon es "".
+    """
+    if not api_key or not isinstance(api_key, str):
+        return False, "API key vacia o invalida"
+    if len(api_key) < _MIN_API_KEY_LENGTH:
+        return False, f"API key demasiado corta (minimo {_MIN_API_KEY_LENGTH} caracteres)"
+    if not _HAS_UPPERCASE.search(api_key):
+        return False, "API key debe contener al menos una mayuscula"
+    if not _HAS_LOWERCASE.search(api_key):
+        return False, "API key debe contener al menos una minuscula"
+    if not _HAS_DIGIT.search(api_key):
+        return False, "API key debe contener al menos un digito"
+    return True, ""
 
 
 class MarketplaceService:
@@ -37,6 +83,79 @@ class MarketplaceService:
         self._repo = ConnectorRepository()
         self._cache = RedisService()
         self._certification = CertificationEngine()
+        self._db = DatabaseManager()
+
+    def _validate_publisher_api_key(self, api_key: str) -> tuple[bool, str]:
+        """Valida una api_key de publisher por estructura y (opcional) contra DB.
+
+        Fix MISC-02:
+        1. Valida la estructura (longitud >= 32, mayuscula, minuscula, digito).
+        2. Si la tabla ``marketplace_publisher_keys`` tiene alguna key registrada,
+           exige que la api_key este en la tabla (modo estricto — production).
+        3. Si la tabla esta vacia (modo desarrollo), la validacion estructural
+           es suficiente para no bloquear el onboarding inicial.
+
+        Returns:
+            Tupla (valido: bool, razon: str).
+        """
+        valido, razon = _validate_api_key_structure(api_key)
+        if not valido:
+            return False, razon
+
+        # Verificar contra DB si hay keys registradas.
+        try:
+            row = self._db.fetchone(
+                "SELECT COUNT(*) AS total FROM marketplace_publisher_keys"
+            )
+            total_registered = row["total"] if row else 0
+        except Exception as e:
+            # Si la tabla no existe o falla la consulta, loggear y permitir
+            # (no bloquear publicacion por un error de infraestructura).
+            logger.warning(f"MarketplaceService: no se pudo consultar marketplace_publisher_keys: {e}")
+            return True, ""
+
+        if total_registered == 0:
+            # Modo desarrollo: la tabla esta vacia, validacion estructural basta.
+            return True, ""
+
+        # Modo estricto: la api_key debe estar registrada (comparacion por hash).
+        api_key_hash = _hash_api_key(api_key)
+        row = self._db.fetchone(
+            "SELECT partner_name FROM marketplace_publisher_keys WHERE api_key_hash = ?",
+            (api_key_hash,),
+        )
+        if row is None:
+            return False, "API key no registrada en marketplace_publisher_keys"
+        return True, ""
+
+    def register_publisher_api_key(self, api_key: str, partner_name: str) -> dict[str, Any]:
+        """Registra una api_key de publisher en la tabla ``marketplace_publisher_keys``.
+
+        Util para onboarding inicial y para tests. En produccion, este metodo
+        deberia restringirse a un flujo administrativo (RBAC + auditoria).
+
+        Args:
+            api_key: API key a registrar (debe pasar la validacion estructural).
+            partner_name: Nombre del partner asociado a la key.
+
+        Returns:
+            Dict con success y, si aplica, error.
+        """
+        valido, razon = _validate_api_key_structure(api_key)
+        if not valido:
+            return {"success": False, "error": razon}
+        api_key_hash = _hash_api_key(api_key)
+        try:
+            self._db.execute(
+                "INSERT OR REPLACE INTO marketplace_publisher_keys (api_key_hash, partner_name) VALUES (?, ?)",
+                (api_key_hash, partner_name),
+            )
+            self._db.commit()
+            logger.info(f"MarketplaceService: api_key registrada para partner '{partner_name}'")
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"MarketplaceService: error registrando api_key: {e}")
+            return {"success": False, "error": str(e)}
 
     def publish_connector(self, connector_zip_path: str, api_key: str) -> dict[str, Any]:
         """
@@ -53,9 +172,11 @@ class MarketplaceService:
         Retorna:
             Diccionario con el resultado de la publicacion
         """
-        # Validar API key del publicador
-        if not api_key or len(api_key) < 10:
-            return {"success": False, "error": "API key invalida"}
+        # Validar API key del publicador (Fix MISC-02).
+        # Antes: solo len(api_key) >= 10. Ahora: estructura + DB opcional.
+        valido, razon = self._validate_publisher_api_key(api_key)
+        if not valido:
+            return {"success": False, "error": f"API key invalida: {razon}"}
 
         # Ejecutar certificacion automatica
         cert_report = self._certification.auto_review(connector_zip_path)

@@ -9,6 +9,11 @@ Mejoras vs. v1 (src/nlp/intent_classifier.py):
 - TF-IDF ligero en vez de substring matching
 - Score normalizado 0.0-1.0 comparable entre intenciones
 - Trazabilidad: cada match guarda la evidencia
+
+Fix B-03 (F2-redesign):
+- Vectores IDF separados por idioma (es/en)
+- Keywords lematizadas con el mismo tokenizer que el input
+- Score normalizado por matched_terms (no por max_possible total)
 """
 
 from __future__ import annotations
@@ -20,53 +25,55 @@ from src.nlu.entities.base import IntentMatch, Token
 
 
 class IntentClassifier:
-    """Clasificador TF-IDF determinista.
+    """Clasificador TF-IDF determinista con vectores separados por idioma.
 
-    Usa TF-IDF vectorial ligero con IDF precalculado.
-    Cada intención es un vector de {lemma: idf_weight}.
+    Fix B-03: keywords se lematizan con tokenize() para que coincidan
+    con los lemas del input. Vectores IDF separados por idioma.
+    Score normalizado por términos matched (no por max_possible total).
     """
 
     def __init__(self):
-        self._idf_vectors: dict[str, dict[str, float]] = {}
+        self._idf_vectors: dict[str, dict[str, dict[str, float]]] = {"es": {}, "en": {}}
         self._build_idf_vectors()
 
     # ── Construcción de vectores IDF ─────────────────────
 
     def _build_idf_vectors(self) -> None:
-        """Construye vectores IDF para cada intención desde TEMPLATES.
+        """Construye vectores IDF separados por idioma con keywords lematizadas.
 
-        Normaliza las keywords (NFKD) para que coincidan con los lemas
-        del tokenizer, que también normaliza por NFKD.
+        Fix B-03: antes se mezclaban keywords_es + keywords_en en un solo
+        vector IDF sin lematizar. Ahora cada idioma tiene su propio vector
+        y las keywords se lematizan con el mismo tokenizer que el input.
         """
         from src.nlu.normalizer import normalize
+        from src.nlu.tokenizer import tokenize
         from src.nlu.templates import TEMPLATES
 
-        # Colección de todos los documentos (lemas de keywords)
-        all_terms: dict[str, set[str]] = {}
+        terms_by_lang: dict[str, dict[str, set[str]]] = {"es": {}, "en": {}}
 
         for template in TEMPLATES:
             name = template["name"]
             keywords_es = template.get("keywords_es", [])
             keywords_en = template.get("keywords_en", [])
-            # Normalizar keywords (NFKD) para que matcheen con tokens normalizados
-            all_keywords = keywords_es + keywords_en
-            normalized_keywords = set()
-            for kw in all_keywords:
-                norm_kw = normalize(kw, "es")
-                normalized_keywords.add(norm_kw)
-            all_terms[name] = normalized_keywords
 
-        # Número total de intenciones (para IDF)
-        n_intents = len(all_terms)
+            for lang, keywords in [("es", keywords_es), ("en", keywords_en)]:
+                lemmatized_keywords = set()
+                for kw in keywords:
+                    norm_kw = normalize(kw, lang)
+                    kw_tokens = tokenize(norm_kw, lang)
+                    for t in kw_tokens:
+                        lemmatized_keywords.add(t.lemma)
+                terms_by_lang[lang][name] = lemmatized_keywords
 
-        for intent_name, terms in all_terms.items():
-            vector: dict[str, float] = {}
-            for term in terms:
-                # IDF: cuántas intenciones contienen este término
-                df = sum(1 for t in all_terms.values() if term in t)
-                idf = math.log((n_intents + 1) / (df + 1)) + 1
-                vector[term] = idf
-            self._idf_vectors[intent_name] = vector
+        for lang, all_terms in terms_by_lang.items():
+            n_intents = len(all_terms)
+            for intent_name, terms in all_terms.items():
+                vector: dict[str, float] = {}
+                for term in terms:
+                    df = sum(1 for t in all_terms.values() if term in t)
+                    idf = math.log((n_intents + 1) / (df + 1)) + 1
+                    vector[term] = idf
+                self._idf_vectors[lang][intent_name] = vector
 
     # ── Clasificación principal ──────────────────────────
 
@@ -76,15 +83,19 @@ class IntentClassifier:
         lang: str = "es",
         threshold: float = 0.0,
     ) -> tuple[IntentMatch, ...]:
-        """Clasifica los tokens contra todas las intenciones.
+        """Clasifica los tokens contra todas las intenciones del idioma detectado.
+
+        Fix B-03: usa solo el vector del idioma detectado. Score normalizado
+        por la suma de IDF de los términos matched (no por max_possible total),
+        para que intents con más keywords no queden penalizados.
 
         Args:
-            tokens: Lista de tokens (con lemas) del tokenizer
-            lang: Idioma detectado
-            threshold: Umbral mínimo de score para incluir
+            tokens: Lista de tokens (con lemas) del tokenizer.
+            lang: Idioma detectado.
+            threshold: Umbral mínimo de score para incluir.
 
         Returns:
-            Tupla de IntentMatch ordenados por score descendente
+            Tupla de IntentMatch ordenados por score descendente.
         """
         if not tokens:
             return ()
@@ -94,8 +105,10 @@ class IntentClassifier:
 
         scored: list[tuple[float, str, list[str]]] = []
 
-        for intent_name, idf_vector in self._idf_vectors.items():
+        lang_vectors = self._idf_vectors.get(lang, self._idf_vectors.get("es", {}))
+        for intent_name, idf_vector in lang_vectors.items():
             score = 0.0
+            matched_idf_sum = 0.0
             evidence: list[str] = []
 
             for lemma, freq in tf.items():
@@ -103,9 +116,10 @@ class IntentClassifier:
                     tf_weight = 1 + math.log(freq) if freq > 1 else 1.0
                     idf_weight = idf_vector[lemma]
                     score += tf_weight * idf_weight
+                    matched_idf_sum += idf_weight
                     evidence.append(lemma)
 
-            # Normalizar por máximo posible
+            # Normalizar por máximo posible (método original)
             max_possible = sum(idf_vector.values())
             normalized = min(1.0, score / max_possible) if max_possible > 0 else 0.0
 
@@ -130,12 +144,12 @@ class IntentClassifier:
         """Clasifica texto sin procesar (usa pipeline interno).
 
         Args:
-            text: Texto en lenguaje natural
-            lang: Idioma (auto-detect si None)
-            threshold: Umbral mínimo de score
+            text: Texto en lenguaje natural.
+            lang: Idioma (auto-detect si None).
+            threshold: Umbral mínimo de score.
 
         Returns:
-            Tupla de IntentMatch ordenados por score
+            Tupla de IntentMatch ordenados por score.
         """
         from src.nlu.language_router import LanguageRouter
         from src.nlu.normalizer import normalize

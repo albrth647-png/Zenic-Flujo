@@ -24,7 +24,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging("airgap")
 
@@ -83,7 +83,6 @@ CLOUD_CONNECTORS: list[str] = [
 
 # Conectores que funcionan OFFLINE (mantenidos en modo air-gapped)
 LOCAL_CONNECTORS: list[str] = [
-    "ruv",           # Registro Único de Ventas (local file-based)
     "sat_mexico",    # SAT México (puede operar con archivos locales)
     "pix_brazil",    # PIX Brazil (operación local con QR)
     "totvs",         # TOTVS ERP (red local)
@@ -181,7 +180,7 @@ class AirGapConfig:
         import hashlib
         import hmac
 
-        from src.config import LICENSE_SECRET_KEY
+        from src.core.config import LICENSE_SECRET_KEY
 
         output = output_path or self.license_file
 
@@ -222,7 +221,7 @@ class AirGapConfig:
         import hashlib
         import hmac
 
-        from src.config import LICENSE_SECRET_KEY
+        from src.core.config import LICENSE_SECRET_KEY
 
         path = Path(license_path or self.license_file)
         if not path.exists():
@@ -264,14 +263,49 @@ class AirGapConfig:
     # ── Internal Checks ────────────────────────────────────
 
     def _check_no_internet(self) -> bool:
-        """Verify no internet access is available (as expected in air-gap)."""
+        """Verify no internet access is available (as expected in air-gap).
+
+        Fix Sprint 2 bug #39: antes solo testeaba 8.8.8.8:53 (Google DNS),
+        lo que daba falsos negativos si esa IP estaba bloqueada pero había
+        internet por otras vías. Ahora prueba múltiples endpoints conocidos:
+        si AL MENOS UNO responde, hay internet (no es airgap).
+        """
         import socket
-        try:
-            socket.create_connection(("8.8.8.8", 53), timeout=2)
-            logger.warning("AirGap: Internet access detected! Air-gap should block external traffic.")
-            return False
-        except (TimeoutError, OSError):
-            return True
+
+        # Endpoints a testear: DNS públicos + un dominio conocido.
+        # Si cualquiera responde, hay internet → no es airgap.
+        test_endpoints = [
+            ("8.8.8.8", 53),            # Google DNS
+            ("1.1.1.1", 53),            # Cloudflare DNS
+            ("9.9.9.9", 53),            # Quad9 DNS
+        ]
+        # Test de DNS resolve (si resuelve un dominio público, hay internet)
+        test_domains = ["example.com", "cloudflare.com"]
+
+        for host, port in test_endpoints:
+            try:
+                socket.create_connection((host, port), timeout=2)
+                logger.warning(
+                    f"AirGap: Internet access detected via {host}:{port}! "
+                    f"Air-gap should block external traffic."
+                )
+                return False  # Hay internet
+            except (TimeoutError, OSError):
+                continue  # Este endpoint no responde, probar el siguiente
+
+        # Test DNS resolution: si un dominio público resuelve, hay internet
+        for domain in test_domains:
+            try:
+                socket.getaddrinfo(domain, 80, socket.AF_INET)
+                logger.warning(
+                    f"AirGap: DNS resolution for '{domain}' succeeded — internet detected!"
+                )
+                return False
+            except (socket.gaierror, OSError):
+                continue
+
+        # Todos los tests fallaron → no hay internet → es airgap
+        return True
 
     def _check_internal_dns(self) -> bool:
         """Verify internal DNS resolution works for local services."""
@@ -303,8 +337,15 @@ class AirGapConfig:
     def _check_local_ai(self) -> bool:
         """Check if local AI (Ollama) is available."""
         try:
+            # Resolver path absoluto para mitigar B607 (PATH injection).
+            from src.core.utils import resolve_binary
+            ollama_bin = resolve_binary("ollama", allow_none=True)
+            if ollama_bin is None:
+                logger.warning("AirGap: Local AI (Ollama) not available (not in PATH)")
+                return False
+
             result = subprocess.run(
-                ["ollama", "list"],
+                [ollama_bin, "list"],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -317,7 +358,7 @@ class AirGapConfig:
     def _check_local_db(self) -> bool:
         """Verify local database connectivity."""
         try:
-            from src.data.database_manager import DatabaseManager
+            from src.core.db import DatabaseManager
             db = DatabaseManager()
             conn = db.get_connection()
             conn.execute("SELECT 1")
@@ -329,7 +370,7 @@ class AirGapConfig:
 
     def _check_writable_storage(self) -> bool:
         """Verify local storage is writable."""
-        from src.config import DATA_DIR
+        from src.core.config import DATA_DIR
         try:
             test_file = Path(DATA_DIR) / ".airgap_test"
             test_file.write_text("ok")

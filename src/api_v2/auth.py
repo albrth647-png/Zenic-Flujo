@@ -26,14 +26,14 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
-from src.data.audit_repository import AuditRepository
-from src.data.database_manager import DatabaseManager
-from src.data.redis_service import RedisService
-from src.data.settings_repository import SettingsRepository
-from src.data.user_repository import UserRepository
-from src.security.rbac import RBACManager
+from src.core.repositories import AuditRepository
+from src.core.db import DatabaseManager
+from src.core.db import RedisService
+from src.core.repositories import SettingsRepository
+from src.core.repositories import UserRepository
+from src.core.security.rbac import RBACManager
 from src.tenant.service import TenantService
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -41,7 +41,9 @@ logger = setup_logging(__name__)
 
 _API_KEY_PREFIX = "zf_"
 _JWT_SECRET_ENV = "WFD_API_V2_JWT_SECRET"
-_JWT_DEFAULT_SECRET = "dev-only-secret-change-in-production"
+# Mínimo de caracteres para considerar el secreto aceptable.
+# 64 chars base64 ≈ 384 bits de entropía (suficiente para HMAC-SHA256).
+_JWT_SECRET_MIN_LEN = 64
 _RATE_LIMIT_WINDOW = 60  # segundos
 _RATE_LIMIT_MAX_REQUESTS = 100  # requests por ventana
 
@@ -53,10 +55,69 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 # ── Token Helpers ──────────────────────────────────────────────
 
+# Cache del secret en modo dev para que generate_token/validate_token usen
+# el mismo valor dentro de una sesión. En producción el secret viene de env
+# var y el cache es estable.
+_CACHED_DEV_SECRET: str | None = None
+
 
 def _get_jwt_secret() -> str:
-    """Obtiene el secreto JWT desde la variable de entorno."""
-    return os.environ.get(_JWT_SECRET_ENV, _JWT_DEFAULT_SECRET)
+    """Obtiene el secreto JWT desde la variable de entorno.
+
+    CRÍTICO: No hay default. La app DEBE configurar WFD_API_V2_JWT_SECRET
+    con un valor aleatorio de al menos 64 caracteres. En producción, si no
+    está configurado o es demasiado corto, se lanza RuntimeError para evitar
+    arrancar con un secreto débil o inexistente (que permitiría a cualquier
+    atacante con acceso al código forjar tokens JWT).
+
+    En desarrollo (WFD_PRODUCTION != "true"), si no está configurado se
+    genera uno aleatorio por sesión (cacheado para que generate_token y
+    validate_token usen el mismo valor) y se emite un warning.
+    """
+    global _CACHED_DEV_SECRET
+
+    secret = os.environ.get(_JWT_SECRET_ENV, "")
+    production = os.environ.get("WFD_PRODUCTION", "false").lower() == "true"
+
+    if secret and len(secret) >= _JWT_SECRET_MIN_LEN:
+        # Secret válido configurado vía env var — usarlo siempre (sin cachear
+        # porque podría cambiar en runtime en tests).
+        return secret
+
+    if production:
+        raise RuntimeError(
+            "SEGURIDAD CRÍTICA: WFD_API_V2_JWT_SECRET no configurado o demasiado corto "
+            f"(mínimo {_JWT_SECRET_MIN_LEN} caracteres). Genere uno nuevo con, por ejemplo:  "
+            "python3 -c \"import secrets; print(secrets.token_urlsafe(48))\"  "
+            "y configúrelo en su entorno antes de desplegar."
+        )
+
+    # Modo desarrollo: usar el secret cacheado si existe (estabilidad
+    # dentro de la sesión). Si no, generar uno nuevo y cachearlo.
+    if _CACHED_DEV_SECRET is not None:
+        return _CACHED_DEV_SECRET
+
+    if not secret:
+        import secrets as _secrets
+        import warnings
+        _CACHED_DEV_SECRET = _secrets.token_urlsafe(48)
+        warnings.warn(
+            "WFD_API_V2_JWT_SECRET no configurado. Se generó un secreto aleatorio "
+            "efímero para esta sesión. NO use esto en producción. Configure la "
+            "variable de entorno WFD_API_V2_JWT_SECRET con un valor aleatorio de "
+            f"al menos {_JWT_SECRET_MIN_LEN} caracteres.",
+            stacklevel=2,
+        )
+        return _CACHED_DEV_SECRET
+
+    # Secret configurado pero demasiado corto — advertir pero permitir en dev.
+    import warnings
+    warnings.warn(
+        f"WFD_API_V2_JWT_SECRET tiene {len(secret)} caracteres; se recomiendan "
+        f"al menos {_JWT_SECRET_MIN_LEN}. Considere rotarlo por uno más largo.",
+        stacklevel=2,
+    )
+    return secret
 
 
 def generate_token(payload: dict[str, Any], expires_in: int = 3600) -> str:
@@ -361,6 +422,9 @@ async def get_optional_user(
 def require_permission(resource: str, action: str):
     """Crea una dependencia que verifica permisos RBAC granulares.
 
+    Fix Sprint 5 BUG-ARCH-03: usa `has_permission` del módulo compartido
+    `security.auth_shared` para evitar drift con Flask.
+
     Args:
         resource: Recurso a verificar (workflow, connector, tool, etc.)
         action: Accion a verificar (create, read, update, delete, execute, etc.)
@@ -371,6 +435,7 @@ def require_permission(resource: str, action: str):
     Usage:
         @router.post("/", dependencies=[Depends(require_permission("workflow", "create"))])
     """
+    from src.core.security.auth_shared import has_permission
 
     async def _check_permission(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
         """Verifica si el usuario tiene el permiso especificado.
@@ -385,15 +450,14 @@ def require_permission(resource: str, action: str):
             HTTPException: Si el usuario no tiene el permiso requerido
         """
         user_id = user.get("user_id", 0)
+        user_role = user.get("role", "viewer")
+        scopes = set(user.get("scopes", []) or [])
 
-        # Verificar scopes si vienen de API key
-        scopes = user.get("scopes", [])
-        if scopes:
-            scope_key = f"{resource}:{action}"
-            if scope_key in scopes or f"{resource}:*" in scopes or "*:*" in scopes:
-                return user
+        # Usar función compartida has_permission (fix BUG-ARCH-03)
+        if has_permission(user_role, scopes, resource, action):
+            return user
 
-        # Verificar RBAC granular
+        # Fallback a RBACManager para permisos granulares en DB
         rbac = RBACManager()
         if rbac.check_permission(user_id, resource, action):
             return user

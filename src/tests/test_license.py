@@ -84,7 +84,7 @@ class TestLicenseValidator:
 
     def test_trial_starts_automatically(self, license_validator):
         """Test: el trial se inicia automáticamente en la primera validación."""
-        from src.config import TRIAL_DAYS
+        from src.core.config import TRIAL_DAYS
 
         status = license_validator.get_trial_status()
         assert status["is_trial"] is True
@@ -93,7 +93,7 @@ class TestLicenseValidator:
 
     def test_trial_30_days(self):
         """Test: el trial dura exactamente 30 días (spec requirement)."""
-        from src.config import TRIAL_DAYS
+        from src.core.config import TRIAL_DAYS
 
         assert TRIAL_DAYS == 30
 

@@ -17,7 +17,7 @@ import urllib.parse
 from typing import Any
 
 from src.sdk.auth.base import AuthProvider
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

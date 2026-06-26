@@ -5,10 +5,10 @@ Tests mockeados para Gmail, Sheets, Telegram, Slack.
 
 from unittest.mock import MagicMock, patch
 
-from src.tools.integrations.gmail_service import GmailService
-from src.tools.integrations.sheets_service import SheetsService
-from src.tools.integrations.slack_service import SlackService
-from src.tools.integrations.telegram_service import TelegramService
+from src.hat.level5_tools.communications.gmail_service import GmailService
+from src.hat.level5_tools.data.sheets_service import SheetsService
+from src.hat.level5_tools.communications.slack_service import SlackService
+from src.hat.level5_tools.communications.telegram_service import TelegramService
 
 # ═══════════════════════════════════════════════════════════════
 # GMAIL
@@ -19,7 +19,7 @@ class TestGmailService:
     """Tests para GmailService."""
 
     def _make_service(self):
-        from src.tools.integrations.gmail_service import GmailService
+        from src.hat.level5_tools.communications.gmail_service import GmailService
 
         with patch("src.tools.integrations.gmail_service.DatabaseManager"):
             return GmailService()
@@ -94,7 +94,7 @@ class TestSheetsService:
     """Tests para SheetsService."""
 
     def _make_service(self):
-        from src.tools.integrations.sheets_service import SheetsService
+        from src.hat.level5_tools.data.sheets_service import SheetsService
 
         with patch("src.tools.integrations.sheets_service.DatabaseManager"):
             return SheetsService()
@@ -170,7 +170,7 @@ class TestTelegramService:
     """Tests para TelegramService."""
 
     def _make_service(self):
-        from src.tools.integrations.telegram_service import TelegramService
+        from src.hat.level5_tools.communications.telegram_service import TelegramService
 
         with patch("src.tools.integrations.telegram_service.DatabaseManager"):
             return TelegramService()
@@ -259,7 +259,7 @@ class TestSlackService:
     """Tests para SlackService."""
 
     def _make_service(self):
-        from src.tools.integrations.slack_service import SlackService
+        from src.hat.level5_tools.communications.slack_service import SlackService
 
         with patch("src.tools.integrations.slack_service.DatabaseManager"):
             return SlackService()

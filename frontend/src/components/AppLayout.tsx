@@ -23,6 +23,12 @@ import {
   Handshake,
   Sun,
   Moon,
+  Zap,
+  GitMerge,
+  BrainCircuit,
+  Receipt,
+  Store,
+  Building2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -40,25 +46,58 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import {
+  PATH_DASHBOARD,
+  PATH_EDITOR,
+  PATH_WORKFLOWS,
+  PATH_CRM,
+  PATH_INVENTORY,
+  PATH_INVOICES,
+  PATH_CHAT,
+  PATH_INTEGRATIONS,
+  PATH_ORBITAL,
+  PATH_PARTNERS,
+  PATH_AIRGAP,
+  PATH_PLUGINS,
+  PATH_COMPLIANCE,
+  PATH_ADMIN,
+  PATH_REPORTS,
+  PATH_SYNC,
+  PATH_DEPLOY,
+  PATH_AGENTS,
+  PATH_BPMN,
+  PATH_NLU,
+  PATH_TENANTS,
+  PATH_MI_NEGOCIO,
+  PATH_FACTURACION_ELECTRONICA,
+  PATH_SETTINGS,
+} from "@/router/paths"
+
 const NAV_ITEMS = [
-  { to: "/app/dashboard", icon: LayoutDashboard, label: "Panel" },
-  { to: "/app/editor", icon: Workflow, label: "Editor" },
-  { to: "/app/workflows", icon: MessageSquare, label: "Workflows" },
-  { to: "/app/crm", icon: Users, label: "CRM" },
-  { to: "/app/inventory", icon: Package, label: "Inventario" },
-  { to: "/app/invoices", icon: FileText, label: "Facturación" },
-  { to: "/app/chat", icon: Bot, label: "Chat Inteligente" },
-  { to: "/app/integrations", icon: Link2, label: "Integraciones" },
-  { to: "/app/orbital", icon: Cpu, label: "ORBITAL" },
-  { to: "/app/partners", icon: Handshake, label: "Partners" },
-  { to: "/app/airgap", icon: ShieldOff, label: "AirGap" },
-  { to: "/app/plugins", icon: Package, label: "Plugins" },
-  { to: "/app/compliance", icon: Shield, label: "Compliance" },
-  { to: "/app/admin", icon: Users, label: "Administración" },
-  { to: "/app/reports", icon: BarChart3, label: "Reportes" },
-  { to: "/app/sync", icon: Cloud, label: "Sync Cloud" },
-  { to: "/app/deploy", icon: Server, label: "Despliegue" },
-  { to: "/app/settings", icon: Settings, label: "Configuración" },
+  { to: PATH_DASHBOARD, icon: LayoutDashboard, label: "Panel" },
+  { to: PATH_EDITOR, icon: Workflow, label: "Editor" },
+  { to: PATH_WORKFLOWS, icon: MessageSquare, label: "Flujos" },
+  { to: PATH_CRM, icon: Users, label: "CRM" },
+  { to: PATH_INVENTORY, icon: Package, label: "Inventario" },
+  { to: PATH_INVOICES, icon: FileText, label: "Facturación" },
+  { to: PATH_CHAT, icon: Bot, label: "Chat Inteligente" },
+  { to: PATH_INTEGRATIONS, icon: Link2, label: "Integraciones" },
+  { to: PATH_ORBITAL, icon: Cpu, label: "ORBITAL" },
+  { to: PATH_PARTNERS, icon: Handshake, label: "Socios" },
+  { to: PATH_AIRGAP, icon: ShieldOff, label: "Aislamiento" },
+  { to: PATH_PLUGINS, icon: Package, label: "Extensiones" },
+  { to: PATH_COMPLIANCE, icon: Shield, label: "Cumplimiento" },
+  { to: PATH_ADMIN, icon: Users, label: "Administración" },
+  { to: PATH_REPORTS, icon: BarChart3, label: "Reportes" },
+  { to: PATH_SYNC, icon: Cloud, label: "Sincronización" },
+  { to: PATH_DEPLOY, icon: Server, label: "Despliegue" },
+  { to: PATH_AGENTS, icon: Zap, label: "Agentes" },
+  { to: PATH_BPMN, icon: GitMerge, label: "BPMN" },
+  { to: PATH_NLU, icon: BrainCircuit, label: "Lenguaje Natural" },
+  { to: PATH_TENANTS, icon: Building2, label: "Organizaciones" },
+  { to: PATH_FACTURACION_ELECTRONICA, icon: Receipt, label: "Facturación Electrónica" },
+  { to: PATH_MI_NEGOCIO, icon: Store, label: "Mi Negocio" },
+  { to: PATH_SETTINGS, icon: Settings, label: "Configuración" },
 ]
 
 export function AppLayout() {
@@ -174,6 +213,7 @@ export function AppLayout() {
             className="h-8 w-8 shrink-0 text-zinc-400 hover:text-zinc-200"
             onClick={toggleTheme}
             title={isDark ? "Modo claro" : "Modo oscuro"}
+            aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
           >
             {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
@@ -182,6 +222,7 @@ export function AppLayout() {
             size="icon"
             className={cn("h-8 w-8 shrink-0 text-zinc-400 hover:text-zinc-200", collapsed ? "" : "ml-auto")}
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expandir menú lateral" : "Contraer menú lateral"}
           >
             {collapsed ? (
               <ChevronRight className="size-4" />

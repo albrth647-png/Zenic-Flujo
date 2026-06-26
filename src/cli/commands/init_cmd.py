@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
 from src.cli.commands.helpers import CONNECTORS_BASE_DIR
@@ -42,18 +43,18 @@ def cmd_init(args: argparse.Namespace) -> int:
     auth_type = getattr(args, "auth_type", "none") or "none"
 
     if not re.match(r"^[a-z][a-z0-9_]*$", name):
-        print(f"Error: El nombre '{name}' no es valido. Use solo minusculas, numeros y guiones bajos.")
+        print(f"Error: El nombre '{name}' no es valido. Use solo minusculas, numeros y guiones bajos.", file=sys.stderr)
         return 1
 
     if auth_type not in VALID_AUTH_TYPES:
-        print(f"Error: Tipo de autenticacion '{auth_type}' no valido. Opciones: {', '.join(VALID_AUTH_TYPES)}")
+        print(f"Error: Tipo de autenticacion '{auth_type}' no valido. Opciones: {', '.join(VALID_AUTH_TYPES)}", file=sys.stderr)
         return 1
 
     base_dir = Path(CONNECTORS_BASE_DIR) / name
     tests_dir = base_dir / "tests"
 
     if base_dir.exists():
-        print(f"Error: El conector '{name}' ya existe en {base_dir}")
+        print(f"Error: El conector '{name}' ya existe en {base_dir}", file=sys.stderr)
         return 1
 
     tests_dir.mkdir(parents=True, exist_ok=True)

@@ -37,7 +37,7 @@ from src.orbital.models import (
     EspectroEstado,
     RCCResult,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

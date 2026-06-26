@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/static/spa/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA: manifest + theme color + iOS meta tags -->
+    <link rel="manifest" href="/static/manifest.json" />
+    <meta name="theme-color" content="#6366f1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Zenic" />
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png" />
+
     <title>Zenic Flujo — Workflow Determinista</title>
     <script>
       // Theme initialization - prevent flash
@@ -12,8 +21,12 @@
         document.documentElement.classList.toggle('dark', theme === 'dark');
       })();
     </script>
-    <script type="module" crossorigin src="/static/spa/assets/index-o5MH0e0_.js"></script>
-    <link rel="stylesheet" crossorigin href="/static/spa/assets/index-BqpRUfsR.css">
+    <script type="module" crossorigin src="/static/spa/assets/index-Cd1nOQY8.js"></script>
+    <link rel="modulepreload" crossorigin href="/static/spa/assets/dist-6on-CgX5.js">
+    <link rel="modulepreload" crossorigin href="/static/spa/assets/button-D3HajBHO.js">
+    <link rel="modulepreload" crossorigin href="/static/spa/assets/react-dom-BvO_BofU.js">
+    <link rel="modulepreload" crossorigin href="/static/spa/assets/dist-Br_OEvhd.js">
+    <link rel="stylesheet" crossorigin href="/static/spa/assets/index-ATief9aH.css">
   </head>
   <body>
     <div id="root"></div>

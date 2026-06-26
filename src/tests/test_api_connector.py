@@ -8,7 +8,7 @@ class TestAPIConnectorService:
 
     def test_request_get_success(self):
         """Test: GET request exitoso retorna datos."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -41,7 +41,7 @@ class TestAPIConnectorService:
 
     def test_request_post_with_body(self):
         """Test: POST request con body JSON."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -64,7 +64,7 @@ class TestAPIConnectorService:
 
     def test_request_with_bearer_auth(self):
         """Test: autenticación Bearer token."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -87,7 +87,7 @@ class TestAPIConnectorService:
 
     def test_request_with_basic_auth(self):
         """Test: autenticación Basic Auth."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -110,7 +110,7 @@ class TestAPIConnectorService:
 
     def test_request_with_query_params(self):
         """Test: query parameters en la URL."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -132,7 +132,7 @@ class TestAPIConnectorService:
 
     def test_request_with_custom_headers(self):
         """Test: headers personalizados."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -156,7 +156,7 @@ class TestAPIConnectorService:
 
     def test_request_timeout(self):
         """Test: timeout configurable."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -180,7 +180,7 @@ class TestAPIConnectorService:
         """Test: error de conexión retorna dict con error."""
         import requests
 
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -198,7 +198,7 @@ class TestAPIConnectorService:
         """Test: timeout retorna dict con error."""
         import requests
 
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -213,7 +213,7 @@ class TestAPIConnectorService:
 
     def test_request_non_json_response(self):
         """Test: respuesta no-JSON retorna texto como body."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -234,7 +234,7 @@ class TestAPIConnectorService:
 
     def test_request_400_error(self):
         """Test: error HTTP 400 retorna el body de error."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -256,7 +256,7 @@ class TestAPIConnectorService:
 
     def test_validate_url_valid(self):
         """Test: validación de URLs válidas."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -266,7 +266,7 @@ class TestAPIConnectorService:
 
     def test_validate_url_invalid(self):
         """Test: validación rechaza URLs inválidas o peligrosas."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 
@@ -278,7 +278,7 @@ class TestAPIConnectorService:
 
     def test_get_tool_definition(self):
         """Test: definición de la tool para el editor."""
-        from src.tools.api_connector.service import APIConnectorService
+        from src.hat.level5_tools.data.api_connector.service import APIConnectorService
 
         service = APIConnectorService()
 

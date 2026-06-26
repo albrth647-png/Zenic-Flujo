@@ -7,7 +7,10 @@ resources:
   - namespace.yaml
   - serviceaccount.yaml
   - configmap.yaml
-  - secret.yaml
+  # Fix Sprint 4 bug #62: secret.yaml removido de resources — era example
+  # con placeholders CHANGE-ME. Usar secretGenerator abajo con literals,
+  # o crear el Secret real con valores seguros antes de aplicar.
+  # - secret.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
@@ -18,10 +21,19 @@ commonLabels:
   app.kubernetes.io/name: zenic-flujo
   app.kubernetes.io/managed-by: kustomize
 
+# Fix Sprint 4 bug #62: secretGenerator con literals vacíos. Antes de aplicar,
+# setear los valores con `kustomize edit add secret zenic-flujo-secrets \
+# --from-literal=WFD_SESSION_SECRET=<valor>` o usar SealedSecrets.
+# Para dev/test, generar con:
+#   kustomize edit add secret zenic-flujo-secrets \
+#     --from-literal=WFD_SESSION_SECRET=$(openssl rand -hex 32) \
+#     --from-literal=WFD_LICENSE_SECRET=$(openssl rand -hex 32) \
+#     --from-literal=WFD_ENCRYPTION_MASTER_KEY=$(openssl rand -hex 32)
 secretGenerator:
   - name: zenic-flujo-secrets
-    behavior: replace
+    behavior: create
     type: Opaque
+    # literals: se poblan via `kustomize edit add secret` o env vars
 
 images:
   - name: ghcr.io/albrth647-png/zenic-flujo

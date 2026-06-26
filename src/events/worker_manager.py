@@ -25,7 +25,7 @@ import threading
 import time
 
 from src.events.work_queue import WorkQueue
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 from src.workflow.engine import WorkflowEngine
 
 logger = setup_logging(__name__)

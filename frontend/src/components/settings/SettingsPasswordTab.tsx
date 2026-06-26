@@ -46,7 +46,7 @@ export function SettingsPasswordTab() {
     }
 
     setSaving(true)
-    const res = await apiFetch<{ status: string; error?: string }>("/api/settings/change-password", {
+    const res = await apiFetch<{ status: string; error?: string; message?: string }>("/api/settings/change-password", {
       method: "POST",
       body: JSON.stringify({
         current_password: currentPassword,

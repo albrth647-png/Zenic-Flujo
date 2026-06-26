@@ -6,6 +6,7 @@ import type {
   TriggerNodeData,
   ActionNodeData,
   TriggerType,
+  TriggerConfig,
 } from "@/types/workflow"
 import { TOOL_ACTIONS } from "@/types/workflow"
 
@@ -104,7 +105,7 @@ export function nodesAndEdgesToWorkflow(
 
 // ── Helpers ─────────────────────────────────────────────────
 
-function getTriggerLabel(type: TriggerType, config?: Record<string, string>): string {
+function getTriggerLabel(type: TriggerType, config?: TriggerConfig): string {
   const labels: Record<TriggerType, string> = {
     event: "📡 Evento",
     schedule: "⏰ Programado",

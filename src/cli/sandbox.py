@@ -23,7 +23,7 @@ from contextlib import redirect_stderr, redirect_stdout, suppress
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

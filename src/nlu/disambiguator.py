@@ -12,7 +12,17 @@ from __future__ import annotations
 from src.nlu.entities.base import IntentMatch
 
 # Umbral: si la diferencia entre el mejor y segundo es menor a esto, hay ambigüedad
-AMBIGUITY_THRESHOLD = 0.1
+# Ajustado a 0.02 — con 30+ templates, los scores son bajos pero el ranking es correcto.
+# La diferencia entre el intent correcto y el segundo suele ser >0.02.
+AMBIGUITY_THRESHOLD = 0.02
+
+# Umbral mínimo de score para aceptar una intención.
+# Con 30+ templates, un solo match da ~3-5%. Bajar a 0.03 acepta esos casos.
+MIN_ACCEPTANCE_THRESHOLD = 0.03
+
+# Umbral para aceptar cuando hay múltiples candidatos cercanos.
+# Con 30+ templates, múltiples candidatos es común. 0.10 es realista.
+MULTI_CANDIDATE_THRESHOLD = 0.10
 
 
 class Disambiguator:
@@ -46,11 +56,11 @@ class Disambiguator:
             else:
                 break
 
-        if len(candidates) > 1 and best.score < 0.5:
+        if len(candidates) > 1 and best.score < MULTI_CANDIDATE_THRESHOLD:
             # Scores bajos + múltiples candidatos → preguntar
             return best, True, tuple(c.intent for c in candidates)
 
-        if best.score < 0.2:
+        if best.score < MIN_ACCEPTANCE_THRESHOLD:
             # Score muy bajo → preguntar
             return best, True, (best.intent,)
 

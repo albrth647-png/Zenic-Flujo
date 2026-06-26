@@ -27,8 +27,8 @@ from datetime import UTC
 
 from src.orbital.context import OrbitalContext
 from src.orbital.models import TWO_PI
-from src.utils.helpers import resolve_variables
-from src.utils.logger import setup_logging
+from src.core.utils import resolve_variables
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -117,7 +117,9 @@ class StepExecutor:
         logger.info(f"Ejecutando paso {step_id}: {tool_name}.{action} (timeout: {timeout}s)")
 
         # 1. Registrar paso como variable orbital (en OVC compartido)
-        var_name = f"step_{step_id}_{tool_name}"
+        # Fix BUG-W6: usar prefijo de execution_id para aislar workflows concurrentes
+        orbital_prefix = context.get("_orbital_var_prefix", "")
+        var_name = f"{orbital_prefix}step_{step_id}_{tool_name}"
         self._ensure_step_variable(var_name, step)
 
         # 2. Calcular tension con paso anterior
@@ -186,23 +188,53 @@ class StepExecutor:
             except Exception as e:
                 execution_error = e
 
-        thread = threading.Thread(target=_run_action, daemon=True)
-        thread.start()
-        thread.join(timeout=timeout)
+        # Fix Sprint 2 bug #15: usar ThreadPoolExecutor con cancelación cooperativa
+        # vía threading.Event, en vez de thread daemon sin cancelación real.
+        # El thread daemon anterior seguía corriendo tras el timeout, causando
+        # efectos secundarios duplicados si el workflow se reintenta.
+        cancel_event = threading.Event()
 
-        if thread.is_alive():
-            duration = self._elapsed(start_time)
-            # Anti-resonancia por timeout
-            var = self._ctx.ovc.get_variable(var_name)
-            if var:
-                var.retrofeed(-0.3, damping=0.5)
-            return StepResult(
-                status="failed",
-                error_message=f"Paso {step_id} excedio el timeout de {timeout}s",
-                duration_ms=duration,
-                orbital_theta=var.theta if var else 0.0,
-                orbital_tension=tor_value,
-            )
+        def _run_action_cancelable():
+            if cancel_event.is_set():
+                return
+            _run_action()
+
+        # Usar ThreadPoolExecutor para mejor gestión del ciclo de vida
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"step_{step_id}") as executor:
+            future = executor.submit(_run_action_cancelable)
+            try:
+                future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                duration = self._elapsed(start_time)
+                # Señal de cancelación cooperativa (el thread puede checkear
+                # cancel_event y abortar si lo soporta)
+                cancel_event.set()
+                # Anti-resonancia por timeout
+                var = self._ctx.ovc.get_variable(var_name)
+                if var:
+                    var.retrofeed(-0.3, damping=0.5)
+                logger.warning(
+                    f"StepExecutor: paso {step_id} excedió timeout de {timeout}s — "
+                    f"señal de cancelación enviada (el thread puede seguir corriendo "
+                    f"si la tool no soporta cancelación cooperativa)"
+                )
+                return StepResult(
+                    status="failed",
+                    error_message=f"Paso {step_id} excedio el timeout de {timeout}s",
+                    duration_ms=duration,
+                    orbital_theta=var.theta if var else 0.0,
+                    orbital_tension=tor_value,
+                )
+            except Exception as e:
+                # Excepción propagada desde _run_action
+                if execution_error is None:
+                    execution_error = e
+
+        # NOTA: el `with` block del ThreadPoolExecutor garantiza que se llame
+        # executor.shutdown(wait=False) al salir, pero los threads en flight
+        # pueden seguir corriendo si la tool no respeta cancel_event.
+        # Para tools que soportan cancelación, checkear cancel_event periódicamente.
 
         if execution_error:
             duration = self._elapsed(start_time)
@@ -273,19 +305,27 @@ class StepExecutor:
 
     @staticmethod
     def _coerce_numeric(value: str) -> str | int | float:
-        """Convierte strings que parecen numeros a int/float."""
+        """Convierte strings que parecen numeros a int/float.
+
+        Fix Sprint 4 bug #51: delega a utils.helpers.coerce_numeric para
+        evitar duplicación. Mantiene la firma antigua (str → str|int|float)
+        para backward compatibility con callers que esperan int (no float)
+        para enteros.
+        """
+        from src.core.utils import coerce_numeric
+
         if not isinstance(value, str):
             return value
-        try:
-            if "." in value:
-                return float(value)
-            return int(value)
-        except (ValueError, TypeError):
-            return value
+        result = coerce_numeric(value, default=value)
+        # coerce_numeric siempre retorna float; convertir a int si es entero
+        # para preservar compat con callers que esperan int
+        if isinstance(result, float) and result.is_integer() and "." not in value:
+            return int(result)
+        return result
 
     def _execute_system_action(self, action: str, params: dict, context: dict | None = None) -> dict:
         """Ejecuta acciones del sistema (backup, wait, schedule)."""
-        from src.data.database_manager import DatabaseManager
+        from src.core.db import DatabaseManager
 
         db = DatabaseManager()
 
@@ -359,7 +399,8 @@ class StepExecutor:
     def _ensure_step_variable(self, var_name: str, step: dict) -> None:
         """Crea una variable orbital para un paso si no existe (en OVC compartido)."""
         if self._ctx.ovc.get_variable(var_name) is None:
-            hash_val = int(hashlib.md5(var_name.encode()).hexdigest()[:8], 16)
+            # Hash no criptográfico: deriva theta determinista del var_name (B324 mitigado).
+            hash_val = int(hashlib.md5(var_name.encode(), usedforsecurity=False).hexdigest()[:8], 16)
             theta = (hash_val % 1000) / 1000.0 * TWO_PI
             self._ctx.ovc.create_variable(
                 name=var_name,

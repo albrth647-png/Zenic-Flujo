@@ -19,9 +19,9 @@ import json
 from datetime import datetime
 from typing import Any
 
-from src.data.database_manager import DatabaseManager
+from src.core.db import DatabaseManager
 from src.events.bus import EventBus
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -181,8 +181,9 @@ class DeadLetterManager:
             params.append(workflow_id)
 
         where = "WHERE " + " AND ".join(conditions) if conditions else ""
+        # where se construye solo con strings hardcoded ("status = ?", "workflow_id = ?"). B608 falso positivo.
         sql = f"""SELECT * FROM dead_letter_queue {where}
-                  ORDER BY created_at DESC LIMIT ? OFFSET ?"""
+                  ORDER BY created_at DESC LIMIT ? OFFSET ?"""  # nosec B608 — where construido con literals
         params.extend([limit, offset])
 
         rows = self._db.fetchall(sql, tuple(params))
@@ -201,7 +202,7 @@ class DeadLetterManager:
             params.append(workflow_id)
 
         where = "WHERE " + " AND ".join(conditions) if conditions else ""
-        sql = f"SELECT COUNT(*) as count FROM dead_letter_queue {where}"
+        sql = f"SELECT COUNT(*) as count FROM dead_letter_queue {where}"  # nosec B608 — where construido con literals
 
         row = self._db.fetchone(sql, tuple(params))
         return row["count"] if row else 0
@@ -210,9 +211,16 @@ class DeadLetterManager:
         """
         Reintenta una entrada de dead letter.
 
-        Re-ejecuta el paso usando el WorkflowEngine. Si tiene éxito,
-        marca la entrada como 'resolved'. Si falla, incrementa
-        retry_count y deja la entrada como 'pending'.
+        Fix Sprint 1 bug #4 (fase 1): antes re-ejecutaba el workflow completo
+        SIN pasar trigger_data, lo que causaba ejecuciones con trigger_data=None
+        y resultados no reproducibles. Ahora:
+        - Recupera trigger_data del context_snapshot guardado en la entrada
+        - Pasa trigger_data original a engine.execute()
+        - Si context_snapshot no tiene trigger_data, usa {} y loggea warning
+
+        Fase 2 (futura, sprint 2-3): implementar retry a nivel de STEP usando
+        step_definition + context_snapshot. Por ahora fase 1 ya cierra el bug
+        más grave (ejecuciones sin trigger_data original).
 
         Returns:
             dict con {status, message, result} del reintento
@@ -236,8 +244,32 @@ class DeadLetterManager:
 
             engine = WorkflowEngine()
 
-            # Re-ejecutar el workflow completo
-            result = engine.execute(entry.workflow_id)
+            # Recuperar trigger_data original del context_snapshot (fix bug #4)
+            trigger_data = None
+            if entry.context_snapshot:
+                # context_snapshot puede tener estructura {"input": {...}, "workflow": {...}, ...}
+                # El trigger_data original está bajo "input"
+                snapshot = (
+                    entry.context_snapshot
+                    if isinstance(entry.context_snapshot, dict)
+                    else _safe_json_loads(entry.context_snapshot, {})
+                )
+                trigger_data = snapshot.get("input") if isinstance(snapshot, dict) else None
+                if trigger_data is None:
+                    logger.warning(
+                        f"DeadLetter: entrada #{entry_id} no tiene 'input' en "
+                        f"context_snapshot — re-ejecutando con trigger_data={{}}"
+                    )
+                    trigger_data = {}
+            else:
+                logger.warning(
+                    f"DeadLetter: entrada #{entry_id} sin context_snapshot — "
+                    f"re-ejecutando con trigger_data={{}}"
+                )
+                trigger_data = {}
+
+            # Re-ejecutar el workflow completo CON trigger_data original
+            result = engine.execute(entry.workflow_id, trigger_data=trigger_data)
 
             if result.status == "completed":
                 # Marcar como resuelta

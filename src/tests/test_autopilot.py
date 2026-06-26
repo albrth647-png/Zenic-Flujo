@@ -11,14 +11,14 @@ class TestAutoPilotService:
 
     def test_init(self, db_manager):
         """Verifica inicialización correcta."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         assert service._classifier is not None
 
     def test_suggest_templates_with_crm_text(self, db_manager):
         """Verifica que suggest_templates() retorna sugerencias para texto de CRM."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         results = service.suggest_templates("Quiero registrar clientes nuevos")
@@ -27,7 +27,7 @@ class TestAutoPilotService:
 
     def test_suggest_templates_with_stock_text(self, db_manager):
         """Verifica que suggest_templates() retorna sugerencias para texto de inventario."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         results = service.suggest_templates("Necesito alertas de stock bajo")
@@ -35,7 +35,7 @@ class TestAutoPilotService:
 
     def test_suggest_templates_with_empty_text(self, db_manager):
         """Verifica que suggest_templates() retorna lista vacía para texto vacío."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         results = service.suggest_templates("")
@@ -43,7 +43,7 @@ class TestAutoPilotService:
 
     def test_suggest_templates_with_gibberish(self, db_manager):
         """Verifica que suggest_templates() maneja texto sin sentido."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         results = service.suggest_templates("asdfghjkl xyz123")
@@ -51,7 +51,7 @@ class TestAutoPilotService:
 
     def test_get_quick_templates(self, db_manager):
         """Verifica que get_quick_templates() retorna todas las plantillas."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         templates = service.get_quick_templates()
@@ -67,7 +67,7 @@ class TestAutoPilotService:
 
     def test_create_from_template(self, db_manager):
         """Verifica que create_from_template() crea un workflow válido."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         result = service.create_from_template("registro_cliente")
@@ -79,7 +79,7 @@ class TestAutoPilotService:
 
     def test_create_from_template_invalid(self, db_manager):
         """Verifica que create_from_template() lanza error con template inexistente."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         with pytest.raises(ValueError, match="no encontrado"):
@@ -87,7 +87,7 @@ class TestAutoPilotService:
 
     def test_suggest_templates_returns_confidence(self, db_manager):
         """Verifica que las sugerencias incluyen campo confidence."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         results = service.suggest_templates("Quiero automatizar el registro de clientes")
@@ -99,7 +99,7 @@ class TestAutoPilotService:
 
     def test_suggest_templates_max_five(self, db_manager):
         """Verifica que suggest_templates() retorna máximo 5 sugerencias."""
-        from src.tools.autopilot.service import AutoPilotService
+        from src.hat.level5_tools.automation.autopilot.service import AutoPilotService
 
         service = AutoPilotService()
         results = service.suggest_templates("automatizar cliente factura inventario stock email")

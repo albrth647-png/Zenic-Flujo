@@ -14,14 +14,14 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-from src.data.redis_service import RedisService
-from src.observability.telemetry import TelemetryService
+from src.core.db import RedisService
+from src.core.observability.telemetry import TelemetryService
 from src.sdk.auth import AuthProvider
 from src.sdk.base.configs import CircuitBreakerConfig, CircuitState, RateLimitConfig, RetryConfig
 from src.sdk.decorators import get_action_metadata
 from src.sdk.exceptions import CircuitBreakerOpenError, RateLimitError
 from src.sdk.schema import ActionDefinition, ConnectorSchema, SchemaValidator
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 

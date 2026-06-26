@@ -10,7 +10,7 @@ import threading
 import time
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 from src.workflow.execution.result import ForkResult, JoinResult
 
 logger = setup_logging(__name__)
@@ -115,8 +115,18 @@ class ForkHandler:
             thread.start()
             threads.append(thread)
 
+        # Fix Sprint 3 bug #46: antes dividía el timeout entre el número de threads
+        # (timeout // len(threads)), dando a cada thread solo timeout/N segundos.
+        # Con 50 branches y timeout=120s, cada thread tenía 2.4s — insuficiente.
+        # Ahora: deadline global = now + timeout; cada thread.join() espera hasta
+        # el deadline restante (no dividido).
+        deadline = time.time() + timeout
         for thread in threads:
-            thread.join(timeout=max(1, timeout // len(threads)))
+            remaining_time = max(0.1, deadline - time.time())
+            thread.join(timeout=remaining_time)
+            if time.time() >= deadline:
+                # Deadline alcanzado: no esperar más threads
+                break
 
         remaining = 0
         for idx, result in enumerate(results):
@@ -162,7 +172,7 @@ class ForkHandler:
 
         import json
 
-        from src.utils.helpers import resolve_variables, safe_get
+        from src.core.utils import resolve_variables, safe_get
 
         collection = None
         if isinstance(collection_ref, (list, tuple)):

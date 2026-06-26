@@ -9,7 +9,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from src.bpmn.models import BPMN_NS, BPMNElement, BPMNElementType, BPMNProcess, BPMNSequenceFlow
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging("bpmn")
 

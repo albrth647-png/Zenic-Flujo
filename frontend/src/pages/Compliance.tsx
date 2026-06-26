@@ -47,16 +47,17 @@ export default function Compliance() {
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
 
-  const loadData = async () => {
-    const result = await apiFetch<ComplianceOverview>("/api/compliance/overview")
+  const loadData = async (signal?: AbortSignal) => {
+    const result = await apiFetch<ComplianceOverview>("/api/compliance/overview", { signal })
+    if (signal?.aborted) return
     if (result) setData(result)
-    setLoading(false)
+    if (!signal?.aborted) setLoading(false)
   }
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [])
 
@@ -112,9 +113,9 @@ export default function Compliance() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Compliance</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Cumplimiento</h1>
           <p className="text-muted-foreground text-sm">
-            Gestión de certificaciones enterprise — SOC 2, GDPR e HIPAA
+            Gestión de certificaciones — SOC 2, GDPR e HIPAA
           </p>
         </div>
         <Button variant="outline" size="sm" className="h-8" onClick={handleRefresh} disabled={refreshing}>
@@ -190,7 +191,7 @@ export default function Compliance() {
       {/* Overall score */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Puntaje Global de Compliance</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Puntaje Global de Cumplimiento</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-6">
@@ -256,7 +257,7 @@ export default function Compliance() {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Shield className="size-4" />
-            Controles de Compliance
+            Controles de Cumplimiento
             {filteredControls.length > 0 && (
               <span className="text-sm font-normal text-muted-foreground">
                 ({filteredControls.length})

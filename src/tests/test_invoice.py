@@ -11,7 +11,7 @@ class TestInvoiceModels:
 
     def test_invoice_statuses_defined(self):
         """Test: INVOICE_STATUSES contiene los estados correctos."""
-        from src.tools.invoice.models import INVOICE_STATUSES
+        from src.hat.level5_tools.business.invoice.models import INVOICE_STATUSES
 
         assert "pending" in INVOICE_STATUSES
         assert "paid" in INVOICE_STATUSES
@@ -20,7 +20,7 @@ class TestInvoiceModels:
 
     def test_invoice_statuses_count(self):
         """Test: hay exactamente 4 estados de factura."""
-        from src.tools.invoice.models import INVOICE_STATUSES
+        from src.hat.level5_tools.business.invoice.models import INVOICE_STATUSES
 
         assert len(INVOICE_STATUSES) == 4
 

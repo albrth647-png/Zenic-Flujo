@@ -207,7 +207,6 @@ class TestEventQueueService:
         queue = EventQueueService(db_manager)
 
         # Crear un evento completado con timestamp viejo
-        import sqlite3
         db_manager.execute(
             "INSERT INTO event_queue (event_type, event_data, status, created_at) "
             "VALUES (?, ?, ?, ?)",
@@ -230,7 +229,6 @@ class TestEventQueueService:
 
         queue = EventQueueService(db_manager)
 
-        import sqlite3
         db_manager.execute(
             "INSERT INTO event_queue (event_type, event_data, status, created_at) "
             "VALUES (?, ?, ?, ?)",

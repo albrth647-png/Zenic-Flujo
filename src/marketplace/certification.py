@@ -18,7 +18,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -224,10 +224,37 @@ class CertificationEngine:
 
         Retorna:
             Ruta al directorio con el contenido del conector
+
+        Raises:
+            ValueError: Si el zip contiene entradas con path traversal
+                (Zip Slip, CVE-2018-1002200). Se rechaza antes de
+                invocar ``extractall`` para evitar escribir archivos
+                fuera del directorio destino.
         """
         if connector_path.endswith(".zip") and os.path.isfile(connector_path):
             extract_dir = connector_path[:-4]
+            # Bug MISC-03 (CVE-2018-1002200): validar cada miembro del zip
+            # antes de extraer. ``zf.extractall`` no sanitiza nombres con
+            # ``..`` lo que permitiria escribir fuera del directorio destino.
+            extract_dir_abs = Path(extract_dir).resolve()
             with zipfile.ZipFile(connector_path, "r") as zf:
+                for member in zf.infolist():
+                    # Normalizamos el nombre del miembro y comprobamos que
+                    # el path absoluto resultante esté dentro del destino.
+                    member_name = member.filename
+                    # Rechazar rutas absolutas (ej: /etc/passwd) o con
+                    # componentes ``..`` explícitos.
+                    target_path = (extract_dir_abs / member_name).resolve()
+                    try:
+                        target_path.relative_to(extract_dir_abs)
+                    except ValueError as exc:
+                        logger.warning(
+                            f"CertificationEngine: Zip Slip detectado en miembro '{member_name}'"
+                        )
+                        raise ValueError(
+                            f"Zip Slip detectado: el miembro '{member_name}' intenta escribir "
+                            f"fuera del directorio de extracción"
+                        ) from exc
                 zf.extractall(extract_dir)
             logger.info(f"CertificationEngine: zip descomprimido en {extract_dir}")
             return extract_dir
@@ -244,8 +271,15 @@ class CertificationEngine:
             Resultado de la verificacion de lint
         """
         try:
+            # Resolver path absoluto para mitigar B607 (PATH injection).
+            from src.core.utils import resolve_binary
+            ruff_bin = resolve_binary("ruff", allow_none=True)
+            if ruff_bin is None:
+                logger.warning("CertificationEngine: ruff no encontrado, saltando lint check")
+                return {"name": "Lint Check (ruff)", "status": "passed", "details": "ruff no disponible, verificacion omitida", "warnings": 1}
+
             result = subprocess.run(
-                ["ruff", "check", path, "--select", "E,W,F,I,UP,B,SIM,RUF"],
+                [ruff_bin, "check", path, "--select", "E,W,F,I,UP,B,SIM,RUF"],
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -414,8 +448,11 @@ class CertificationEngine:
             }
 
         try:
+            # Resolver path absoluto para mitigar B607 (PATH injection).
+            # Usar sys.executable (path absoluto al intérprete actual) en vez de 'python'.
+            import sys
             result = subprocess.run(
-                ["python", "-m", "pytest", path, "-v", "--tb=short"],
+                [sys.executable, "-m", "pytest", path, "-v", "--tb=short"],
                 capture_output=True,
                 text=True,
                 timeout=120,

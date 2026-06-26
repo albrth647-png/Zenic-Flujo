@@ -154,16 +154,35 @@ def api_sync_push():
 
 @bp.route("/api/sync/receive", methods=["POST"])
 def api_sync_receive():
-    """Receive an encrypted package from a remote instance."""
+    """Receive an encrypted package from a remote instance.
+
+    Requiere autenticación via API key obligatoria (no opcional):
+    headers X-Sync-Source + X-Sync-API-Key deben estar presentes.
+    Sin ellos → 401. Vector de ataque cerrado.
+    """
     from src.sync.engine import SyncEngine
     engine = SyncEngine.get_instance()
     data = request.get_json() or {}
     source_instance = request.headers.get("X-Sync-Source", "")
     api_key = request.headers.get("X-Sync-API-Key", "")
-    if api_key and source_instance:
-        config = engine.get_config(source_instance)
-        if config and config.target_api_key and not hmac.compare_digest(api_key, config.target_api_key):
-            return jsonify({"status": "error", "message": "Invalid API key"}), 401
+
+    # Auth OBLIGATORIA: ambos headers deben estar presentes y ser válidos.
+    if not api_key or not source_instance:
+        return jsonify({
+            "status": "error",
+            "message": "X-Sync-Source and X-Sync-API-Key headers are required",
+        }), 401
+
+    config = engine.get_config(source_instance)
+    if not config or not config.target_api_key:
+        # Source instance no reconocido o sin API key configurada
+        return jsonify({
+            "status": "error",
+            "message": "Unknown source instance or API key not configured",
+        }), 401
+
+    if not hmac.compare_digest(api_key, config.target_api_key):
+        return jsonify({"status": "error", "message": "Invalid API key"}), 401
 
     result = engine.receive_package(data)
     return jsonify(result)

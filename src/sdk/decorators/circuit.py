@@ -13,7 +13,7 @@ from typing import Any, TypeVar
 
 from src.sdk.decorators._helpers import _get_connector_name
 from src.sdk.exceptions import CircuitBreakerOpenError
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
@@ -96,7 +96,7 @@ def circuit_breaker(threshold: int = 5, recovery: float = 30.0) -> Callable[[F],
 def _get_cb_state_redis(cb_key: str) -> dict[str, Any] | None:
     """Obtiene el estado del circuit breaker desde Redis."""
     try:
-        from src.data.redis_service import RedisService
+        from src.core.db import RedisService
         redis = RedisService()
         return redis.get_json(cb_key)
     except Exception:
@@ -110,7 +110,7 @@ def _update_cb_state(cb_key: str, cb_local_state: dict[str, dict[str, Any]],
     now = last_failure_time or time.time()
     state_data = {"state": state, "failure_count": failure_count, "last_failure_time": now}
     try:
-        from src.data.redis_service import RedisService
+        from src.core.db import RedisService
         redis = RedisService()
         redis.set_json(cb_key, state_data, ttl=300)
     except Exception:

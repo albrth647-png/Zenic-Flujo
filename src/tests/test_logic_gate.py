@@ -11,7 +11,7 @@ class TestLogicGateService:
 
     def test_init(self, db_manager):
         """Verifica inicialización correcta."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         assert service._evaluator is not None
@@ -19,7 +19,7 @@ class TestLogicGateService:
 
     def test_evaluate_rule_simple(self, db_manager):
         """Verifica evaluación de regla simple."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         assert service.evaluate_rule("stock < 10", {"stock": 5}) is True
@@ -27,7 +27,7 @@ class TestLogicGateService:
 
     def test_evaluate_rule_with_and(self, db_manager):
         """Verifica evaluación con AND."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         result = service.evaluate_rule("stock < 10 AND precio > 100", {"stock": 5, "precio": 150})
@@ -37,7 +37,7 @@ class TestLogicGateService:
 
     def test_evaluate_rule_with_or(self, db_manager):
         """Verifica evaluación con OR."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         result = service.evaluate_rule("stock < 10 OR precio > 100", {"stock": 15, "precio": 150})
@@ -45,7 +45,7 @@ class TestLogicGateService:
 
     def test_evaluate_rule_equality(self, db_manager):
         """Verifica evaluación con operador ==."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         assert service.evaluate_rule("stage == new", {"stage": "new"}) is True
@@ -53,7 +53,7 @@ class TestLogicGateService:
 
     def test_validate_expression_valid(self, db_manager):
         """Verifica validación de expresión válida."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         result = service.validate_expression("stock < 10")
@@ -61,7 +61,7 @@ class TestLogicGateService:
 
     def test_validate_expression_invalid(self, db_manager):
         """Verifica validación de expresión inválida."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         result = service.validate_expression("")
@@ -69,7 +69,7 @@ class TestLogicGateService:
 
     def test_save_rule(self, db_manager):
         """Verifica que save_rule() persiste una regla."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         result = service.save_rule("low_stock", "stock < 10", "Alerta de stock bajo")
@@ -79,7 +79,7 @@ class TestLogicGateService:
 
     def test_save_rule_invalid_expression(self, db_manager):
         """Verifica que save_rule() rechaza expresiones inválidas."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         with pytest.raises(ValueError, match="inválida"):
@@ -87,7 +87,7 @@ class TestLogicGateService:
 
     def test_get_rule(self, db_manager):
         """Verifica que get_rule() recupera una regla guardada."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         service.save_rule("test_rule", "stock > 0", "Stock positivo")
@@ -98,7 +98,7 @@ class TestLogicGateService:
 
     def test_get_rule_nonexistent(self, db_manager):
         """Verifica que get_rule() retorna None para regla inexistente."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         rule = service.get_rule("nonexistent_rule")
@@ -106,7 +106,7 @@ class TestLogicGateService:
 
     def test_list_rules(self, db_manager):
         """Verifica que list_rules() retorna todas las reglas guardadas."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         service.save_rule("rule_a", "stock < 5", "A")
@@ -119,7 +119,7 @@ class TestLogicGateService:
 
     def test_list_rules_empty(self, db_manager):
         """Verifica que list_rules() retorna lista vacía sin reglas."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         rules = service.list_rules()
@@ -127,7 +127,7 @@ class TestLogicGateService:
 
     def test_delete_rule(self, db_manager):
         """Verifica que delete_rule() elimina una regla."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         service.save_rule("to_delete", "stock == 0", "Sin stock")
@@ -137,7 +137,7 @@ class TestLogicGateService:
 
     def test_evaluate_saved_rule(self, db_manager):
         """Verifica que evaluate_saved_rule() evalúa una regla guardada."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         service.save_rule("check_stock", "stock < 10", "Verificar stock")
@@ -146,7 +146,7 @@ class TestLogicGateService:
 
     def test_evaluate_saved_rule_nonexistent(self, db_manager):
         """Verifica que evaluate_saved_rule() lanza error con regla inexistente."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         with pytest.raises(ValueError, match="no encontrada"):
@@ -154,7 +154,7 @@ class TestLogicGateService:
 
     def test_save_rule_overwrite(self, db_manager):
         """Verifica que save_rule() sobreescribe regla existente."""
-        from src.tools.logic_gate.service import LogicGateService
+        from src.hat.level5_tools.automation.logic_gate.service import LogicGateService
 
         service = LogicGateService()
         service.save_rule("overwrite_test", "stock < 10", "Original")

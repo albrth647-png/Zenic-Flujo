@@ -11,6 +11,7 @@ import type { ToolData, TimelineData } from "@/types/reports"
 import { apiFetch } from "@/hooks/useApi"
 import { cn } from "@/lib/utils"
 import { useSSE } from "@/hooks/useSSE"
+import { error as humanError } from "@/utils/humanize"
 import {
   Activity,
   CheckCircle2,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/toast"
 
 interface DashboardStats {
   stats: {
@@ -64,18 +66,25 @@ export default function Dashboard() {
 
   // ── Load initial data ──────────────────────────────────
   const loadData = useCallback(async () => {
-    const [statsRes, timelineRes] = await Promise.all([
-      apiFetch<DashboardStats>("/api/dashboard/stats"),
-      apiFetch<TimelineResponse>("/api/dashboard/timeline?days=14"),
-    ])
-    if (cancelledRef.current) return
-    if (statsRes) setData(statsRes)
-    if (cancelledRef.current) return
-    if (timelineRes) {
-      setTimeline(timelineRes.daily || [])
-      setTools(timelineRes.tools || [])
+    try {
+      const [statsRes, timelineRes] = await Promise.all([
+        apiFetch<DashboardStats>("/api/dashboard/stats"),
+        apiFetch<TimelineResponse>("/api/dashboard/timeline?days=14"),
+      ])
+      if (cancelledRef.current) return
+      if (statsRes) setData(statsRes)
+      if (cancelledRef.current) return
+      if (timelineRes) {
+        setTimeline(timelineRes.daily || [])
+        setTools(timelineRes.tools || [])
+      }
+    } catch (e) {
+      if (!cancelledRef.current) {
+        toast({ title: "Error al cargar dashboard", description: humanError(e), variant: "error" })
+      }
+    } finally {
+      if (!cancelledRef.current) setLoading(false)
     }
-    if (!cancelledRef.current) setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -96,6 +105,14 @@ export default function Dashboard() {
 
   // Listen for execution events
   useEffect(() => {
+    // BUG P1-9: antes los setTimeout en los handlers SSE no se cancelaban en
+    // cleanup, causando memory leak y llamadas a loadData() sobre un componente
+    // desmontado. Ahora se trackean y se cancelan en el cleanup del effect.
+    const pendingTimers = new Set<ReturnType<typeof setTimeout>>()
+    const scheduleRefresh = () => {
+      const id = setTimeout(() => loadData(), 500)
+      pendingTimers.add(id)
+    }
     const unsubStarted = onSSE("execution.started", (event) => {
       const liveEvent: LiveEvent = {
         id: `live-${++eventIdCounter.current}`,
@@ -117,7 +134,7 @@ export default function Dashboard() {
         timestamp: event.data.timestamp as string,
       }
       window.dispatchEvent(new CustomEvent("dashboard-live-event", { detail: liveEvent }))
-      setTimeout(() => loadData(), 500)
+      scheduleRefresh()
     })
 
     const unsubFailed = onSSE("execution.failed", (event) => {
@@ -130,13 +147,16 @@ export default function Dashboard() {
         timestamp: event.data.timestamp as string,
       }
       window.dispatchEvent(new CustomEvent("dashboard-live-event", { detail: liveEvent }))
-      setTimeout(() => loadData(), 500)
+      scheduleRefresh()
     })
 
     return () => {
       unsubStarted()
       unsubCompleted()
       unsubFailed()
+      // Cancela los timers pendientes para evitar el leak (BUG P1-9).
+      pendingTimers.forEach((id) => clearTimeout(id))
+      pendingTimers.clear()
     }
   }, [onSSE, loadData])
 
@@ -202,9 +222,9 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Panel Principal</h1>
           <p className="text-muted-foreground text-sm flex items-center gap-2">
-            Resumen de tus workflows y automatizaciones
+            Resumen de tus flujos y automatizaciones
             {connected && (
               <span className="flex items-center gap-1 text-[10px] text-emerald-500">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -228,7 +248,7 @@ export default function Dashboard() {
           )}
           <Link to="/app/editor">
             <Badge variant="default" className="cursor-pointer hover:opacity-80 transition-opacity">
-              + Nuevo Workflow
+              + Nuevo flujo
             </Badge>
           </Link>
         </div>
@@ -336,7 +356,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground py-6 text-center">
               Sin ejecuciones aún.{" "}
               <Link to="/app/editor" className="text-primary hover:underline">
-                Crea tu primer workflow
+                Crea tu primer flujo
               </Link>
             </p>
           )}

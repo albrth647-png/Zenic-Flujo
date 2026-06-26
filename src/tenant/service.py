@@ -36,11 +36,12 @@ import threading
 import uuid
 from typing import Any
 
-from src.data.database_manager import DatabaseManager
-from src.data.redis_service import RedisService
+from src.core.db import DatabaseManager
+from src.core.db import RedisService
 from src.tenant.features import TenantFeatureManager
 from src.tenant.storage import TENANT_PLANS, TenantConnectionPool, TenantStorageProvisioner
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
+from src.core.db import quote_identifier
 
 logger = setup_logging(__name__)
 
@@ -328,10 +329,9 @@ class TenantService:
         if not existing:
             return {"status": "error", "message": f"Tenant {tenant_id} no encontrado"}
 
-        allowed_fields = {"name", "domain", "plan", "status", "config"}
-        set_parts = []
-        params = []
-
+        allowed_fields = {"name", "domain", "plan", "status", "config", "updated_at"}
+        # Pre-procesar fields: serializar config y validar plan
+        processed_fields = {}
         for key, value in updates.items():
             if key not in allowed_fields:
                 continue
@@ -339,19 +339,26 @@ class TenantService:
                 value = json.dumps(value, default=str, ensure_ascii=False)
             if key == "plan" and value not in TENANT_PLANS:
                 return {"status": "error", "message": f"Plan invalido: {value}"}
-            set_parts.append(f"{key} = ?")
-            params.append(value)
+            processed_fields[key] = value
 
-        if not set_parts:
+        # Usar quote_identifier para validar tabla y columnas (mitiga B608).
+        # No usamos build_update_query porque necesitamos CURRENT_TIMESTAMP
+        # (función SQL, no un valor parametrizable).
+        if not processed_fields:
             return {"status": "ok", "message": "Sin cambios"}
 
-        set_parts.append("updated_at = CURRENT_TIMESTAMP")
+        set_clauses = []
+        params = []
+        for key, value in processed_fields.items():
+            set_clauses.append(f"{quote_identifier(key)} = ?")
+            params.append(value)
+        # updated_at con función SQL (no placeholder)
+        set_clauses.append(f'{quote_identifier("updated_at")} = CURRENT_TIMESTAMP')
         params.append(tenant_id)
 
-        self._db.execute(
-            "UPDATE tenants SET " + ", ".join(set_parts) + " WHERE id = ?",
-            tuple(params),
-        )
+        table_quoted = quote_identifier("tenants")
+        sql = f"UPDATE {table_quoted} SET {', '.join(set_clauses)} WHERE id = ?"  # nosec B608 — identificadores validados
+        self._db.execute(sql, tuple(params))
         self._db.commit()
 
         # Invalidar cache
@@ -655,4 +662,20 @@ class TenantService:
         Delega en TenantConnectionPool.
         """
         self._connection_pool.close_all()
+
+    # ── Reset para tests (fix Sprint 5 BUG-ARCH-01) ─────────
+
+    @classmethod
+    def _reset(cls) -> None:
+        """Resetea el singleton (para tests).
+
+        Fix Sprint 5 BUG-ARCH-01: expuesto para permitir test isolation.
+        """
+        with cls._lock:
+            if cls._instance is not None:
+                try:
+                    cls._instance.close_all_tenant_connections()
+                except Exception:
+                    pass
+                cls._instance = None
         logger.info("Tenant: Todas las conexiones de tenant cerradas")

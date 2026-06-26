@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
+import { error as humanError } from "@/utils/humanize"
 import {
   Users,
   UserPlus,
@@ -25,8 +26,12 @@ import {
 } from "lucide-react"
 
 import type { Lead, StageCounts } from "@/types/crm"
+import { STAGES } from "@/types/crm"
 
-// ── Constantes ────────────────────────────── = ["new", "contacted", "qualified", "proposal", "negotiation", "closed_won", "closed_lost"]
+// ── Constantes ──────────────────────────────
+
+// STAGES se importa desde @/types/crm (single source of truth).
+// Esto evita el drift entre el frontend y el backend tools/crm/service.py:STAGES.
 
 const STAGE_LABELS: Record<string, string> = {
   new: "Nuevo",
@@ -80,11 +85,12 @@ export default function CrmPage() {
     notes: "",
   })
 
-  const loadLeads = useCallback(async () => {
+  const loadLeads = useCallback(async (signal?: AbortSignal) => {
     try {
       const api = getApi()
       const query = stageFilter !== "all" ? `?stage=${stageFilter}` : ""
-      const data = (await api.get(`/api/tools/crm/leads${query}`)) as Lead[]
+      const data = (await api.get(`/api/tools/crm/leads${query}`, { signal })) as Lead[]
+      if (signal?.aborted) return
 
       // Calcular estadísticas por etapa
       const stats: StageCounts = {}
@@ -93,17 +99,18 @@ export default function CrmPage() {
       }
       setStageStats(stats)
       setLeads(data)
-    } catch {
-      toast({ title: "Error al cargar leads", variant: "error" })
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar clientes", description: humanError(e), variant: "error" })
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi, stageFilter])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadLeads()
+    loadLeads(ac.signal)
     return () => ac.abort()
   }, [loadLeads])
 
@@ -134,7 +141,7 @@ export default function CrmPage() {
       setForm({ name: "", email: "", phone: "", company: "", source: "manual", notes: "" })
       loadLeads()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar el cliente")
+      setError(humanError(err))
     } finally {
       setSaving(false)
     }
@@ -146,8 +153,8 @@ export default function CrmPage() {
       const api = getApi()
       await api.delete(`/api/tools/crm/leads/${leadId}`)
       loadLeads()
-    } catch {
-      toast({ title: "Error al eliminar lead", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al eliminar cliente", description: humanError(e), variant: "error" })
     }
   }
 
@@ -156,8 +163,8 @@ export default function CrmPage() {
       const api = getApi()
       await api.post(`/api/tools/crm/leads/${leadId}/advance`)
       loadLeads()
-    } catch {
-      toast({ title: "Error al avanzar etapa", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al avanzar etapa", description: humanError(e), variant: "error" })
     }
   }
 
@@ -254,7 +261,7 @@ export default function CrmPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={loadLeads}
+                onClick={() => loadLeads()}
                 className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
               >
                 <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -348,6 +355,7 @@ export default function CrmPage() {
                           onClick={() => handleAdvanceStage(lead.id)}
                           className="text-zinc-500 hover:text-indigo-400"
                           title="Avanzar a siguiente etapa"
+                          aria-label={`Avanzar a ${lead.name} a la siguiente etapa`}
                         >
                           <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -358,6 +366,7 @@ export default function CrmPage() {
                         onClick={() => openEdit(lead)}
                         className="text-zinc-500 hover:text-zinc-200"
                         title="Editar"
+                        aria-label={`Editar cliente ${lead.name}`}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -367,6 +376,7 @@ export default function CrmPage() {
                         onClick={() => handleDelete(lead.id, lead.name)}
                         className="text-zinc-500 hover:text-red-400"
                         title="Eliminar"
+                        aria-label={`Eliminar cliente ${lead.name}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -398,10 +408,11 @@ export default function CrmPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">
+              <label htmlFor="crm-lead-name" className="mb-1 block text-sm text-zinc-300">
                 Nombre <span className="text-red-400">*</span>
               </label>
               <Input
+                id="crm-lead-name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Ej: María García"
@@ -409,8 +420,9 @@ export default function CrmPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Correo electrónico</label>
+              <label htmlFor="crm-lead-email" className="mb-1 block text-sm text-zinc-300">Correo electrónico</label>
               <Input
+                id="crm-lead-email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -419,8 +431,9 @@ export default function CrmPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Teléfono</label>
+              <label htmlFor="crm-lead-phone" className="mb-1 block text-sm text-zinc-300">Teléfono</label>
               <Input
+                id="crm-lead-phone"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="+52 55 1234 5678"
@@ -428,8 +441,9 @@ export default function CrmPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Empresa</label>
+              <label htmlFor="crm-lead-company" className="mb-1 block text-sm text-zinc-300">Empresa</label>
               <Input
+                id="crm-lead-company"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
                 placeholder="Nombre de la empresa"
@@ -437,12 +451,12 @@ export default function CrmPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Origen</label>
+              <label htmlFor="crm-lead-source" className="mb-1 block text-sm text-zinc-300">Origen</label>
               <Select
                 value={form.source}
                 onValueChange={(v) => setForm({ ...form, source: v })}
               >
-                <SelectTrigger className="border-zinc-700 bg-zinc-800 text-zinc-200">
+                <SelectTrigger id="crm-lead-source" className="border-zinc-700 bg-zinc-800 text-zinc-200">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-zinc-700 bg-zinc-800 text-zinc-200">
@@ -456,8 +470,9 @@ export default function CrmPage() {
               </Select>
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">Notas</label>
+              <label htmlFor="crm-lead-notes" className="mb-1 block text-sm text-zinc-300">Notas</label>
               <textarea
+                id="crm-lead-notes"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="Información relevante sobre este cliente…"

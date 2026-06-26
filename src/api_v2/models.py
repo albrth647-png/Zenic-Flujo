@@ -468,7 +468,7 @@ class TenantUserCreate(BaseModel):
     """Solicitud de agregar usuario a tenant."""
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"username": "juan", "password": "secret123", "role": "editor"}}
+        json_schema_extra={"example": {"username": "juan", "password": "REDACTED_USE_REAL_PASSWORD", "role": "editor"}}
     )
 
     username: str = Field(min_length=1, max_length=100, description="Nombre de usuario")
@@ -532,7 +532,7 @@ class APIKeyResponse(BaseModel):
 class TokenRequest(BaseModel):
     """Solicitud de token de autenticacion."""
 
-    model_config = ConfigDict(json_schema_extra={"example": {"username": "admin", "password": "secret"}})
+    model_config = ConfigDict(json_schema_extra={"example": {"username": "admin", "password": "REDACTED_USE_REAL_PASSWORD"}})
 
     username: str = Field(min_length=1, description="Nombre de usuario")
     password: str = Field(min_length=1, description="Contrasena")
@@ -555,7 +555,7 @@ class TokenResponse(BaseModel):
 class RefreshTokenRequest(BaseModel):
     """Solicitud de refresco de token."""
 
-    model_config = ConfigDict(json_schema_extra={"example": {"refresh_token": "eyJ..."}})
+    model_config = ConfigDict(json_schema_extra={"example": {"refresh_token": "REDACTED_USE_REAL_REFRESH_TOKEN"}})
 
     refresh_token: str = Field(min_length=1, description="Token de refresco")
 

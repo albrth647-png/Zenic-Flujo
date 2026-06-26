@@ -46,12 +46,13 @@ export default function SyncCloud() {
   const [syncInterval, setSyncInterval] = useState(60)
 
   // ── Load data ─────────────────────────────────────────
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     const [configRes, statsRes, historyRes] = await Promise.all([
-      apiFetch<SyncConfig>("/api/sync/config"),
-      apiFetch<SyncStats>("/api/sync/stats"),
-      apiFetch<{ history: SyncHistoryEntry[] }>("/api/sync/history"),
+      apiFetch<SyncConfig>("/api/sync/config", { signal }),
+      apiFetch<SyncStats>("/api/sync/stats", { signal }),
+      apiFetch<{ history: SyncHistoryEntry[] }>("/api/sync/history", { signal }),
     ])
+    if (signal?.aborted) return
     if (configRes) {
       setConfig(configRes)
       setTargetUrl(configRes.target_url || "")
@@ -63,13 +64,13 @@ export default function SyncCloud() {
     }
     if (statsRes) setStats(statsRes)
     if (historyRes) setHistory(historyRes.history || [])
-    setLoading(false)
+    if (!signal?.aborted) setLoading(false)
   }, [])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [loadData])
 
@@ -162,9 +163,9 @@ export default function SyncCloud() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Sync Cloud</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Sincronización</h1>
           <p className="text-muted-foreground text-sm">
-            Sincronización E2E cifrada de workflows entre instancias
+            Sincronización cifrada de flujos de trabajo entre servidores
           </p>
         </div>
         <Badge variant={enabled ? "success" : "secondary"} className="gap-1">
@@ -179,12 +180,12 @@ export default function SyncCloud() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Shield className="size-4" />
-              Estado del Cifrado
+              Cifrado
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Clave E2E</span>
+              <span className="text-muted-foreground">Clave de cifrado</span>
               <span className={cn("flex items-center gap-1 font-medium", (config?.has_encryption_key || stats?.has_encryption_key) ? "text-emerald-500" : "text-red-500")}>
                 {(config?.has_encryption_key || stats?.has_encryption_key) ? <><CheckCircle2 className="size-3" /> Configurada</> : <><XCircle className="size-3" /> Sin clave</>}
               </span>
@@ -196,11 +197,11 @@ export default function SyncCloud() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Auto Sync</span>
+              <span className="text-muted-foreground">Auto sincronización</span>
               <span className="font-medium">{stats?.auto_sync ? "Activado" : "Desactivado"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Último Sync</span>
+              <span className="text-muted-foreground">Última sincronización</span>
               <span className="font-medium">
                 {stats?.last_sync_status === "completed"
                   ? new Date((stats?.last_sync_at || 0) * 1000).toLocaleDateString("es-ES", { day: "numeric", month: "short" })
@@ -209,7 +210,7 @@ export default function SyncCloud() {
             </div>
             <Separator />
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Workflows exportados</span>
+              <span className="text-muted-foreground">Flujos exportados</span>
               <span className="font-medium">{stats?.total_exported_workflows || 0}</span>
             </div>
             <div className="flex justify-between">
@@ -242,8 +243,9 @@ export default function SyncCloud() {
 
             <div className="grid gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground">URL del servidor destino</Label>
+                <Label htmlFor="sync-target-url" className="text-xs text-muted-foreground">URL del servidor destino</Label>
                 <Input
+                  id="sync-target-url"
                   value={targetUrl}
                   onChange={(e) => setTargetUrl(e.target.value)}
                   placeholder="https://tuservidor.com"
@@ -251,8 +253,9 @@ export default function SyncCloud() {
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">API Key del servidor destino</Label>
+                <Label htmlFor="sync-target-api-key" className="text-xs text-muted-foreground">API Key del servidor destino</Label>
                 <Input
+                  id="sync-target-api-key"
                   value={targetApiKey}
                   onChange={(e) => setTargetApiKey(e.target.value)}
                   placeholder={stats?.has_target ? "••••••••" : "Ingresa la API Key"}
@@ -264,8 +267,9 @@ export default function SyncCloud() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground">Intervalo (minutos)</Label>
+                <Label htmlFor="sync-interval" className="text-xs text-muted-foreground">Intervalo (minutos)</Label>
                 <Input
+                  id="sync-interval"
                   type="number"
                   value={syncInterval}
                   onChange={(e) => setSyncInterval(parseInt(e.target.value) || 60)}
@@ -275,8 +279,9 @@ export default function SyncCloud() {
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Estrategia de conflictos</Label>
+                <Label htmlFor="sync-conflict-strategy" className="text-xs text-muted-foreground">Estrategia de conflictos</Label>
                 <select
+                  id="sync-conflict-strategy"
                   value={conflictStrategy}
                   onChange={(e) => setConflictStrategy(e.target.value)}
                   className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors mt-1"
@@ -328,25 +333,25 @@ export default function SyncCloud() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Key className="size-4" />
-            Clave de Cifrado E2E
+            Clave de cifrado
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-start gap-4">
             <div className="flex-1 space-y-2">
               <p className="text-sm text-muted-foreground">
-                La clave E2E se usa para cifrar los workflows antes de transmitirlos.
-                La clave <strong>nunca</strong> se transmite al servidor destino.
-                La instancia destino debe tener la <strong>misma clave</strong> configurada para poder descifrar.
+                Esta clave protege los flujos de trabajo antes de enviarlos.
+                La clave <strong>nunca</strong> se envía al otro servidor.
+                El destino debe tener la <strong>misma clave</strong> para poder descifrar.
               </p>
               {generatedKey && showKey && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                   <AlertTriangle className="size-4 text-amber-500 shrink-0" />
                   <code className="text-xs font-mono break-all flex-1">{generatedKey}</code>
-                  <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={handleCopyKey}>
+                  <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={handleCopyKey} aria-label="Copiar clave de cifrado">
                     <Copy className="size-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={() => setShowKey(false)}>
+                  <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={() => setShowKey(false)} aria-label="Ocultar clave de cifrado">
                     <EyeOff className="size-3.5" />
                   </Button>
                 </div>
@@ -360,7 +365,7 @@ export default function SyncCloud() {
             </div>
             <Button size="sm" className="h-8 shrink-0" onClick={handleGenerateKey}>
               <Key className="size-3.5 mr-1" />
-              {config?.has_encryption_key ? "Rotar Clave" : "Generar Clave"}
+              {config?.has_encryption_key ? "Renovar clave" : "Generar clave"}
             </Button>
           </div>
         </CardContent>
@@ -370,11 +375,11 @@ export default function SyncCloud() {
       <div className="flex gap-3">
         <Button size="sm" className="h-8" onClick={handleExportAll}>
           <Download className="size-3.5 mr-1" />
-          Exportar Todos los Workflows
+          Exportar todos los flujos
         </Button>
         <Button size="sm" className="h-8" variant="secondary" onClick={handlePushAll} disabled={!stats?.has_target}>
           <Upload className="size-3.5 mr-1" />
-          Push a Remoto
+          Enviar al servidor
         </Button>
       </div>
 
@@ -383,7 +388,7 @@ export default function SyncCloud() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <History className="size-4" />
-            Historial de Sync
+            Historial de sincronización
           </CardTitle>
         </CardHeader>
         <CardContent>

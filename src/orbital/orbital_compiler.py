@@ -27,14 +27,36 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import re
 
+from src.core.logging import setup_logging
 from src.orbital.context import OrbitalContext
 from src.orbital.models import (
     TWO_PI,
 )
-from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
+
+# ── Patrones regex precompilados (fix Sprint 2 bug #14) ──────────
+# Antes estos patrones se compilaban en cada llamada a _tokenize() y
+# _extract_simple_entities(), causando overhead innecesario en hot path.
+# Ahora se compilan una sola vez al importar el módulo.
+_RE_ACCENT_A = re.compile(r"[áàä]")
+_RE_ACCENT_E = re.compile(r"[éèë]")
+_RE_ACCENT_I = re.compile(r"[íìï]")
+_RE_ACCENT_O = re.compile(r"[óòö]")
+_RE_ACCENT_U = re.compile(r"[úùü]")
+_RE_NON_ALNUM = re.compile(r"[^a-z0-9 ]")
+_RE_EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+_RE_NUMBER = re.compile(r"\b\d+(?:\.\d+)?\b")
+
+# Stopwords ES (frozenset para O(1) lookup)
+_STOPWORDS_ES = frozenset({
+    "quiero", "que", "un", "una", "el", "la", "los", "las", "se", "en",
+    "y", "o", "de", "del", "al", "a", "por", "para", "con", "sin",
+    "es", "lo", "mi", "tu", "su", "me", "te", "le", "nos", "les",
+    "cuando", "como", "mas",
+})
 
 
 class OrbitalCompileResult:
@@ -240,14 +262,16 @@ class OrbitalCompiler:
             )
 
         # 2. Limpiar variables de compilaciones anteriores del grupo input_tokens
+        # Fix BUG-O2: usar metodos publicos del OrbitalEngine (delete_variable,
+        # delete_cycle, get_cycle_ids) en vez de manipular los atributos privados
+        # del OVC y RCC directamente desde el compiler.
         for name in list(self._orbital_engine.get_all_variables().keys()):
             if name.startswith("token_") or name.startswith("kw_"):
-                with contextlib.suppress(KeyError):
-                    del self._orbital_engine._ovc._variables[name]
+                self._orbital_engine.delete_variable(name)
         # Limpiar ciclos de match anteriores
-        for cid in list(self._orbital_engine._rcc._cycles.keys()):
+        for cid in self._orbital_engine.get_cycle_ids():
             if cid.startswith("match_"):
-                del self._orbital_engine._rcc._cycles[cid]
+                self._orbital_engine.delete_cycle(cid)
 
         # 3. Crear variables orbitales para cada token
         for _i, token in enumerate(tokens):
@@ -352,60 +376,27 @@ class OrbitalCompiler:
     # ── Helpers ────────────────────────────────────────────
 
     def _tokenize(self, text: str) -> list[str]:
-        """Tokenizacion simplificada: lowercase, split, filtrar stopwords."""
-        import re
+        """Tokenizacion simplificada: lowercase, split, filtrar stopwords.
 
+        Fix Sprint 2 bug #14: usa patrones regex precompilados a nivel
+        de módulo en vez de re.sub + re-import en cada llamada.
+        """
         text = text.lower().strip()
-        # Normalizar acentos para matching
-        text = re.sub(r"[áàä]", "a", text)
-        text = re.sub(r"[éèë]", "e", text)
-        text = re.sub(r"[íìï]", "i", text)
-        text = re.sub(r"[óòö]", "o", text)
-        text = re.sub(r"[úùü]", "u", text)
-        text = re.sub(r"[^a-z0-9 ]", " ", text)
+        # Normalizar acentos para matching (patrones precompilados)
+        text = _RE_ACCENT_A.sub("a", text)
+        text = _RE_ACCENT_E.sub("e", text)
+        text = _RE_ACCENT_I.sub("i", text)
+        text = _RE_ACCENT_O.sub("o", text)
+        text = _RE_ACCENT_U.sub("u", text)
+        text = _RE_NON_ALNUM.sub(" ", text)
 
-        stopwords = {
-            "quiero",
-            "que",
-            "un",
-            "una",
-            "el",
-            "la",
-            "los",
-            "las",
-            "se",
-            "en",
-            "y",
-            "o",
-            "de",
-            "del",
-            "al",
-            "a",
-            "por",
-            "para",
-            "con",
-            "sin",
-            "es",
-            "lo",
-            "mi",
-            "tu",
-            "su",
-            "me",
-            "te",
-            "le",
-            "nos",
-            "les",
-            "cuando",
-            "como",
-            "mas",
-        }
-
-        tokens = [t for t in text.split() if t and t not in stopwords and len(t) > 1]
+        tokens = [t for t in text.split() if t and t not in _STOPWORDS_ES and len(t) > 1]
         return tokens
 
     def _deterministic_theta(self, text: str) -> float:
         """Genera una fase determinista a partir de un texto (hash)."""
-        hash_val = int(hashlib.md5(text.encode()).hexdigest()[:8], 16)
+        # Hash no criptográfico: deriva fase determinista del texto (B324 mitigado).
+        hash_val = int(hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:8], 16)
         return (hash_val % 10000) / 10000.0 * TWO_PI
 
     def _fallback_keyword_match(self, tokens: list[str]) -> str:
@@ -423,18 +414,20 @@ class OrbitalCompiler:
         return best_match
 
     def _extract_simple_entities(self, text: str) -> list[dict]:
-        """Extraccion simplificada de entidades."""
-        import re
+        """Extraccion simplificada de entidades.
 
+        Fix Sprint 2 bug #14: usa patrones regex precompilados a nivel
+        de módulo (_RE_EMAIL, _RE_NUMBER).
+        """
         entities = []
 
-        # Emails
-        emails = re.findall(r"[\w.+-]+@[\w-]+\.[\w.]+", text)
+        # Emails (patrón precompilado)
+        emails = _RE_EMAIL.findall(text)
         for email in emails:
             entities.append({"type": "email", "value": email})
 
-        # Numeros
-        numbers = re.findall(r"\b\d+(?:\.\d+)?\b", text)
+        # Numeros (patrón precompilado)
+        numbers = _RE_NUMBER.findall(text)
         for num in numbers:
             entities.append({"type": "number", "value": num})
 

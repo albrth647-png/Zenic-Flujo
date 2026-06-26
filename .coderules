@@ -1,0 +1,81 @@
+# ============================================================================
+# Code-Forge v1.0 — Zenic-Flujo Edition
+# Activado automáticamente al inicio de cada sesión vía .coderules
+# ============================================================================
+#
+# Este archivo es leído por Codebuff al iniciar cada sesión y su contenido
+# se inyecta como instrucciones del sistema. Define CÓMO debes trabajar
+# en el proyecto Zenic-Flujo.
+#
+# ============================================================================
+
+# ── Filosofía ──────────────────────────────────────────────────────────
+# "Cada fix debe ser reversible, verificado, y documentado"
+# Si no puedes escribir el rollback, la acción es high-risk → NO ejecutar
+
+# ─── Run Ledger ────────────────────────────────────────────────────────
+# OBLIGATORIO para toda acción que modifique archivos.
+# Usar forge/run_ledger.py → RunLedger (from forge import RunLedger)
+# Cada acción del ledger debe tener: permission, target, diff_summary,
+# before_sha, after_sha, rollback (nunca vacío para edit_file/git_commit)
+# Si el ledger se corrompe → HALT inmediato
+
+# ─── Canary Fix ────────────────────────────────────────────────────────
+# Cuando un task toca múltiples archivos:
+# 1. Aplicar fix al PRIMER archivo (orden dependencias: bottom-up)
+# 2. Verificar gates sobre ese archivo solo
+# 3. Si pasa → siguiente archivo. Si falla → rollback ese archivo, NO continuar
+# 4. Orden Python: models → repositories → services → routes → tests
+# 5. Orden TypeScript: types → hooks → components → pages → tests
+
+# ─── Scope Discipline ─────────────────────────────────────────────────
+# ANTES de implementar, verificar:
+# 1. ¿El cambio toca 1 bug/feature atómica? (NO scope creep)
+# 2. ¿Los datos necesarios existen y son consistentes?
+# 3. ¿El rollback es posible?
+# 4. ¿Hay tests existentes que verifiquen el fix?
+# Usar notación EARS: ubiquitous/event-driven/state-driven/optional/unwanted
+
+# ─── Contextual TDD ──────────────────────────────────────────────────
+# ANTES de implementar, AST-scan identifica:
+# 1. Tests existentes para los archivos afectados
+# 2. Funciones públicas que serán tocadas (contratos)
+# 3. Archivos que importan los afectados (blast radius)
+# Inyectar eso en el prompt de implementación como CONTEXTO accionable
+
+# ─── 12 Gates (6 hard + 6 soft) ───────────────────────────────────────
+# HARD (deben pasar TODOS):
+#   tests_pass, tests_deterministic, no_security_issues,
+#   no_broken_imports, no_circular_imports, integration_smoke
+# SOFT (score ponderado ≥ 8/10):
+#   coverage_branch ≥ 85%, lint_clean, types_clean,
+#   mutation_score ≥ 80 (peso 2x), complexity_max ≤ 10,
+#   test_quality ratio ≥ 30%
+# Usar forge/gates.py → GateRunner().run_all() (from forge import GateRunner)
+
+# ─── FINAL_VERIFY ────────────────────────────────────────────────────
+# Después de todas las tasks, ejecutar test suite COMPLETO:
+#   Python: pytest --tb=short (sobre src/tests/)
+# Si un solo test falla → identificar task culpable vía run_ledger
+# Si tras 2 re-ejecuciones sigue fallando → HALT
+
+# ─── Delegation Triggers ─────────────────────────────────────────────
+# 1. Leer 4+ archivos para entender un flow → delegar exploración
+# 2. Tocar 2+ archivos no-triviales (>50 líneas) → writer + fresh review
+# 3. Commit/push/PR después de cambios → fresh review
+# 4. Sesión larga (>10 iteraciones) → pause y re-plan o justificar
+
+# ─── HALT Conditions ─────────────────────────────────────────────────
+# 2 PIVOTs consecutivos sin mejorar | total > 2M tokens
+# score < 5 tras 50% del presupuesto | 3 fallos repetidos consecutivos
+# FINAL_VERIFY falla tras 2 re-ejecuciones | run_ledger corrupto
+# rollback no posible en acción high-risk
+
+# ─── Stack Detectado ─────────────────────────────────────────────────
+# Python: src/ (pytest, ruff, mypy, mutmut, radon)
+# TypeScript: frontend/src/ (vitest, eslint, tsc, madge, stryker)
+# Ambos: ejecutar gates en paralelo
+
+# ─── Sandbox Disponible ──────────────────────────────────────────────
+# Usar forge/sandbox.py → ForgeSandbox para ejecución aislada (from forge import ForgeSandbox)
+# Optimizado para 12GB RAM (Xiaomi Redmi 12 Pro)

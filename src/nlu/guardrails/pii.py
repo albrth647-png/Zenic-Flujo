@@ -137,6 +137,68 @@ class PIIGuardrails:
 
         return GuardrailResult.allow()
 
+    def check_text_for_pii(self, text: str) -> GuardrailResult:
+        """Escanea un texto libre (prompt del usuario) en busca de PII.
+
+        Fix B-07: el ``GuardrailManager.check_prompt`` necesita detectar PII
+        en el prompt que el usuario envia al LLM. Antes de este metodo, la
+        unica opcion era ``check_workflow_for_pii`` (que recibe un dict de
+        workflow) o ``check_params_for_pii`` (que solo mira claves sensibles).
+        Ninguno de los dos servia para escanear un prompt libre.
+
+        Args:
+            text: Texto del prompt del usuario (ej: "mi email es juan@test.com")
+
+        Returns:
+            GuardrailResult con la decision:
+            - ``block`` si detecta PII de riesgo HIGH o CRITICAL (tarjetas,
+              API keys, tokens bearer, documentos).
+            - ``warn`` si detecta PII de riesgo LOW o MEDIUM (emails, telefonos
+              puntuales) para que el caller decida si enmascarar o rechazar.
+            - ``allow`` si no detecta PII.
+        """
+        if not text:
+            return GuardrailResult.allow(
+                self._msg("Texto vacio", "Empty text"),
+            )
+
+        findings: dict[str, list[str]] = {}
+        total_findings = 0
+
+        for pii_type, pattern in self.PII_PATTERNS.items():
+            matches = pattern.findall(text)
+            if matches:
+                clean_matches = self._filter_false_positives(pii_type, matches)
+                if clean_matches:
+                    findings[pii_type] = clean_matches[:5]
+                    total_findings += len(clean_matches)
+
+        if not findings:
+            return GuardrailResult.allow(
+                self._msg("Sin datos sensibles detectados en el prompt", "No sensitive data detected in prompt"),
+            )
+
+        risk = self._assess_pii_risk(findings, total_findings)
+
+        if risk in (RiskLevel.HIGH, RiskLevel.CRITICAL):
+            return GuardrailResult.block(
+                self._msg(
+                    f"PII detectada en el prompt ({total_findings} hallazgos): {', '.join(findings.keys())}",
+                    f"PII detected in prompt ({total_findings} findings): {', '.join(findings.keys())}",
+                ),
+                risk,
+                {"reason": "pii_detected", "findings": findings, "total": total_findings},
+            )
+
+        return GuardrailResult.warn(
+            self._msg(
+                f"Posible PII en el prompt ({total_findings} hallazgos). Verificar antes de enviar al LLM.",
+                f"Possible PII in prompt ({total_findings} findings). Verify before sending to LLM.",
+            ),
+            risk,
+            {"reason": "pii_detected", "findings": findings, "total": total_findings},
+        )
+
     def _filter_false_positives(self, pii_type: str, matches: list[str]) -> list[str]:
         """Filtra falsos positivos conocidos por tipo de PII."""
         if pii_type == "ip_address":

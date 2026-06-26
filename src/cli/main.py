@@ -19,7 +19,7 @@ from __future__ import annotations
 import sys
 
 from src.cli.commands import COMMAND_MAP, build_parser
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -48,16 +48,16 @@ def main(argv: list[str] | None = None) -> int:
 
     handler = COMMAND_MAP.get(args.command)
     if handler is None:
-        print(f"Error: Comando desconocido '{args.command}'")
+        print(f"Error: Comando desconocido '{args.command}'", file=sys.stderr)
         return 1
 
     try:
         return handler(args)
     except KeyboardInterrupt:
-        print("\nOperacion cancelada por el usuario")
+        print("\nOperacion cancelada por el usuario", file=sys.stderr)
         return 130
     except Exception as exc:
-        print(f"Error inesperado: {exc}")
+        print(f"Error inesperado: {exc}", file=sys.stderr)
         logger.error(f"Error en comando '{args.command}': {exc}", exc_info=True)
         return 1
 

@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 
 import type { Partner, TierDef, PartnerStats, ActivityEntry } from "@/types/partners"
+import { error as humanError } from "@/utils/humanize"
 
 // ── Helpers ────────────────────────────────────
 
@@ -78,19 +79,19 @@ function TierCard({
         </div>
         <div className="space-y-1 text-xs text-zinc-500">
           <div className="flex justify-between">
-            <span>Revenue share</span>
+            <span>Participación de ingresos</span>
             <span className="font-medium text-zinc-300">{(def.revenue_share * 100).toFixed(0)}%</span>
           </div>
           <div className="flex justify-between">
-            <span>Mín. conectores</span>
+            <span>Conectores mínimos</span>
             <span className="font-medium text-zinc-300">{def.min_connectors}</span>
           </div>
           <div className="flex justify-between">
-            <span>Mín. instalaciones</span>
+            <span>Instalaciones mínimas</span>
             <span className="font-medium text-zinc-300">{def.min_installs.toLocaleString()}</span>
           </div>
           <div className="flex justify-between">
-            <span>Mín. calificación</span>
+            <span>Calificación mínima</span>
             <span className="font-medium text-zinc-300">{def.min_rating}</span>
           </div>
           {def.benefits.length > 0 && (
@@ -170,6 +171,7 @@ function PartnerRow({
               onClick={() => onApprove(partner.partner_id)}
               className="text-emerald-400 hover:text-emerald-300"
               title="Aprobar socio"
+              aria-label={`Aprobar socio ${partner.name}`}
             >
               <CheckCircle2 className="h-4 w-4" />
             </Button>
@@ -181,6 +183,7 @@ function PartnerRow({
               onClick={() => onPromote(partner.partner_id)}
               className="text-indigo-400 hover:text-indigo-300"
               title="Promocionar de tier"
+              aria-label={`Promocionar de tier al socio ${partner.name}`}
             >
               <TrendingUp className="h-4 w-4" />
             </Button>
@@ -214,15 +217,16 @@ export default function PartnersPage() {
   const [promoteTier, setPromoteTier] = useState("silver")
   const [promoting, setPromoting] = useState(false)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: AbortSignal) => {
     setError(null)
     try {
       const api = getApi()
       const [overviewRes, tiersRes, activityRes] = await Promise.all([
-        api.get("/api/partners/overview"),
-        api.get("/api/partners/tiers"),
-        api.get("/api/partners/activity"),
+        api.get("/api/partners/overview", { signal }),
+        api.get("/api/partners/tiers", { signal }),
+        api.get("/api/partners/activity", { signal }),
       ])
+      if (signal?.aborted) return
       const overview = overviewRes as { partners: Partner[]; stats: PartnerStats }
       const tiersData = tiersRes as { definitions: Record<string, TierDef> }
       const actData = activityRes as { activities: ActivityEntry[] }
@@ -230,18 +234,19 @@ export default function PartnersPage() {
       setStats(overview.stats || { total: 0, active: 0, by_tier: {} })
       setTiers(tiersData.definitions || {})
       setActivities(actData.activities || [])
-    } catch {
-      toast({ title: "Error al cargar partners", variant: "error" })
-      setError("No se pudo cargar el programa de partners. Verifica que el servidor esté corriendo.")
+    } catch (e) {
+      if (signal?.aborted || (e instanceof DOMException && e.name === "AbortError")) return
+      toast({ title: "Error al cargar partners", description: humanError(e), variant: "error" })
+      setError(humanError(e) || "No se pudo cargar el programa de partners. Verifica que el servidor esté corriendo.")
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [getApi])
 
   useEffect(() => {
     const ac = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadData(ac.signal)
     return () => ac.abort()
   }, [loadData])
 
@@ -261,8 +266,8 @@ export default function PartnersPage() {
       setShowRegister(false)
       setRegForm({ name: "", contact: "", email: "", website: "", description: "", country: "" })
       loadData()
-    } catch {
-      toast({ title: "Error al registrar partner", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al registrar socio", description: humanError(e), variant: "error" })
     } finally {
       setSaving(false)
     }
@@ -273,8 +278,8 @@ export default function PartnersPage() {
       const api = getApi()
       await api.post(`/api/partners/${partnerId}/approve`)
       loadData()
-    } catch {
-      toast({ title: "Error al aprobar partner", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al aprobar socio", description: humanError(e), variant: "error" })
     }
   }
 
@@ -286,8 +291,8 @@ export default function PartnersPage() {
       await api.post(`/api/partners/${promotePartner}/promote`, { target_tier: promoteTier })
       setShowPromote(false)
       loadData()
-    } catch {
-      toast({ title: "Error al promocionar partner", variant: "error" })
+    } catch (e) {
+      toast({ title: "Error al promocionar socio", description: humanError(e), variant: "error" })
     } finally {
       setPromoting(false)
     }
@@ -318,7 +323,7 @@ export default function PartnersPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadData}
+              onClick={() => loadData()}
               className="mt-4 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
               <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -367,7 +372,7 @@ export default function PartnersPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={loadData}
+            onClick={() => loadData()}
             className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
           >
             <RefreshCw className="mr-1.5 h-4 w-4" />
@@ -498,7 +503,7 @@ export default function PartnersPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-zinc-400 flex items-center gap-2">
                 <Activity className="h-4 w-4" />
-                Timeline de actividad
+                Historial de actividad
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -547,10 +552,11 @@ export default function PartnersPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">
+              <label htmlFor="partner-name" className="mb-1 block text-sm text-zinc-300">
                 Empresa <span className="text-red-400">*</span>
               </label>
               <Input
+                id="partner-name"
                 value={regForm.name}
                 onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
                 placeholder="Nombre de la empresa"
@@ -558,8 +564,9 @@ export default function PartnersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Persona de contacto</label>
+              <label htmlFor="partner-contact" className="mb-1 block text-sm text-zinc-300">Persona de contacto</label>
               <Input
+                id="partner-contact"
                 value={regForm.contact}
                 onChange={(e) => setRegForm({ ...regForm, contact: e.target.value })}
                 placeholder="Nombre del contacto"
@@ -567,10 +574,11 @@ export default function PartnersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">
+              <label htmlFor="partner-email" className="mb-1 block text-sm text-zinc-300">
                 Correo electrónico <span className="text-red-400">*</span>
               </label>
               <Input
+                id="partner-email"
                 type="email"
                 value={regForm.email}
                 onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
@@ -579,8 +587,9 @@ export default function PartnersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Sitio web</label>
+              <label htmlFor="partner-website" className="mb-1 block text-sm text-zinc-300">Sitio web</label>
               <Input
+                id="partner-website"
                 value={regForm.website}
                 onChange={(e) => setRegForm({ ...regForm, website: e.target.value })}
                 placeholder="https://empresa.com"
@@ -588,8 +597,9 @@ export default function PartnersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">País</label>
+              <label htmlFor="partner-country" className="mb-1 block text-sm text-zinc-300">País</label>
               <Input
+                id="partner-country"
                 value={regForm.country}
                 onChange={(e) => setRegForm({ ...regForm, country: e.target.value })}
                 placeholder="Ej: México"
@@ -597,8 +607,9 @@ export default function PartnersPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm text-zinc-300">Descripción</label>
+              <label htmlFor="partner-description" className="mb-1 block text-sm text-zinc-300">Descripción</label>
               <textarea
+                id="partner-description"
                 value={regForm.description}
                 onChange={(e) => setRegForm({ ...regForm, description: e.target.value })}
                 placeholder="Breve descripción de la empresa y su experiencia…"
@@ -646,9 +657,9 @@ export default function PartnersPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-zinc-300">Nuevo tier</label>
+              <label htmlFor="partner-promote-tier" className="mb-1 block text-sm text-zinc-300">Nuevo tier</label>
               <Select value={promoteTier} onValueChange={setPromoteTier}>
-                <SelectTrigger className="border-zinc-700 bg-zinc-800 text-zinc-200">
+                <SelectTrigger id="partner-promote-tier" className="border-zinc-700 bg-zinc-800 text-zinc-200">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-zinc-700 bg-zinc-800 text-zinc-200">
@@ -670,7 +681,7 @@ export default function PartnersPage() {
                   <li>• Mín. {tiers[promoteTier].min_connectors} conectores publicados</li>
                   <li>• Mín. {tiers[promoteTier].min_installs.toLocaleString()} instalaciones</li>
                   <li>• Calificación mínima: {tiers[promoteTier].min_rating}</li>
-                  <li>• Revenue share: {(tiers[promoteTier].revenue_share * 100).toFixed(0)}%</li>
+                  <li>• Participación de ingresos: {(tiers[promoteTier].revenue_share * 100).toFixed(0)}%</li>
                 </ul>
               </div>
             )}

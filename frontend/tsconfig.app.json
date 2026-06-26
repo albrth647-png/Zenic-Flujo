@@ -22,12 +22,22 @@
     },
 
     /* Linting */
+    // Strict mode activado (BUG-TS-01 Fase 1): prevenir regressiones tipo BUG-FE-01
+    // donde destructurar propiedades inexistentes se infería como any silenciosamente.
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
     "noUnusedLocals": false,
-    "noImplicitAny": false,
     "noUnusedParameters": false,
     "ignoreDeprecations": "6.0",
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"]
 }

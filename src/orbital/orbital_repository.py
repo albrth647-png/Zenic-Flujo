@@ -33,7 +33,7 @@ from src.orbital.db import OrbitalDB
 from src.orbital.models import (
     TWO_PI,
 )
-from src.utils.logger import setup_logging
+from src.core.logging import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -282,7 +282,8 @@ class OrbitalRepository:
 
     def _deterministic_theta(self, text: str) -> float:
         """Genera una fase determinista a partir de un texto."""
-        hash_val = int(hashlib.md5(text.encode()).hexdigest()[:8], 16)
+        # Hash no criptográfico: deriva fase determinista del texto (B324 mitigado).
+        hash_val = int(hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:8], 16)
         return (hash_val % 10000) / 10000.0 * TWO_PI
 
     def _step_amplitude(self, step: dict) -> float:
@@ -321,7 +322,8 @@ class OrbitalRepository:
     def _generate_orbital_id(self, linear_workflow: dict) -> str:
         """Genera un ID orbital determinista a partir del workflow lineal."""
         raw = f"{linear_workflow.get('id', '')}_{linear_workflow.get('name', '')}"
-        hash_val = hashlib.md5(raw.encode()).hexdigest()[:12]
+        # Hash no criptográfico: genera ID determinista para el workflow orbital (B324 mitigado).
+        hash_val = hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()[:12]
         return f"orbital_{hash_val}"
 
     def close(self) -> None:

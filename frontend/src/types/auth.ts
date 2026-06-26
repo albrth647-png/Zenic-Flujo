@@ -27,6 +27,9 @@ export interface LoginResponse {
   status: string
   user: string
   role?: string
+  // Campos opcionales para respuestas de error del backend
+  message?: string
+  error?: string
 }
 
 export interface AuthStatusResponse {

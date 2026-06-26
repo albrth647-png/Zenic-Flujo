@@ -35,6 +35,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from src.core.logging import setup_logging
 from src.orbital.cod import COD
 from src.orbital.espectro import EspectroOrbital
 from src.orbital.models import (
@@ -50,7 +51,6 @@ from src.orbital.models import (
 from src.orbital.ovc import OVC
 from src.orbital.rcc import RCC
 from src.orbital.tor import TOR
-from src.utils.logger import setup_logging
 
 logger = setup_logging(__name__)
 
@@ -205,6 +205,51 @@ class OrbitalEngine:
         """
         return self._rcc.register_cycle_from_names(name, variable_names, threshold)
 
+    # ── Eliminacion de variables y ciclos ──────────────────
+    # Fix BUG-O2: antes los callers (OrbitalCompiler) accedian directamente
+    # a ``self._ovc._variables`` y ``self._rcc._cycles``, rompiendo
+    # encapsulamiento y sin invalidar el cache TOR asociado.
+    # Estos wrappers publicos delegan en los pilares y dejan un punto unico
+    # de extension para anadir invalidacion de cache en el futuro.
+
+    def delete_variable(self, name: str) -> bool:
+        """Elimina una variable orbital por nombre.
+
+        Args:
+            name: Nombre de la variable a eliminar.
+
+        Returns:
+            True si la variable existia y fue eliminada, False en caso contrario.
+        """
+        return self._ovc.delete_variable(name)
+
+    def delete_variables_by_prefix(self, prefix: str) -> int:
+        """Elimina todas las variables cuyo nombre empieza con el prefijo dado.
+
+        Args:
+            prefix: Prefijo de los nombres de variables a eliminar.
+
+        Returns:
+            Numero de variables eliminadas.
+        """
+        return self._ovc.delete_variables_by_prefix(prefix)
+
+    def delete_cycle(self, cycle_id: str) -> None:
+        """Elimina un ciclo del monitoreo de resonancia por su ID.
+
+        Args:
+            cycle_id: ID del ciclo a eliminar.
+        """
+        self._rcc.remove_cycle(cycle_id)
+
+    def get_cycle_ids(self) -> list[str]:
+        """Retorna una lista con los IDs de todos los ciclos registrados.
+
+        Fix BUG-O2: evita que los callers accedan a ``self._rcc._cycles``
+        directamente para iterar los IDs.
+        """
+        return list(self._rcc.get_cycles().keys())
+
     # ── Ejecucion orbital ──────────────────────────────────
 
     def run_tick(self, dt: float = 1.0, retrofeed_damping: float = RETROFEEDBACK_DAMPING) -> OrbitalResult:
@@ -219,6 +264,13 @@ class OrbitalEngine:
         5. Espectro: Genera salida multimodal determinista
         6. Retro: El espectro retroalimenta el OVC (CIERRA EL CICLO)
 
+        Foso 1 — Compliance Reproducible:
+        Antes del cálculo TOR/RCC/COD, captura snapshot del input (pre-tick state)
+        y calcula input_fingerprint = SHA-256(canonical_json(input_snapshot)).
+        Después del cálculo, calcula result_hash = SHA-256(canonical_json(to_dict())).
+        result_signature y previous_hash los calcula OrbitalPersistence.save_orbital_result
+        (necesita tenant context).
+
         Args:
             dt: Paso temporal
             retrofeed_damping: Factor de retroalimentacion [0, 1]
@@ -230,6 +282,20 @@ class OrbitalEngine:
         self._global_tick += 1
 
         logger.info(f"=== ORBITAL Tick {self._global_tick} ===")
+
+        # Foso 1: Capturar snapshot del input (pre-tick state) ANTES de mutar.
+        # Sin esto no hay reproducibilidad: el input se pierde al avanzar OVC.
+        from src.orbital.canonical_serializer import canonical_json, sha256_hex
+
+        input_snapshot = {
+            name: {
+                "theta": v.theta,
+                "amplitude": v.amplitude,
+                "velocity": v.velocity,
+            }
+            for name, v in self._ovc.get_all_variables().items()
+        }
+        input_fingerprint = sha256_hex(canonical_json(input_snapshot))
 
         # 1. OVC: Avanzar fases
         self._ovc.advance_all(dt)
@@ -260,14 +326,23 @@ class OrbitalEngine:
             cod_results=cod_results,
             espectro=espectro_estados[0] if espectro_estados else EspectroEstado(),
             duration_ms=duration_ms,
+            # Foso 1: fingerprint del input (para verificar reproducibilidad)
+            input_fingerprint=input_fingerprint,
         )
+
+        # Foso 1: Calcular result_hash sobre el canonical del resultado.
+        # result_signature y previous_hash se calculan en OrbitalPersistence
+        # (necesitan tenant context que aquí no está disponible).
+        result_payload = canonical_json(result.to_dict())
+        result.result_hash = sha256_hex(result_payload)
 
         # Guardar en historial
         self._execution_history.append(result)
 
         logger.info(
             f"ORBITAL Tick {self._global_tick} completado en {duration_ms}ms — "
-            f"TOR={len(tor_results)} RCC={len(rcc_results)} COD={len(cod_results)}"
+            f"TOR={len(tor_results)} RCC={len(rcc_results)} COD={len(cod_results)} "
+            f"input_fp={input_fingerprint[:12]}… result_hash={result.result_hash[:12]}…"
         )
 
         return result
@@ -328,18 +403,20 @@ class OrbitalEngine:
     # ── Reset ──────────────────────────────────────────────
 
     def reset(self) -> None:
-        """Reinicia completamente el motor ORBITAL."""
+        """Reinicia el motor ORBITAL sin recrear los pilares.
+
+        Fix BUG-W5: antes se recreaban TOR/RCC/COD/Espectro con nuevas instancias,
+        pero los callers externos (OrbitalContext) seguían apuntando a las viejas.
+        Ahora solo se resetean los pilares existentes, preservando referencias.
+        """
         self._ovc.reset()
-        self._espectro.reset()
+        if hasattr(self._tor, 'clear_cache'):
+            self._tor.clear_cache()
+        if hasattr(self._espectro, 'reset'):
+            self._espectro.reset()
         self._global_tick = 0
         self._execution_history.clear()
-        # Recrear TOR, RCC, COD con el OVC reseteado (compartido)
-        self._tor = TOR(self._ovc)
-        self._rcc = RCC(self._ovc, self._tor)
-        self._cod = COD(self._ovc, self._tor, self._rcc)
-        self._espectro = EspectroOrbital(self._ovc, self._tor, self._rcc, self._cod)
-        self._owns_pillars = True  # Ahora somos duenos de las nuevas instancias
-        logger.info("OrbitalEngine: Reset completo")
+        logger.info("OrbitalEngine: Reset completo (pilares preservados)")
 
     # ── Representacion ─────────────────────────────────────
 

@@ -27,7 +27,7 @@ def login_admin(client):
     """Helper: hacer login como admin en la app de test."""
     import bcrypt
 
-    from src.data.database_manager import DatabaseManager
+    from src.core.db import DatabaseManager
 
     db = DatabaseManager()
     # Siempre forzar password conocido
@@ -40,7 +40,7 @@ def login_admin(client):
         db.create_user("admin", "testpassword123", role="admin")
 
     # Limpiar rate limiting state para tests
-    import src.web.app as app_module
+    import src.web.helpers as app_module
 
     app_module._login_attempts.clear()
 
@@ -223,7 +223,7 @@ class TestAuthSecurity:
     def test_rate_limiting_on_login(self):
         """Test: rate limiting en login (10 intentos por 15 min)."""
         # Limpiar rate limiting state
-        import src.web.app as app_module
+        import src.web.helpers as app_module
 
         app_module._login_attempts.clear()
 
@@ -266,13 +266,13 @@ class TestAuthSecurity:
     def test_role_based_access(self):
         """Test: viewer no puede crear workflows (debe retornar 403)."""
         # Limpiar rate limiting state ANTES de todo
-        import src.web.app as app_module
+        import src.web.helpers as app_module
 
         app_module._login_attempts.clear()
 
         app = get_test_app()
         with app.test_client() as client:
-            from src.data.database_manager import DatabaseManager
+            from src.core.db import DatabaseManager
 
             db = DatabaseManager()
             import bcrypt
