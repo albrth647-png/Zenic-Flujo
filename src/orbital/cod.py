@@ -1,3 +1,4 @@
+# ruff: noqa: RUF002, RUF003 — docstrings y comentarios matemáticos usan caracteres griegos intencionalmente
 """
 ORBITAL — Pilar 4: COD (Colapso Orbital Determinista)
 ======================================================
@@ -5,7 +6,7 @@ ORBITAL — Pilar 4: COD (Colapso Orbital Determinista)
 Garantiza convergencia del sistema orbital a un estado estable usando:
 
 1. Descenso por gradiente de V(θ) (Mejora 1, Hopfield 1982):
-   θ_new = θ - α · ∇V(θ), donde ∇V usa sin(θ_i - θ_j).
+   θ_new = θ - α · ∇V(θ), donde ∇V usa sin(θ_i - θ_j).  # noqa: RUF002
    V es función de Lyapunov estricta: monótona decreciente.
 2. Teorema del punto fijo de Brouwer: mapeo continuo en compacto convexo → punto fijo existe.
 3. Iteracion hasta convergencia: ||∇V|| < epsilon
@@ -15,7 +16,7 @@ circular despues de converger. Es un hecho, no una estimacion.
 
 Proceso de colapso (Mejora 1, rev 2):
 1. Calcular gradiente de V: ∇V(θ) componente por componente
-2. Aplicar descenso: delta_theta = -α · (dV/dθ_i) · dt
+2. Aplicar descenso: delta_theta = -α · (dV/dθ_i) · dt  # noqa: RUF002
 3. Normalizar theta a [0, 2pi)
 4. Repetir hasta convergencia o maximo de iteraciones
 
@@ -115,7 +116,7 @@ class COD:
         Ejecuta el colapso orbital determinista sobre un ciclo.
 
         Mejora 1 (revisión 2): descenso por gradiente de V(θ) = -Σ TOR(i,j).
-        La dinámica ahora es θ_i_new = θ_i - α · (dV/dθ_i), donde
+        La dinámica ahora es θ_i_new = θ_i - α · (dV/dθ_i), donde  # noqa: RUF002
         dV/dθ_i = Σ_j A_i·A_j·sin(θ_i - θ_j). Esto garantiza que V es
         función de Lyapunov estricta (V monótona decreciente).
 
@@ -123,7 +124,7 @@ class COD:
         1. Guardar fases iniciales
         2. Iterar:
            a. Calcular gradiente de V: ∇V(θ) componente por componente
-           b. Aplicar descenso: θ_i_new = θ_i - α · (dV/dθ_i) · dt
+           b. Aplicar descenso: θ_i_new = θ_i - α · (dV/dθ_i) · dt  # noqa: RUF002
            c. Normalizar θ a [0, 2π)
            d. Verificar convergencia: max|Δθ| < ε
         3. Si convergió → estado estable determinista
@@ -210,10 +211,7 @@ class COD:
 
                 # Normalizar el gradiente por la amplitud del sistema para
                 # mantener estabilidad numérica en sistemas grandes.
-                if self._normalize_tension and amplitude_norm > 0:
-                    norm_factor = amplitude_norm
-                else:
-                    norm_factor = 1.0
+                norm_factor = amplitude_norm if self._normalize_tension and amplitude_norm > 0 else 1.0
 
                 # Paso de descenso: negativo porque vamos cuesta abajo de V
                 step = -dV_dtheta * self._convergence_scale * dt * relaxation / norm_factor
@@ -272,10 +270,7 @@ class COD:
         steady_state_reached = converged and max_delta < self._epsilon * 10
 
         # Mejora 1: Cálculo final de Lyapunov desde el tracker
-        if lyapunov_tracker.history:
-            V_final = lyapunov_tracker.history[-1].V
-        else:
-            V_final = V_initial
+        V_final = lyapunov_tracker.history[-1].V if lyapunov_tracker.history else V_initial
         lyapunov_stable = lyapunov_violations == 0 and len(lyapunov_tracker.history) >= 2
 
         # Mejora 2: Cálculo final de FEP desde el tracker

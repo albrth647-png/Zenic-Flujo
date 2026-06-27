@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any, TypedDict
 
 from src.core.logging import get_logger
-from src.hat.agents_legacy.base import AgentConfig, AgentMessage, AgentState, BaseAgent
+from src.hat.agents_legacy.base import AgentConfig, AgentMessage, AgentState, AgentStatus, BaseAgent
 
 logger = get_logger("agent.runtime")
 

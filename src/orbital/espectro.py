@@ -29,6 +29,7 @@ Ejemplo de uso:
 from __future__ import annotations
 
 import math
+from typing import Any
 
 from src.core.logging import setup_logging
 from src.orbital.models import (
@@ -278,7 +279,7 @@ class EspectroOrbital:
 
     # ── Analisis de tendencia ──────────────────────────────
 
-    def analyze_trend(self, window: int = 5) -> dict:
+    def analyze_trend(self, window: int = 5) -> dict[str, Any]:
         """
         Analiza la tendencia del espectro en los ultimos N ticks.
 

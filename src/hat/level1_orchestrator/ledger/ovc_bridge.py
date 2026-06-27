@@ -152,10 +152,7 @@ class OVCLedgerBridge:
             # de "valor real mutado". Si el valor está cerca del default del
             # schema (0.785), aplicamos HYPOTHESIS_THETA exacta.
             stored_theta = hyp.get("orbital_theta", 0.0)
-            if abs(stored_theta - 0.785) < 1e-3 or stored_theta == 0.0:
-                theta = HYPOTHESIS_THETA
-            else:
-                theta = stored_theta
+            theta = HYPOTHESIS_THETA if abs(stored_theta - 0.785) < 0.001 or stored_theta == 0.0 else stored_theta
             try:
                 self._ctx.ovc.create_variable(
                     name=var_name,

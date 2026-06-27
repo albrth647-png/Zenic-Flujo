@@ -27,7 +27,7 @@ class OIDCHandler:
         self._db = db
         self._redis = redis
 
-    def initiate_login(self, config: dict, provider_name: str) -> dict:
+    def initiate_login(self, config: dict[str, Any], provider_name: str) -> dict[str, Any]:
         """Inicia el flujo de login OIDC con Authorization Code Flow + PKCE."""
         state = secrets.token_urlsafe(32)
 
@@ -64,7 +64,7 @@ class OIDCHandler:
         logger.info(f"SSO OIDC: Login iniciado para proveedor '{provider_name}' (state={state[:8]}...)")
         return {"status": "ok", "redirect_url": auth_url, "state": state}
 
-    def handle_callback(self, config: dict, code: str, state: str) -> dict:
+    def handle_callback(self, config: dict[str, Any], code: str, state: str) -> dict[str, Any]:
         """Procesa el callback OIDC tras la autorizacion del usuario."""
         provider_name = config.get("_provider_name", "")
         state_data = self._redis.get_json(f"{OIDC_STATE_PREFIX}{state}")
@@ -78,7 +78,7 @@ class OIDCHandler:
         if not token_result.get("access_token"):
             return {"status": "error", "message": token_result.get("message", "Error intercambiando codigo por tokens")}
 
-        id_token_claims: dict = {}
+        id_token_claims: dict[str, Any] = {}
         if token_result.get("id_token"):
             id_token_claims = self._validate_id_token(token_result["id_token"], config)
 
@@ -102,7 +102,7 @@ class OIDCHandler:
             "idp_session": id_token_claims.get("sid"),
         }
 
-    def _exchange_code(self, config: dict, code: str, state_data: dict) -> dict:
+    def _exchange_code(self, config: dict[str, Any], code: str, state_data: dict[str, Any]) -> dict:
         """Intercambia el codigo de autorizacion OIDC por tokens."""
         token_url = config.get("token_url", "")
         client_id = config.get("client_id", "")
@@ -141,7 +141,7 @@ class OIDCHandler:
             logger.error(f"SSO OIDC: Error intercambiando codigo: {e}")
             return {"message": f"Error en token exchange: {e}"}
 
-    def _validate_id_token(self, id_token: str, config: dict) -> dict:
+    def _validate_id_token(self, id_token: str, config: dict[str, Any]) -> dict[str, Any]:
         """Valida un ID token JWT y extrae los claims.
 
         Fix Sprint 2 bug #23: antes solo decodificaba el payload sin validar
@@ -236,7 +236,7 @@ class OIDCHandler:
             logger.error(f"SSO OIDC: Error validando/firmando ID token: {e}")
             return {}
 
-    def _discover_jwks_uri(self, config: dict) -> str | None:
+    def _discover_jwks_uri(self, config: dict[str, Any]) -> str | None:
         """Descubre jwks_uri vía OpenID Connect discovery document."""
         discovery_url = config.get("discovery_url")
         if not discovery_url:
@@ -264,11 +264,11 @@ class OIDCHandler:
             return "jose"
         return None
 
-    def _fetch_jwks(self, jwks_uri: str) -> dict | None:
+    def _fetch_jwks(self, jwks_uri: str) -> dict[str, Any] | None:
         """Fetch JWKS del IdP (con cache simple en memoria)."""
         # Cache simple en atributo de instancia (TTL implícito por proceso)
         if not hasattr(self, "_jwks_cache"):
-            self._jwks_cache: dict[str, dict] = {}
+            self._jwks_cache: dict[str, dict[str, Any]] = {}
         if jwks_uri in self._jwks_cache:
             return self._jwks_cache[jwks_uri]
 
@@ -284,7 +284,7 @@ class OIDCHandler:
             logger.error(f"SSO OIDC: Error obteniendo JWKS: {e}")
             return None
 
-    def _fetch_userinfo(self, config: dict, access_token: str) -> dict | None:
+    def _fetch_userinfo(self, config: dict[str, Any], access_token: str) -> dict[str, Any] | None:
         """Obtiene informacion del usuario desde el endpoint UserInfo de OIDC."""
         userinfo_url = config.get("userinfo_url", "")
         if not userinfo_url:

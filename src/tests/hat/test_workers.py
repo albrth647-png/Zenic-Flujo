@@ -33,7 +33,7 @@ class TestWorkerFactory:
     def test_generate_all_creates_workers_for_all_tools(self, factory):
         """generate_all() should create workers for all 19 tools."""
         all_workers = factory.registry.list_all()
-        tools_with_workers = set(tool for (tool, _) in all_workers)
+        tools_with_workers = {tool for (tool, _) in all_workers}
         assert len(tools_with_workers) >= 15  # at least 15 of 19 tools should have workers
 
     def test_total_workers_above_40(self, factory):

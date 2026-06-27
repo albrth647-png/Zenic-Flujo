@@ -1,3 +1,4 @@
+# ruff: noqa: RUF002 — docstrings y comentarios matemáticos usan caracteres griegos intencionalmente
 """
 ORBITAL — Lyapunov Tracker (Mejora 1, revisión 2)
 ==================================================
@@ -13,7 +14,7 @@ Fundamento matemático:
 Propiedades matemáticas de V:
 1. V acotada: V ∈ [-ΣA_iA_j, +ΣA_iA_j]
 2. Gradiente: dV/dθ_i = Σ_j A_i·A_j·sin(θ_i - θ_j)
-3. La dinámica del COD debe ser: θ_i_new = θ_i - α · (dV/dθ_i)
+3. La dinámica del COD debe ser: θ_i_new = θ_i - α · (dV/dθ_i)  # noqa: RUF002
    para que V sea Lyapunov estricta. Si el COD usa otra fórmula
    (ej: tanh(Σ TOR) con cos en lugar de sin), V puede aumentar y
    la garantía no se cumple.
@@ -71,13 +72,13 @@ class LyapunovStatus:
     """Estado del Lyapunov tracker tras una actualización."""
 
     V: float
-    delta_V: float  # V_actual - V_anterior (negativo = decreció = bien)
+    delta_V: float  # V_actual - V_anterior (negativo = decreció = bien)  # noqa: N815
     iteration: int
     is_stable: bool  # True si V monótona decreciente en TODO el historial
     violation: bool  # True si V aumentó más allá de la tolerancia en ESTE step
     history_length: int
-    min_V: float  # mínimo histórico de V
-    max_V: float  # máximo histórico de V
+    min_V: float  # mínimo histórico de V  # noqa: N815
+    max_V: float  # máximo histórico de V  # noqa: N815
     average_decrease_rate: float  # tasa promedio de decrecimiento por iteración
     gradient_norm: float = 0.0  # ||∇V(θ)|| en el momento de la actualización
 
@@ -107,7 +108,7 @@ class LyapunovTracker:
     Si V aumenta → bug o inestabilidad detectable en tiempo real.
 
     Nota: Para que V sea Lyapunov estricta, la dinámica del COD debe ser
-    descenso por gradiente de V: θ_i_new = θ_i - α · (dV/dθ_i).
+    descenso por gradiente de V: θ_i_new = θ_i - α · (dV/dθ_i).  # noqa: RUF002
     El método `compute_gradient` expone dV/dθ_i para que el COD lo use.
     """
 

@@ -15,7 +15,7 @@ import uuid
 # Si defusedxml no está instalado, fallback a stdlib ET con warning (en dev
 # solo — en producción debería estar instalado via requirements.txt).
 try:
-    from defusedxml import ElementTree as ET
+    from defusedxml import ElementTree as ET  # noqa: N817
     _DEFUSEDXML_AVAILABLE = True
 except ImportError:
     import xml.etree.ElementTree as ET  # type: ignore[no-redef]
@@ -42,7 +42,7 @@ class SAMLHandler:
         self._db = db
         self._redis = redis
 
-    def generate_sp_metadata(self, config: dict, provider_name: str) -> str:
+    def generate_sp_metadata(self, config: dict[str, Any], provider_name: str) -> str:
         """Genera el metadata XML del Service Provider."""
         entity_id = config.get("entity_id", f"{SSO_BASE_URL}/api/v1/auth/saml/{provider_name}/callback")
         acs_url = config.get("acs_url", f"{SSO_BASE_URL}/api/v1/auth/saml/{provider_name}/callback")
@@ -66,7 +66,7 @@ class SAMLHandler:
   </md:Organization>
 </md:EntityDescriptor>"""
 
-    def initiate_login(self, config: dict, provider_name: str) -> dict:
+    def initiate_login(self, config: dict[str, Any], provider_name: str) -> dict[str, Any]:
         """Inicia el flujo de login SAML generando un AuthnRequest."""
         idp_sso_url = config.get("idp_sso_url", "")
         if not idp_sso_url:
@@ -101,7 +101,7 @@ class SAMLHandler:
         logger.info(f"SSO SAML: Login iniciado para proveedor '{provider_name}' (request_id={request_id})")
         return {"status": "ok", "redirect_url": redirect_url, "request_id": request_id}
 
-    def handle_callback(self, config: dict, saml_response: str) -> dict:
+    def handle_callback(self, config: dict[str, Any], saml_response: str) -> dict[str, Any]:
         """Procesa la respuesta SAML del IdP.
 
         Fix Sprint 2 bug #22: antes NO validaba la firma digital de la aserción
@@ -196,7 +196,7 @@ class SAMLHandler:
             logger.error(f"SSO SAML: Error inesperado validando firma: {e}")
             return False
 
-    def _extract_attributes(self, root: ET.Element, config: dict) -> dict:
+    def _extract_attributes(self, root: ET.Element, config: dict[str, Any]) -> dict[str, Any]:
         """Extrae atributos del usuario desde una asercion SAML."""
         user_info: dict[str, Any] = {}
 
@@ -248,7 +248,7 @@ class SAMLHandler:
         mapped["external_id"] = user_info.get("external_id", mapped.get("email", ""))
         return mapped
 
-    def _validate_conditions(self, root: ET.Element, config: dict) -> dict:
+    def _validate_conditions(self, root: ET.Element, config: dict[str, Any]) -> dict[str, Any]:
         """Valida las condiciones de una asercion SAML."""
         conditions = root.findall(".//saml:Conditions", SAML_NS)
         if not conditions:

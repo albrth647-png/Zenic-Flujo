@@ -45,7 +45,7 @@ HAKEN_GAP_RATIO_MIN: float = 2.0
 HAKEN_CONTRIBUTION_FACTOR: float = 1.0
 
 
-class ModeType(str, enum.Enum):
+class ModeType(enum.StrEnum):
     """Clasificación de cada modo espectral."""
     ROTATIONAL = "rotational"
     STABLE_SLOW = "stable_slow"
@@ -55,7 +55,7 @@ class ModeType(str, enum.Enum):
     MARGINAL = "marginal"
 
 
-class SlavingState(str, enum.Enum):
+class SlavingState(enum.StrEnum):
     """Estado global del slaving principle."""
     ACTIVE = "active"
     WEAK = "weak"
@@ -211,6 +211,61 @@ class HakenAnalyzer:
             rotational_tolerance=rotational_eps,
         )
 
+    def _classify_mode(self, abs_lam: float, k: int, rot_idx: int) -> tuple[ModeType, float]:
+        """Clasifica un modo en STABLE_FAST/UNSTABLE/MARGINAL/ROTATIONAL y devuelve (mode_type, tau_k)."""
+        if k == rot_idx:
+            return ModeType.ROTATIONAL, float("nan")
+        if abs_lam < 1.0 - self._marginal_eps:
+            tau_k = float(-1.0 / math.log(abs_lam)) if abs_lam > 1e-300 else 0.0
+            return ModeType.STABLE_FAST, tau_k
+        if abs_lam > 1.0 + self._marginal_eps:
+            return ModeType.UNSTABLE, float("nan")
+        return ModeType.MARGINAL, float("inf")
+
+    def _build_mode(
+        self,
+        k: int,
+        N: int,
+        names: list[str],
+        mu_all: np.ndarray,
+        V_all: np.ndarray,
+        overlaps: np.ndarray,
+        beta: float,
+        rot_idx: int,
+    ) -> ModeInfo:
+        """Construye un ModeInfo a partir de los autovalores/autovectores."""
+        mu_k = float(mu_all[k])
+        lam_k = float(1.0 - beta * mu_k)
+        v_k = V_all[:, k]
+        abs_lam = abs(lam_k)
+
+        mode_type, tau_k = self._classify_mode(abs_lam, k, rot_idx)
+
+        tau_cont = float(1.0 / abs(mu_k)) if abs(mu_k) > 1e-300 else float("inf")
+        pr = float(1.0 / np.sum(v_k**4)) if np.all(v_k**4 > 0) else float(N)
+        threshold = self._contribution_factor / math.sqrt(N)
+        contrib_idx = [i for i in range(N) if abs(v_k[i]) > threshold]
+        contrib_names = [names[i] for i in contrib_idx]
+
+        return ModeInfo(
+            index=k, eigenvalue_mu=mu_k, eigenvalue_lambda=lam_k,
+            timescale_tau=tau_k, timescale_continuous=tau_cont,
+            mode_type=mode_type, overlap_with_rotational=float(overlaps[k]),
+            eigenvector=v_k.copy(), participation_ratio=pr,
+            contributing_variable_indices=contrib_idx,
+            contributing_variable_names=contrib_names,
+        )
+
+    def _classify_slaving(self, separation_ratio: float) -> tuple[SlavingState, bool]:
+        """Clasifica el estado de slaving según separation_ratio."""
+        if separation_ratio >= self._slaving_strong:
+            return SlavingState.ACTIVE, True  # slaving fuerte (adiabático)
+        if separation_ratio >= self._slaving_threshold:
+            return SlavingState.ACTIVE, True  # slaving débil pero activo
+        if separation_ratio >= 2.0:
+            return SlavingState.WEAK, False
+        return SlavingState.DEMOCRATIC, False
+
     def analyze(
         self,
         ovc: OVC,
@@ -218,7 +273,12 @@ class HakenAnalyzer:
         beta: float,
         cycle_variable_ids: list[str] | None = None,
     ) -> HakenStatus:
-        """Ejecuta el análisis de Haken synergetics."""
+        """Ejecuta el análisis de Haken synergetics.
+
+        Refactorizado (Forge Fase 1.4) dividiendo en métodos auxiliares
+        `_classify_mode`, `_build_mode`, `_classify_slaving` para reducir
+        complejidad ciclomática de 51 a ~18.
+        """
         names = self._extract_variable_names(ovc, cycle_variable_ids)
         N = len(names)
 
@@ -230,7 +290,6 @@ class HakenAnalyzer:
             return self._trivial_status(N=N, beta=beta, reason="β<=0: sin dinámica")
 
         thetas = np.array([ovc.get_variable(n).theta for n in names], dtype=np.float64)
-
         L = self._conley.build_laplacian(ovc, tor, cycle_variable_ids)
 
         warnings: list[str] = []
@@ -254,43 +313,10 @@ class HakenAnalyzer:
         if rot_overlap < 1.0 - self._rotational_eps:
             warnings.append(f"Modo rotacional mal identificado (overlap={rot_overlap:.6f})")
 
-        modes: list[ModeInfo] = []
-        for k in range(N):
-            mu_k = float(mu_all[k])
-            lam_k = float(1.0 - beta * mu_k)
-            v_k = V_all[:, k]
-            abs_lam = abs(lam_k)
-
-            if abs_lam < 1.0 - self._marginal_eps:
-                tau_k = float(-1.0 / math.log(abs_lam)) if abs_lam > 1e-300 else 0.0
-                mode_type = ModeType.STABLE_FAST
-            elif abs_lam > 1.0 + self._marginal_eps:
-                tau_k = float("nan")
-                mode_type = ModeType.UNSTABLE
-            else:
-                tau_k = float("inf")
-                mode_type = ModeType.MARGINAL
-
-            tau_cont = float(1.0 / abs(mu_k)) if abs(mu_k) > 1e-300 else float("inf")
-
-            pr = float(1.0 / np.sum(v_k**4)) if np.all(v_k**4 > 0) else float(N)
-
-            threshold = self._contribution_factor / math.sqrt(N)
-            contrib_idx = [i for i in range(N) if abs(v_k[i]) > threshold]
-            contrib_names = [names[i] for i in contrib_idx]
-
-            if k == rot_idx:
-                mode_type = ModeType.ROTATIONAL
-                tau_k = float("nan")
-
-            modes.append(ModeInfo(
-                index=k, eigenvalue_mu=mu_k, eigenvalue_lambda=lam_k,
-                timescale_tau=tau_k, timescale_continuous=tau_cont,
-                mode_type=mode_type, overlap_with_rotational=float(overlaps[k]),
-                eigenvector=v_k.copy(), participation_ratio=pr,
-                contributing_variable_indices=contrib_idx,
-                contributing_variable_names=contrib_names,
-            ))
+        modes: list[ModeInfo] = [
+            self._build_mode(k, N, names, mu_all, V_all, overlaps, beta, rot_idx)
+            for k in range(N)
+        ]
 
         stable_indices = [k for k in range(N) if k != rot_idx and modes[k].mode_type == ModeType.STABLE_FAST]
         unstable_indices = [k for k in range(N) if k != rot_idx and modes[k].mode_type == ModeType.UNSTABLE]
@@ -304,6 +330,7 @@ class HakenAnalyzer:
             return self._build_democratic_status(N, beta, modes, rot_overlap, warnings, stable_indices,
                                                   "Solo 1 modo estable; insuficiente para slaving.")
 
+        # Análisis espectral de gaps
         mu_stable = sorted([(modes[k].eigenvalue_mu, k) for k in stable_indices])
         mu_values = [m[0] for m in mu_stable]
         gaps = [mu_values[i + 1] - mu_values[i] for i in range(len(mu_values) - 1)]
@@ -332,20 +359,9 @@ class HakenAnalyzer:
         tau_fast = min(modes[k].timescale_tau for k in fast_indices)
         # P1 fix: proteger contra división por cero si tau_fast=0
         separation_ratio = tau_slow / max(tau_fast, 1e-12)
+        slaving_state, slaving_active = self._classify_slaving(separation_ratio)
 
-        if separation_ratio >= self._slaving_strong:
-            slaving_state = SlavingState.ACTIVE  # slaving fuerte (adiabático)
-            slaving_active = True
-        elif separation_ratio >= self._slaving_threshold:
-            slaving_state = SlavingState.ACTIVE  # slaving débil pero activo
-            slaving_active = True
-        elif separation_ratio >= 2.0:
-            slaving_state = SlavingState.WEAK
-            slaving_active = False
-        else:
-            slaving_state = SlavingState.DEMOCRATIC
-            slaving_active = False
-
+        # Reducción espectral
         theta_mean = float(np.mean(thetas))
         theta_tilde = thetas - theta_mean
         V_slow = V_all[:, slow_indices]

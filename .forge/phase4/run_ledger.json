@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase4-runledger",
+  "spec": "Fase 4 del rollout Code-Forge: RunLedger — Trazabilidad Total.\nObjetivos:\n- 4.1 Verificar RunLedger: tests de integridad, rollback, corrupción, handoff\n- 4.2 Template canónico forge/templates/run_ledger.json + documentación campos por tipo de acción\n- 4.3 Integrar ledger en workflow: pre-commit hook + CI check + CLI command\nCriterio de salida: cada cambio al proyecto tiene ledger asociado, verificable en CI.",
+  "created_at": "2026-06-27T14:53:33.499150+00:00",
+  "updated_at": "2026-06-27T14:53:33.499161+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

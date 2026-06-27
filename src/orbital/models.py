@@ -282,15 +282,15 @@ class CODResult:
     convergence_delta: float = 0.0
     steady_state_reached: bool = False
     # Mejora 1: Lyapunov tracking (Hopfield 1982)
-    lyapunov_V_initial: float = 0.0
-    lyapunov_V_final: float = 0.0
-    lyapunov_delta_V: float = 0.0
+    lyapunov_V_initial: float = 0.0  # noqa: N815
+    lyapunov_V_final: float = 0.0  # noqa: N815
+    lyapunov_delta_V: float = 0.0  # noqa: N815
     lyapunov_stable: bool = False  # True si V monótona decreciente
     lyapunov_violations: int = 0  # Número de iteraciones donde V aumentó
     # Mejora 2: Friston Free Energy Principle (Friston 2010)
-    fep_F_initial: float = 0.0
-    fep_F_final: float = 0.0
-    fep_delta_F: float = 0.0
+    fep_F_initial: float = 0.0  # noqa: N815
+    fep_F_final: float = 0.0  # noqa: N815
+    fep_delta_F: float = 0.0  # noqa: N815
     fep_energy_initial: float = 0.0  # U(θ) = -Σ TOR / N
     fep_energy_final: float = 0.0
     fep_entropy_initial: float = 0.0  # S(θ) = -Σ p ln p

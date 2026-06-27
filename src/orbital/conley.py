@@ -1,3 +1,4 @@
+# ruff: noqa: RUF002 — docstrings y comentarios matemáticos usan caracteres griegos intencionalmente
 """
 ORBITAL — Conley Index Classifier (Mejora 3)
 ==============================================
@@ -67,7 +68,7 @@ CONLEY_MARGINAL_TOLERANCE: float = 1e-6
 CONLEY_ROTATIONAL_TOLERANCE: float = 1e-8
 
 
-class ConleyType(str, enum.Enum):
+class ConleyType(enum.StrEnum):
     """Clasificación topológica del punto fijo del COD."""
 
     ATTRACTOR = "attractor"
@@ -219,7 +220,7 @@ class ConleyClassifier:
             cycle_variable_ids: Restringir a variables del ciclo.
 
         Returns:
-            Matriz L de dimensión N×N (numpy array simétrico real).
+            Matriz L de dimensión N×N (numpy array simétrico real).  # noqa: RUF002
         """
         # Seleccionar variables (deduplicando IDs para evitar L malformado)
         if cycle_variable_ids is not None:

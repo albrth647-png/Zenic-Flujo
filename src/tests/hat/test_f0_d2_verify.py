@@ -100,7 +100,7 @@ def test_v05_sub_features_under_200_lines_each():
     """V05: Máximo 200 líneas por sub-feature."""
     repo_file = REPO_ROOT / "src/hat/ledger/repository.py"
     src = repo_file.read_text()
-    total_lines = len(src.splitlines())
+    len(src.splitlines())
     # El archivo completo tiene todos los CRUDs (7 sub-features de CRUD + init).
     # Verificamos que cada CRUD individual sea < 200 líneas.
     sections = src.split("# ──")

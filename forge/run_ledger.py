@@ -14,8 +14,7 @@ Uso:
 """
 
 import json
-import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
 
@@ -97,7 +96,7 @@ class RunLedger:
         self.ledger_path = self.workdir / "run_ledger.json"
 
         if run_id is None:
-            ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+            ts = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
             run_id = f"zenic-fix-{ts}"
 
         if self.ledger_path.exists():
@@ -111,8 +110,8 @@ class RunLedger:
             self.data: LedgerData = {
                 "run_id": run_id,
                 "spec": "",
-                "created_at": datetime.now(tz=timezone.utc).isoformat(),
-                "updated_at": datetime.now(tz=timezone.utc).isoformat(),
+                "created_at": datetime.now(tz=UTC).isoformat(),
+                "updated_at": datetime.now(tz=UTC).isoformat(),
                 "actions": [],
                 "approvals": [],
                 "proof": [],
@@ -178,10 +177,10 @@ class RunLedger:
             "after_sha": after_sha,
             "rollback": rollback,
             "verified": False,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
         }
         self.data["actions"].append(action)
-        self.data["updated_at"] = datetime.now(tz=timezone.utc).isoformat()
+        self.data["updated_at"] = datetime.now(tz=UTC).isoformat()
 
         if action_type in ("edit_file",):
             self.data["metadata"]["total_files_changed"] += 1
@@ -207,7 +206,7 @@ class RunLedger:
     def record_canary_fix(self, file_path: str) -> None:
         """Registra un canary fix aplicado."""
         self.data["metadata"]["canary_fixes_applied"] += 1
-        self.data["updated_at"] = datetime.now(tz=timezone.utc).isoformat()
+        self.data["updated_at"] = datetime.now(tz=UTC).isoformat()
         self._save()
 
     # ── Approvals ─────────────────────────────────────────────────────
@@ -225,7 +224,7 @@ class RunLedger:
         approval = {
             "phase": phase,
             "approved_by": approved_by,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
             "notes": notes,
         }
         self.data["approvals"].append(approval)
@@ -253,7 +252,7 @@ class RunLedger:
             "passed": passed,
             "evidence": evidence[:500],
             "stack": stack,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
         }
         self.data["proof"].append(result)
 
@@ -301,7 +300,7 @@ class RunLedger:
             Resumen del ledger
         """
         self.data["final_status"] = status
-        self.data["completed_at"] = datetime.now(tz=timezone.utc).isoformat()
+        self.data["completed_at"] = datetime.now(tz=UTC).isoformat()
         self._save()
         return self.summary()
 
@@ -337,10 +336,9 @@ class RunLedger:
         if not required_keys.issubset(self.data.keys()):
             return False
 
-        for i, action in enumerate(self.data["actions"]):
-            if action["action_type"] in ("edit_file", "git_commit"):
-                if not action.get("rollback"):
-                    return False
+        for _, action in enumerate(self.data["actions"]):
+            if action["action_type"] in ("edit_file", "git_commit") and not action.get("rollback"):
+                return False
 
         return True
 

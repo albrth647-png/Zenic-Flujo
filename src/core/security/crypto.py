@@ -92,7 +92,7 @@ class CryptoEngine:
             context: Contexto opcional para derivacion de sub-clave
 
         Returns:
-            dict con ciphertext (base64), iv (base64), tag (base64), key_version
+            dict[str, Any] con ciphertext (base64), iv (base64), tag (base64), key_version
         """
         if context:
             key_bytes = self.derive_sub_key(key_bytes, context)
@@ -117,7 +117,7 @@ class CryptoEngine:
         Descifra un texto cifrado usando AES-256-GCM.
 
         Args:
-            ciphertext_dict: dict con ciphertext, iv, tag, opcional context
+            ciphertext_dict: dict[str, Any] con ciphertext, iv, tag, opcional context
             key_bytes: Clave AES-256 en bytes
 
         Returns:
@@ -145,7 +145,7 @@ class CryptoEngine:
             key_bytes: Clave maestra en bytes
 
         Returns:
-            dict con ciphertext, iv, tag, field_name
+            dict[str, Any] con ciphertext, iv, tag, field_name
         """
         result = self.encrypt(value, key_bytes, context=field_name)
         result["field_name"] = field_name
@@ -156,7 +156,7 @@ class CryptoEngine:
         Descifra un campo previamente cifrado.
 
         Args:
-            value: dict con ciphertext, iv, tag
+            value: dict[str, Any] con ciphertext, iv, tag
             field_name: Nombre del campo (usado para derivar sub-clave)
             key_bytes: Clave maestra en bytes
 

@@ -118,7 +118,6 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """Silencia logs HTTP estándar."""
-        pass
 
 
 class WebhookServer:

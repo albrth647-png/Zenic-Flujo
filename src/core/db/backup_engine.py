@@ -22,6 +22,7 @@ Diseño:
   si dos requests llegan simultáneamente).
 """
 
+import contextlib
 import datetime
 import os
 import shutil
@@ -29,6 +30,7 @@ import sqlite3
 import tempfile
 import threading
 from pathlib import Path
+from typing import Any
 
 from src.core.db.sqlite_manager import DatabaseManager
 from src.core.logging import setup_logging
@@ -161,7 +163,7 @@ class BackupEngine:
                 self._timer = None
             logger.info("Backup automático detenido")
 
-    def get_auto_backup_status(self) -> dict:
+    def get_auto_backup_status(self) -> dict[str, Any]:
         """
         Retorna el estado actual del backup automático.
 
@@ -222,7 +224,7 @@ class BackupEngine:
 
     # ── Listado / info de backups ────────────────────────────
 
-    def get_backup_info(self) -> dict:
+    def get_backup_info(self) -> dict[str, Any]:
         """
         Retorna información sobre los backups disponibles en DATA_DIR/backups/.
 
@@ -236,7 +238,7 @@ class BackupEngine:
         - is_valid (bool): el archivo abre como SQLite válido
 
         Returns:
-            Dict con: backups (list), total_backups (int), total_size_mb (float)
+            Dict con: backups (list[Any]), total_backups (int), total_size_mb (float)
         """
         from src.core.config import DATA_DIR
 
@@ -252,7 +254,7 @@ class BackupEngine:
             files.extend(backup_dir.glob(pat))
         # Deduplica (por si un archivo coincide con varios patterns) y ordena
         # por mtime descendente (más reciente primero).
-        files = sorted(set(files), key=os.path.getmtime, reverse=True)
+        files = sorted(set[Any](files), key=os.path.getmtime, reverse=True)
 
         total_size = sum(f.stat().st_size for f in files if f.is_file())
 
@@ -447,10 +449,8 @@ class BackupEngine:
             except (OSError, shutil.Error) as e:
                 # Limpieza del tmp si falló el copy o el rename.
                 if "tmp_path" in locals() and tmp_path.exists():
-                    try:
+                    with contextlib.suppress(OSError):
                         tmp_path.unlink()
-                    except OSError:
-                        pass
                 # Si hicimos safety backup, intentar revertir.
                 if safety_path is not None and safety_path.exists():
                     try:

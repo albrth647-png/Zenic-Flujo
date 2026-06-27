@@ -7,15 +7,11 @@ run_all/evaluate aggregation, print_report.
 """
 
 import os
-import re
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch
 
 import pytest
 
-from forge.gates import GateResult, SecurityScanner, GateRunner
-
+from forge.gates import GateResult, GateRunner, SecurityScanner
 
 # ──────────────────────────────────────────────
 # GateResult
@@ -191,7 +187,6 @@ class TestSecurityScannerTypeScript:
         assert any("Posible secreto" in i["message"] for i in issues)
 
     def test_unreadable_file_returns_error(self, tmp_path):
-        import os
         if os.geteuid() == 0:
             pytest.skip("Cannot test unreadable files as root")
         f = tmp_path / "no_access.ts"
@@ -548,7 +543,7 @@ class TestRunAllAndEvaluate:
         (tmp_path / "frontend" / "src").mkdir(parents=True)
         gr = GateRunner(tmp_path)
         with patch.object(gr, "_run_cmd", return_value=MockCmd.ok("OK")):
-            report = gr.run_all()
+            gr.run_all()
         result_keys = list(gr.results.keys())
         py_keys = [k for k in result_keys if ":python" in k]
         ts_keys = [k for k in result_keys if ":typescript" in k]

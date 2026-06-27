@@ -207,7 +207,7 @@ class CodeSandbox:
             # 5. Contexto aislado sin acceso a __builtins__ original
             # NOTA: exec() es necesario para la funcionalidad de sandbox de código.
             # El código del usuario ya fue validado y el contexto está completamente aislado.
-            exec(code, context)
+            exec(code, context)  # forge-ignore-security: sandbox exec, AST-validated code
 
             # 5. Extraer variable de salida
             output_value = context.get(output_var, context.get("result"))

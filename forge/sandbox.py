@@ -18,7 +18,10 @@ Uso:
         result = sb.run(["python3", "script.py"])
         print(result)
 """
+# ruff: noqa: RUF012 — ALLOWED_DOMAINS es class attribute mutable para
+# permitir extensión (añadir dominios custom en subclasses).
 
+import contextlib
 import json
 import os
 import resource
@@ -26,7 +29,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypedDict
 
@@ -71,17 +74,22 @@ class ForgeSandbox:
         project_root: str | Path,
         run_id: str | None = None,
         ram_gb: int = 12,
+        airgap: bool | None = None,
     ):
         self.project_root = Path(project_root).resolve()
         if not self.project_root.exists():
             raise FileNotFoundError(f"Project root not found: {project_root}")
 
         if run_id is None:
-            ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+            ts = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
             run_id = f"forge-{ts}"
 
         self.run_id = run_id
         self.ram_gb = ram_gb
+        # ── Fase 3.3: Modo airgap ────────────────────────────────────────
+        # Si airgap=None, detectar automáticamente (probar conexión a pypi.org).
+        # Si airgap=True/False, forzar el modo.
+        self.airgap = airgap if airgap is not None else self._detect_airgap()
 
         self.sandbox_root = Path(tempfile.gettempdir()) / run_id
         self.workdir = self.sandbox_root / "workdir"
@@ -102,6 +110,28 @@ class ForgeSandbox:
         (self.workdir / "tests").mkdir(exist_ok=True)
         (self.workdir / "logs").mkdir(exist_ok=True)
         self._init_git_workdir()
+
+    # ── Fase 3.3: Modo airgap ──────────────────────────────────────────
+
+    @staticmethod
+    def _detect_airgap() -> bool:
+        """Detecta si el entorno está offline (sin red).
+
+        Intenta conectar a pypi.org con timeout de 2s. Si falla, asume airgap.
+
+        Returns:
+            True si está offline (airgap), False si hay red.
+        """
+        import socket
+        try:
+            socket.create_connection(("pypi.org", 443), timeout=2).close()
+            return False
+        except (TimeoutError, OSError):
+            return True
+
+    def is_airgap(self) -> bool:
+        """Devuelve True si el sandbox está en modo airgap (sin red)."""
+        return self.airgap
 
     def _init_git_workdir(self) -> None:
         """Inicializa un repo git vacío en el workdir."""
@@ -150,7 +180,6 @@ class ForgeSandbox:
         return result.stdout.strip() or result.stderr.strip()
 
     def apply_diff(self, diff_content: str, target_file: str) -> tuple[bool, str]:
-        work_target = self.workdir / target_file
         diff_path = self.workdir / f"{target_file}.diff"
         diff_path.parent.mkdir(parents=True, exist_ok=True)
         diff_path.write_text(diff_content)
@@ -204,10 +233,8 @@ class ForgeSandbox:
             resource.RLIMIT_STACK: (8_388_608, 8_388_608),
         }
         for rlimit, (soft, hard) in limits.items():
-            try:
+            with contextlib.suppress(OSError, ValueError):
                 resource.setrlimit(rlimit, (soft, hard))
-            except (ValueError, resource.error):
-                pass
 
     # ── Process Execution ─────────────────────────────────────────────
 
@@ -310,7 +337,7 @@ class ForgeSandbox:
     def _log_event(self, event: str, data: object) -> None:
         log_file = self.sandbox_root / "sandbox.log"
         with open(log_file, "a") as f:
-            f.write(json.dumps({"event": event, "data": data, "timestamp": datetime.now(tz=timezone.utc).isoformat()}) + "\n")
+            f.write(json.dumps({"event": event, "data": data, "timestamp": datetime.now(tz=UTC).isoformat()}) + "\n")
 
     def get_logs(self) -> list[LogEvent]:
         log_file = self.sandbox_root / "sandbox.log"
@@ -321,10 +348,8 @@ class ForgeSandbox:
             for line in f:
                 line = line.strip()
                 if line:
-                    try:
+                    with contextlib.suppress(json.JSONDecodeError):
                         logs.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        pass
         return logs
 
     def __repr__(self) -> str:

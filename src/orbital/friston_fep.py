@@ -87,15 +87,15 @@ class FEPStatus:
     """Estado del FEP tracker tras una actualización."""
 
     F: float
-    delta_F: float  # F_actual - F_anterior (negativo = decreció = bien)
+    delta_F: float  # F_actual - F_anterior (negativo = decreció = bien)  # noqa: N815
     energy: float  # U(θ) actual
     entropy: float  # S(θ) actual
     iteration: int
     is_stable: bool  # True si F monótona decreciente en TODO el historial
     violation: bool  # True si F aumentó más allá de la tolerancia en ESTE step
     history_length: int
-    min_F: float
-    max_F: float
+    min_F: float  # noqa: N815
+    max_F: float  # noqa: N815
 
     def to_dict(self) -> dict[str, object]:
         return {

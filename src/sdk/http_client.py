@@ -448,7 +448,7 @@ class HttpClient:
 
     def _build_url(self, path: str) -> str:
         """Construye la URL completa combinando base_url y path."""
-        if path.startswith("http://") or path.startswith("https://"):
+        if path.startswith(("http://", "https://")):
             return path
         if self._base_url:
             return f"{self._base_url}/{path.lstrip('/')}"

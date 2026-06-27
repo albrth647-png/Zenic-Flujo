@@ -1,3 +1,0 @@
-"""
-Workflow Determinista — Web App
-"""

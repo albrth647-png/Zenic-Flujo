@@ -1,0 +1,71 @@
+# Pre-commit hooks para Zenic-Flujo
+# ================================
+# Instalación:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Hooks incluidos:
+#   - forge-ledger-verify: verifica integridad de RunLedger en .forge/*/
+#   - ruff (Python lint): gate lint_clean
+#   - ruff-format (Python format): formato consistente
+#   - mypy (Python types): gate types_clean (modo gradual)
+#   - eslint (TS lint): gate lint_clean TS
+#   - madge (TS circular): gate no_circular_imports TS
+#
+# Nota: Los hooks de ruff/mypy/eslint requieren las herramientas instaladas.
+# Ver forge/docs/fase1-rollout.md y fase2-rollout.md para instalación.
+
+repos:
+  # ── Forge Ledger Verify ────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: forge-ledger-verify
+        name: Forge Ledger Verify
+        entry: python3 scripts/hooks/pre_commit_ledger.py
+        language: system
+        files: r'\.forge/.*run_ledger\.json$'
+        pass_filenames: false
+        always_run: true
+
+  # ── Ruff (Python lint) ─────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^src/.*\.py$
+
+  # ── Mypy (Python types) — modo gradual ─────────────────────────────
+  # Solo verifica módulos en strict (core, orbital, hat.level1)
+  - repo: local
+    hooks:
+      - id: mypy-gradual
+        name: Mypy (gradual — strict en core/orbital/level1)
+        entry: mypy --config-file mypy.ini --no-warn-unused-configs src/core src/orbital
+        language: system
+        files: ^src/(core|orbital)/.*\.py$
+        pass_filenames: false
+
+  # ── ESLint (TS lint) ───────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint (frontend)
+        entry: bash -c 'cd frontend && npx eslint . --max-warnings=0'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+  # ── Madge (TS circular imports) ────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: madge-circular
+        name: Madge circular (frontend)
+        entry: bash -c 'cd frontend && npx madge --circular --extensions ts,tsx src'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+# Configuración global
+default_language_version:
+  python: python3.12

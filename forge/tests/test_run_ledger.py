@@ -4,10 +4,7 @@ Cobertura: creación, append action, rollback, integrity check, corrupted ledger
 """
 
 import json
-import os
 import tempfile
-from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
@@ -40,7 +37,7 @@ class TestRunLedgerCreation:
             ledger1 = RunLedger(tmpdir, run_id="existing-001")
             ledger1.set_spec("Spec original")
             ledger1.add_action("edit_file", "src/test.py", rollback="git checkout src/test.py")
-            
+
             # Nueva instancia debe cargar el existente
             ledger2 = RunLedger(tmpdir)
             assert ledger2.data["run_id"] == "existing-001"
@@ -52,11 +49,11 @@ class TestRunLedgerCreation:
         with tempfile.TemporaryDirectory() as tmpdir:
             ledger = RunLedger(tmpdir, run_id="test-corrupt")
             ledger.add_action("edit_file", "src/test.py", rollback="git checkout src/test.py")
-            
+
             # Corromper el archivo JSON manualmente
             with open(ledger.ledger_path, "w") as f:
                 f.write("{ invalid json }")
-            
+
             with pytest.raises(RuntimeError, match="RUN LEDGER CORRUPTED"):
                 RunLedger(tmpdir)
 
@@ -198,7 +195,7 @@ class TestRunLedgerGates:
             ledger.add_gate_result("no_broken_imports", True, "OK", "python")
             # 1 soft gate que falla (no cuenta)
             ledger.add_gate_result("lint_clean", False, "E501", "python")
-            
+
             assert ledger.data["metadata"]["hard_gates_passed"] == 3
 
     def test_set_soft_score(self):
@@ -247,7 +244,7 @@ class TestRunLedgerCompletion:
             ledger.add_action("edit_file", "src/test.py", rollback="git checkout src/test.py")
             ledger.add_gate_result("tests_pass", True, "OK", "python")
             ledger.complete("pass")
-            
+
             summary = ledger.summary()
             assert summary["run_id"] == "test-summary"
             assert summary["spec"] == "Mi spec"
@@ -276,7 +273,7 @@ class TestRunLedgerIntegrity:
             del ledger.data["actions"]
             with open(ledger.ledger_path, "w") as f:
                 json.dump(ledger.data, f)
-            
+
             # Constructor debe fallar al cargar ledger corrupto
             with pytest.raises(RuntimeError, match="RUN LEDGER CORRUPTED"):
                 RunLedger(tmpdir)
@@ -292,7 +289,7 @@ class TestRunLedgerIntegrity:
                 "rollback": "",  # Sin rollback
             })
             ledger._save()
-            
+
             # Constructor debe fallar al cargar ledger corrupto
             with pytest.raises(RuntimeError, match="RUN LEDGER CORRUPTED"):
                 RunLedger(tmpdir)
@@ -309,7 +306,7 @@ class TestRunLedgerPersistence:
             ledger1.add_action("edit_file", "src/a.py", rollback="git checkout src/a.py")
             ledger1.add_gate_result("tests_pass", True, "OK", "python")
             ledger1.complete("pass")
-            
+
             # Nueva instancia
             ledger2 = RunLedger(tmpdir)
             assert ledger2.data["run_id"] == "persist-test"

@@ -7,6 +7,7 @@ Sandbox aislado, sin LLM calls.
 from __future__ import annotations
 
 import ast
+import contextlib
 import re
 from pathlib import Path
 
@@ -36,11 +37,9 @@ def test_v01_tests_pass():
     assert spec is not None, f"No se pudo cargar spec de {test_path}"
     assert spec.loader is not None, "Spec loader es None"
     module = importlib.util.module_from_spec(spec)
-    try:
+    with contextlib.suppress(SystemExit):
         spec.loader.exec_module(module)  # type: ignore[union-attr]
-    except SystemExit:
-        pass
-    test_funcs = [n for n in dir(module) if n.startswith("test_") or n.startswith("Test")]
+    test_funcs = [n for n in dir(module) if n.startswith(("test_", "Test"))]
     assert len(test_funcs) > 0, f"No se encontraron tests en {test_path}"
 
 
@@ -62,7 +61,7 @@ def test_v02_coverage_above_90():
                             assert method.name in test_src, (
                                 f"{filepath.name}: método público {method.name} no aparece en tests"
                             )
-            elif isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
+            elif isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):  # noqa: SIM102
                 # top-level function
                 if node.col_offset == 0:
                     total_public_funcs += 1
@@ -154,10 +153,9 @@ def test_v07_no_circular_imports():
         module_name = filepath.stem
         imports = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module and "src.hat" in node.module:
-                    # extraer el último componente del módulo
-                    imports.add(node.module.split(".")[-1])
+            if isinstance(node, ast.ImportFrom) and node.module and "src.hat" in node.module:
+                # extraer el último componente del módulo
+                imports.add(node.module.split(".")[-1])
         module_imports[module_name] = imports
 
     # Verificar no-circularidad: si A importa B, B no debe importar A

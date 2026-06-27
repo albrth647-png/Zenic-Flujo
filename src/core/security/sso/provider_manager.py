@@ -8,6 +8,7 @@ Extraído de sso.py (configure_provider, get_providers, remove_provider, etc.).
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from src.core.db.redis_service import RedisService
 from src.core.db.sqlite_manager import DatabaseManager
@@ -60,7 +61,7 @@ def ensure_tables(db: DatabaseManager) -> None:
     conn.commit()
 
 
-def configure_provider(db: DatabaseManager, name: str, provider_type: str, config: dict) -> dict:
+def configure_provider(db: DatabaseManager, name: str, provider_type: str, config: dict[str, Any]) -> dict:
     """Configura o actualiza un proveedor SSO."""
     if provider_type not in VALID_TYPES:
         return {"status": "error", "message": f"Tipo invalido. Validos: {', '.join(sorted(VALID_TYPES))}"}
@@ -87,7 +88,7 @@ def configure_provider(db: DatabaseManager, name: str, provider_type: str, confi
     return {"status": "ok", "name": name, "type": provider_type}
 
 
-def get_providers(db: DatabaseManager) -> list[dict]:
+def get_providers(db: DatabaseManager) -> list[dict[str, Any]]:
     """Lista todos los proveedores SSO configurados."""
     rows = db.fetchall(
         "SELECT id, name, type, enabled, created_at, updated_at FROM sso_providers ORDER BY name"
@@ -99,12 +100,12 @@ def get_providers(db: DatabaseManager) -> list[dict]:
     ]
 
 
-def get_provider(db: DatabaseManager, name: str) -> dict | None:
+def get_provider(db: DatabaseManager, name: str) -> dict[str, Any] | None:
     """Obtiene un proveedor SSO por nombre."""
     return db.fetchone("SELECT * FROM sso_providers WHERE name = ?", (name,))
 
 
-def remove_provider(db: DatabaseManager, redis: RedisService, name: str) -> dict:
+def remove_provider(db: DatabaseManager, redis: RedisService, name: str) -> dict[str, Any]:
     """Elimina un proveedor SSO y sus sesiones asociadas."""
     existing = db.fetchone("SELECT id FROM sso_providers WHERE name = ?", (name,))
     if not existing:
@@ -121,7 +122,7 @@ def remove_provider(db: DatabaseManager, redis: RedisService, name: str) -> dict
     return {"status": "ok"}
 
 
-def _validate_provider_config(provider_type: str, config: dict) -> dict:
+def _validate_provider_config(provider_type: str, config: dict[str, Any]) -> dict[str, Any]:
     """Valida la configuración de un proveedor según su tipo."""
     if provider_type == "saml":
         for field in ["entity_id", "acs_url", "idp_sso_url", "idp_entity_id"]:

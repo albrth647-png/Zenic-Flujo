@@ -28,6 +28,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import re
+from typing import Any
 
 from src.core.logging import setup_logging
 from src.orbital.context import OrbitalContext
@@ -266,7 +267,7 @@ class OrbitalCompiler:
         # delete_cycle, get_cycle_ids) en vez de manipular los atributos privados
         # del OVC y RCC directamente desde el compiler.
         for name in list(self._orbital_engine.get_all_variables().keys()):
-            if name.startswith("token_") or name.startswith("kw_"):
+            if name.startswith(("token_", "kw_")):
                 self._orbital_engine.delete_variable(name)
         # Limpiar ciclos de match anteriores
         for cid in self._orbital_engine.get_cycle_ids():
@@ -413,7 +414,7 @@ class OrbitalCompiler:
 
         return best_match
 
-    def _extract_simple_entities(self, text: str) -> list[dict]:
+    def _extract_simple_entities(self, text: str) -> list[dict[str, Any]]:
         """Extraccion simplificada de entidades.
 
         Fix Sprint 2 bug #14: usa patrones regex precompilados a nivel

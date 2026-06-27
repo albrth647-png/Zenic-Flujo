@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase5-memory",
+  "spec": "Fase 5 del rollout Code-Forge: Memoria Cross-Session — Aprendizaje Continuo.\nObjetivos:\n- 5.1 Verificar PersistentMemory: tests Jaccard, persistencia, scoring\n- 5.2 Poblar memoria inicial: extraer lecciones de commits pasados + Fases 1-4 (target >= 30 reflexiones)\n- 5.3 Integrar memory en GateRunner: generar reflexión automática cuando un gate falla\nCriterio de salida: memoria cross-session con >= 30 reflexiones, integrada en GateRunner.",
+  "created_at": "2026-06-27T15:27:30.122886+00:00",
+  "updated_at": "2026-06-27T15:27:30.122896+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

@@ -159,13 +159,13 @@ def hash_password(password: str, *, algorithm: str = "bcrypt") -> str:
 # ── Utilidades para serialización de usuario ──────────────
 
 def serialize_user(user_row: dict[str, Any] | Any) -> dict[str, Any]:
-    """Serializa un row de DB de usuario a dict plano (compartido Flask/FastAPI).
+    """Serializa un row de DB de usuario a dict[str, Any] plano (compartido Flask/FastAPI).
 
     NUNCA incluye password_hash — evita leak accidental en responses.
     """
     if hasattr(user_row, "keys"):  # sqlite3.Row
-        user_dict = dict(user_row)
-    elif isinstance(user_row, dict):
+        user_dict = dict[str, Any](user_row)
+    elif isinstance(user_row, dict[str, Any]):
         user_dict = user_row.copy()
     else:
         return {}

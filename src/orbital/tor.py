@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import math
 from itertools import combinations
+from typing import Any
 
 from src.core.logging import setup_logging
 from src.orbital.models import TORResult, VariableOrbital
@@ -74,7 +75,7 @@ class TOR:
         self._cache_misses = 0
 
     @property
-    def cache_stats(self) -> dict:
+    def cache_stats(self) -> dict[str, Any]:
         """Estadisticas del cache de tensiones."""
         total = self._cache_hits + self._cache_misses
         return {

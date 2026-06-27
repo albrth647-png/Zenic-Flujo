@@ -70,6 +70,6 @@ WFD_OTEL_SAMPLING_RATE = float(os.environ.get("WFD_OTEL_SAMPLING_RATE", "0.1"))
 
 # ── API v2 JWT ─────────────────────────────────────────────
 # Secret used to sign JWTs for the v2 API surface. In production this MUST
-# be set via env var (≥32 chars); an empty default triggers a guard at use
+# be set[Any] via env var (≥32 chars); an empty default triggers a guard at use
 # site (api_v2.auth) rather than at import time, to keep config import cheap.
 WFD_API_V2_JWT_SECRET = os.environ.get("WFD_API_V2_JWT_SECRET", "")

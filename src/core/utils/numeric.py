@@ -42,7 +42,7 @@ def coerce_numeric(value: Any, default: float | None = None) -> float | None:
             return float(value)
         except (ValueError, TypeError):
             return default
-    # Otros tipos (dict, list, object) → no numeric
+    # Otros tipos (dict[str, Any], list, object) → no numeric
     return default
 
 

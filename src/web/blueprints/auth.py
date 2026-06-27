@@ -462,7 +462,7 @@ def api_system_backup_auto_set():
     be = BackupEngine()
     try:
         if bool(enabled):
-            if interval_hours is None:
+            if interval_hours is None:  # noqa: SIM108
                 # Si no se especifica intervalo, usar el actual o el default.
                 interval = be._interval_hours or 24
             else:

@@ -149,7 +149,7 @@ class OfflineSyncManager:
     _instance: OfflineSyncManager | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         if db_path is None:
             from src.core.config import SYNC_QUEUE_DB_PATH
             db_path = str(SYNC_QUEUE_DB_PATH)

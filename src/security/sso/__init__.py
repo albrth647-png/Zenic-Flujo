@@ -16,6 +16,7 @@ from src.security.sso.mapping import create_or_link_user, link_existing_user
 from src.security.sso.oidc import OIDCHandler
 from src.security.sso.routes import register_sso_routes
 from src.security.sso.saml import SAMLHandler
+from src.security.sso.service import SSOService
 from src.security.sso.session import (
     cleanup_expired_sessions,
     create_sso_session,
@@ -33,6 +34,7 @@ __all__ = [
     "SSO_SESSION_TTL",
     "OIDCHandler",
     "SAMLHandler",
+    "SSOService",
     "auto_configure_keycloak",
     "cleanup_expired_sessions",
     "create_or_link_user",

@@ -30,8 +30,8 @@ import pytest
 logging.disable(logging.CRITICAL)
 
 
-from src.orbital.engine import OrbitalEngine
-from src.orbital.haken import (
+from src.orbital.engine import OrbitalEngine  # noqa: E402
+from src.orbital.haken import (  # noqa: E402
     HakenAnalyzer,
     ModeType,
     SlavingState,
@@ -133,7 +133,7 @@ def test_rotational_eigenvalue_zero(synced_engine: OrbitalEngine) -> None:
     analyzer = HakenAnalyzer()
     status = analyzer.analyze(synced_engine.ovc, synced_engine.tor, beta=0.1,
                                cycle_variable_ids=["a", "b", "c"])
-    rot = [m for m in status.modes if m.mode_type == ModeType.ROTATIONAL][0]
+    rot = next(m for m in status.modes if m.mode_type == ModeType.ROTATIONAL)
     assert abs(rot.eigenvalue_mu) < 1e-6
 
 

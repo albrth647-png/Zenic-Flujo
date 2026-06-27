@@ -38,7 +38,7 @@ logger = get_logger("sync.engine")
 
 # ── Constants ─────────────────────────────────────────────
 
-from src.core.config import SYNC_CLOUD_DB_PATH as SYNC_DB_PATH
+from src.core.config import SYNC_CLOUD_DB_PATH as SYNC_DB_PATH  # noqa: E402
 
 PACKAGE_TTL_SECONDS = 86400 * 7  # 7 days
 MAX_WORKFLOWS_PER_PACKAGE = 100

@@ -91,10 +91,6 @@ class TracingManager:
             from opentelemetry.sdk.resources import Resource
             from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
             from opentelemetry.sdk.trace.sampling import (
-                ALWAYS_ON,
-                Decision,
-                ParentBased,
-                StaticSampler,
                 TraceIdRatioBased,
             )
 
@@ -302,7 +298,7 @@ class TracingManager:
         Obtiene el contexto de traza actual para correlacion de logs.
 
         Returns:
-            dict con trace_id y span_id
+            dict[str, Any] con trace_id y span_id
         """
         return {
             "trace_id": self.get_current_trace_id(),
@@ -367,7 +363,10 @@ class _ComplianceAwareSampler:
         """Decide si muestrear el span. Si compliance_critical=True → siempre sí."""
         # Foso 1: si el span marca compliance_critical, forzar 100% sampling.
         if attributes and attributes.get("compliance_critical") is True:
-            from opentelemetry.sdk.trace.sampling import SamplingResult
+            from opentelemetry.sdk.trace.sampling import (
+                Decision,
+                SamplingResult,
+            )
             return SamplingResult(
                 Decision.RECORD_AND_SAMPLE,
                 attributes=attributes,

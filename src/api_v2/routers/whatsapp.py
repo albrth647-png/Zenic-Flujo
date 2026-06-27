@@ -63,7 +63,7 @@ def _get_connector() -> WhatsAppConnector:
     try:
         return WhatsAppConnector()
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"WhatsAppConnector no disponible: {e}")
+        raise HTTPException(status_code=503, detail=f"WhatsAppConnector no disponible: {e}") from e
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ async def list_templates() -> dict:
             "templates": whatsapp_templates,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error listando templates: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listando templates: {e}") from e
 
 
 @router.post("/webhook-test")
@@ -179,7 +179,7 @@ async def webhook_test(req: WebhookTestRequest) -> dict:
             "note": "En producción, este evento se publica en el bus compartido y los subscribers del PymeOrchestrator + templates de entrada lo reciben.",
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en webhook-test: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en webhook-test: {e}") from e
 
 
 @router.get("/status")

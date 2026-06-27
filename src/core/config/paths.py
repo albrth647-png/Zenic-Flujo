@@ -46,7 +46,7 @@ DOMAIN_DB_PATHS = {
 }
 
 # ── Accesores convenience (uno por DB) ─────────────────────
-# Para que los módulos no tengan que importar el dict completo.
+# Para que los módulos no tengan que importar el dict[str, Any] completo.
 MARKETPLACE_DB_PATH = DOMAIN_DB_PATHS["marketplace"]
 COMPLIANCE_DB_PATH = DOMAIN_DB_PATHS["compliance"]
 PUSH_NOTIFICATIONS_DB_PATH = DOMAIN_DB_PATHS["push_notifications"]

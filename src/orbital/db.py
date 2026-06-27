@@ -395,7 +395,7 @@ class OrbitalDB:
     def close(self) -> None:
         """Cierra la conexion a la base de datos."""
         if self._conn:
-            try:
+            try:  # noqa: SIM105
                 self._conn.close()
             except Exception:
                 pass  # Conexión ya cerrada o inválida

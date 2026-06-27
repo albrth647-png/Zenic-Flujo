@@ -29,16 +29,16 @@ from src.core.config import ERROR_BASE_DELAY_SECONDS, ERROR_MAX_RETRIES, ERROR_R
 # lo que da valores verdaderamente aleatorios en producción).
 _ERROR_RANDOM_SEED = os.environ.get("WFD_ERROR_HANDLER_RANDOM_SEED")
 if _ERROR_RANDOM_SEED:
-    try:
+    try:  # noqa: SIM105
         random.seed(int(_ERROR_RANDOM_SEED))
     except (ValueError, TypeError):
         pass  # Seed inválida, dejar random sin sembrar
 # En cualquier caso, creamos una instancia local para no afectar al global random
 # de otros módulos.
 _error_rng = random.Random(_ERROR_RANDOM_SEED if _ERROR_RANDOM_SEED else None)
-from src.core.logging import setup_logging
-from src.orbital.context import OrbitalContext
-from src.orbital.models import TWO_PI
+from src.core.logging import setup_logging  # noqa: E402
+from src.orbital.context import OrbitalContext  # noqa: E402
+from src.orbital.models import TWO_PI  # noqa: E402
 
 logger = setup_logging(__name__)
 

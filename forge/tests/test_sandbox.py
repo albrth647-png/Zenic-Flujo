@@ -21,7 +21,7 @@ class TestForgeSandboxCreation:
             project = Path(tmpdir) / "project"
             project.mkdir()
             sb = ForgeSandbox(project, run_id="test-sandbox-001")
-            
+
             assert sb.sandbox_root.exists()
             assert sb.workdir.exists()
             assert sb.data_dir.exists()
@@ -135,7 +135,7 @@ class TestFileSystemIsolation:
             project.mkdir()
             test_file = project / "test.py"
             test_file.write_text("print('hello')")
-            
+
             with ForgeSandbox(project) as sb:
                 dest = sb.copy_to_workdir(Path("test.py"))
                 assert dest.exists()
@@ -150,7 +150,7 @@ class TestFileSystemIsolation:
             subdir.mkdir(parents=True)
             test_file = subdir / "service.py"
             test_file.write_text("def run(): pass")
-            
+
             with ForgeSandbox(project) as sb:
                 dest = sb.copy_to_workdir(Path("src/tools/service.py"))
                 assert dest.exists()
@@ -163,10 +163,9 @@ class TestFileSystemIsolation:
             project.mkdir()
             outside_file = Path(tmpdir) / "outside.txt"
             outside_file.write_text("secret")
-            
-            with ForgeSandbox(project) as sb:
-                with pytest.raises(PermissionError):
-                    sb.copy_to_workdir(Path("../outside.txt"))
+
+            with ForgeSandbox(project) as sb, pytest.raises(PermissionError):
+                sb.copy_to_workdir(Path("../outside.txt"))
 
 
 class TestEnvSanitization:
@@ -179,7 +178,7 @@ class TestEnvSanitization:
             project.mkdir()
             sb = ForgeSandbox(project)
             env = sb.sanitized_env()
-            
+
             assert env["NODE_ENV"] == "test"
             assert env["PYTHONUNBUFFERED"] == "1"
             assert env["FORGE_SANDBOX"] == "1"
@@ -193,13 +192,13 @@ class TestEnvSanitization:
             project.mkdir()
             os.environ["MY_SECRET_KEY"] = "super-secret-123"
             os.environ["API_TOKEN"] = "token-abc"
-            
+
             sb = ForgeSandbox(project)
             env = sb.sanitized_env()
-            
+
             assert "MY_SECRET_KEY" not in env
             assert "API_TOKEN" not in env
-            
+
             # Limpiar
             del os.environ["MY_SECRET_KEY"]
             del os.environ["API_TOKEN"]
@@ -224,13 +223,13 @@ class TestLifecycle:
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "project"
             project.mkdir()
-            
+
             sandbox_root = None
             with ForgeSandbox(project) as sb:
                 assert sb._started_at is not None
                 assert sb._stopped is False
                 sandbox_root = sb.sandbox_root
-            
+
             # Después del context, debe limpiarse
             assert not sandbox_root.exists()
 
@@ -239,12 +238,12 @@ class TestLifecycle:
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "project"
             project.mkdir()
-            
+
             sb = ForgeSandbox(project)
             sb.start()
             assert sb._started_at is not None
             assert sb._stopped is False
-            
+
             stats = sb.stop()
             assert sb._stopped is True
             assert stats["run_id"] == sb.run_id
@@ -256,12 +255,12 @@ class TestLifecycle:
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "project"
             project.mkdir()
-            
+
             sb = ForgeSandbox(project)
             sb.start()
             root = sb.sandbox_root
             assert root.exists()
-            
+
             sb.cleanup()
             assert not root.exists()
 
@@ -274,21 +273,21 @@ class TestLogging:
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "project"
             project.mkdir()
-            
+
             with ForgeSandbox(project) as sb:
-                result = sb.run(["echo", "hello"])
+                sb.run(["echo", "hello"])
                 logs = sb.get_logs()
-                
+
                 assert len(logs) >= 2  # al menos process_start + process_end
                 assert logs[0]["event"] == "sandbox_start"
-                assert any(l["event"] == "process_end" for l in logs)
+                assert any(log["event"] == "process_end" for log in logs)
 
     def test_empty_logs_before_any_action(self):
         """get_logs retorna lista vacía si no hay logs."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "project"
             project.mkdir()
-            
+
             sb = ForgeSandbox(project)
             assert sb.get_logs() == []
             sb.cleanup()
@@ -302,12 +301,12 @@ class TestSnapshotAndDiff:
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir) / "project"
             project.mkdir()
-            
+
             with ForgeSandbox(project) as sb:
                 # Crear archivo en workdir
                 test_file = sb.workdir / "test.txt"
                 test_file.write_text("version 1")
-                
+
                 # Snapshot
                 result = sb.snapshot_project()
                 assert result is not None

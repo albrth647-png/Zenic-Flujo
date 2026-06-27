@@ -31,8 +31,8 @@ import pytest
 
 logging.disable(logging.CRITICAL)
 
-from src.orbital.engine import OrbitalEngine
-from src.orbital.lyapunov import (
+from src.orbital.engine import OrbitalEngine  # noqa: E402
+from src.orbital.lyapunov import (  # noqa: E402
     LyapunovSnapshot,
     LyapunovTracker,
 )
@@ -455,7 +455,7 @@ def test_V_deterministic() -> None:
     run2 = run_workflow()
 
     # Comparación estricta con math.isclose
-    assert all(math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12) for a, b in zip(run1, run2)), (
+    assert all(math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12) for a, b in zip(run1, run2, strict=False)), (
         f"V no determinista:\nRun 1: {run1}\nRun 2: {run2}"
     )
 

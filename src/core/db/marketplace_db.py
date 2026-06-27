@@ -9,7 +9,7 @@ from __future__ import annotations
 import json as _json
 import sqlite3
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from src.core.db.interfaces import DatabaseInterface
 from src.core.logging import setup_logging
@@ -18,7 +18,7 @@ T = TypeVar("T")
 
 logger = setup_logging(__name__)
 
-from src.core.config import MARKETPLACE_DB_PATH as _MK
+from src.core.config import MARKETPLACE_DB_PATH as _MK  # noqa: E402
 
 MARKETPLACE_DB_PATH = _MK
 
@@ -128,28 +128,28 @@ class MarketplaceDBManager(DatabaseInterface):
 
     # ── DatabaseInterface implementation ────────────────────
 
-    def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+    def execute(self, sql: str, params: tuple[Any, ...] = ()) -> sqlite3.Cursor:
         """Execute a SQL query with parameters."""
         if self._conn is None:
             raise RuntimeError("Database connection is closed")
         return self._conn.execute(sql, params)
 
-    def executemany(self, sql: str, params_list: list[tuple]) -> sqlite3.Cursor:
+    def executemany(self, sql: str, params_list: list[tuple[Any, ...]]) -> sqlite3.Cursor:
         """Execute a SQL query with multiple parameter sets."""
         if self._conn is None:
             raise RuntimeError("Database connection is closed")
         return self._conn.executemany(sql, params_list)
 
-    def fetchone(self, sql: str, params: tuple = ()) -> dict | None:
-        """Execute a query and return one row as dict."""
+    def fetchone(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
+        """Execute a query and return one row as dict[str, Any]."""
         cursor = self.execute(sql, params)
         row = cursor.fetchone()
-        return dict(row) if row else None
+        return dict[str, Any](row) if row else None
 
-    def fetchall(self, sql: str, params: tuple = ()) -> list[dict]:
-        """Execute a query and return all rows as list of dicts."""
+    def fetchall(self, sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+        """Execute a query and return all rows as list[Any] of dicts."""
         cursor = self.execute(sql, params)
-        return [dict(row) for row in cursor.fetchall()]
+        return [dict[str, Any](row) for row in cursor.fetchall()]
 
     def commit(self) -> None:
         """Commit the current transaction."""
@@ -187,7 +187,7 @@ class MarketplaceDBManager(DatabaseInterface):
 
     # ── Settings helpers (compat) ───────────────────────────
 
-    def get_setting(self, key: str, default: T | None = None) -> str | int | float | bool | list | dict | None:
+    def get_setting(self, key: str, default: T | None = None) -> str | int | float | bool | list[Any] | dict[str, Any] | None:
         """Get a setting value with automatic JSON parsing."""
         row = self.fetchone("SELECT value FROM settings WHERE key = ?", (key,))
         if not row:

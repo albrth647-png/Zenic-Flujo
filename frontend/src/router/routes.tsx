@@ -1,32 +1,7 @@
 import type { ReactNode } from "react"
 import { Navigate } from "react-router-dom"
 import { LazyRoute } from "@/components/LazyRoute"
-import {
-  PATH_DASHBOARD,
-  PATH_EDITOR,
-  PATH_WORKFLOWS,
-  PATH_PLUGINS,
-  PATH_COMPLIANCE,
-  PATH_SYNC,
-  PATH_DEPLOY,
-  PATH_CHAT,
-  PATH_ADMIN,
-  PATH_INTEGRATIONS,
-  PATH_CRM,
-  PATH_INVENTORY,
-  PATH_INVOICES,
-  PATH_REPORTS,
-  PATH_ORBITAL,
-  PATH_PARTNERS,
-  PATH_AIRGAP,
-  PATH_MI_NEGOCIO,
-  PATH_FACTURACION_ELECTRONICA,
-  PATH_AGENTS,
-  PATH_BPMN,
-  PATH_NLU,
-  PATH_TENANTS,
-  PATH_SETTINGS,
-} from "@/router/paths"
+import { PATH_DASHBOARD } from "@/router/paths"
 
 /**
  * RouteConfig — cada objeto define una ruta protegida bajo /app.

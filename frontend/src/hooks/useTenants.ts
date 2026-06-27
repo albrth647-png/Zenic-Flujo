@@ -35,7 +35,7 @@ export function useTenants() {
   const { getApi } = useApi()
 
   const createTenant = useCallback(
-    async (data: TenantCreate): Promise<TenantResponse> => {
+    async (data: TenantCreate): Promise<TenantResponse | null> => {
       const api = getApi()
       return api.post(BASE, data)
     },
@@ -43,7 +43,7 @@ export function useTenants() {
   )
 
   const getTenant = useCallback(
-    async (tenantId: string): Promise<TenantResponse> => {
+    async (tenantId: string): Promise<TenantResponse | null> => {
       const api = getApi()
       return api.get(`${BASE}/${tenantId}`)
     },
@@ -51,7 +51,7 @@ export function useTenants() {
   )
 
   const updateTenant = useCallback(
-    async (tenantId: string, data: TenantUpdate): Promise<TenantResponse> => {
+    async (tenantId: string, data: TenantUpdate): Promise<TenantResponse | null> => {
       const api = getApi()
       return api.put(`${BASE}/${tenantId}`, data)
     },
@@ -59,7 +59,7 @@ export function useTenants() {
   )
 
   const deleteTenant = useCallback(
-    async (tenantId: string): Promise<void> => {
+    async (tenantId: string): Promise<null> => {
       const api = getApi()
       return api.delete(`${BASE}/${tenantId}`)
     },
@@ -67,7 +67,7 @@ export function useTenants() {
   )
 
   const suspendTenant = useCallback(
-    async (tenantId: string): Promise<TenantStatusResponse> => {
+    async (tenantId: string): Promise<TenantStatusResponse | null> => {
       const api = getApi()
       return api.post(`${BASE}/${tenantId}/suspend`, {})
     },
@@ -75,7 +75,7 @@ export function useTenants() {
   )
 
   const activateTenant = useCallback(
-    async (tenantId: string): Promise<TenantStatusResponse> => {
+    async (tenantId: string): Promise<TenantStatusResponse | null> => {
       const api = getApi()
       return api.post(`${BASE}/${tenantId}/activate`, {})
     },
@@ -83,7 +83,7 @@ export function useTenants() {
   )
 
   const listUsers = useCallback(
-    async (tenantId: string): Promise<TenantUserResponse[]> => {
+    async (tenantId: string): Promise<TenantUserResponse[] | null> => {
       const api = getApi()
       return api.get(`${BASE}/${tenantId}/users`)
     },
@@ -91,7 +91,7 @@ export function useTenants() {
   )
 
   const addUser = useCallback(
-    async (tenantId: string, data: TenantUserCreate): Promise<TenantUserResponse> => {
+    async (tenantId: string, data: TenantUserCreate): Promise<TenantUserResponse | null> => {
       const api = getApi()
       return api.post(`${BASE}/${tenantId}/users`, data)
     },
@@ -99,7 +99,7 @@ export function useTenants() {
   )
 
   const listFeatures = useCallback(
-    async (tenantId: string): Promise<TenantFeaturesResponse> => {
+    async (tenantId: string): Promise<TenantFeaturesResponse | null> => {
       const api = getApi()
       return api.get(`${BASE}/${tenantId}/features`)
     },
@@ -107,7 +107,7 @@ export function useTenants() {
   )
 
   const toggleFeature = useCallback(
-    async (tenantId: string, feature: string, enabled: boolean): Promise<TenantFeatureToggleResponse> => {
+    async (tenantId: string, feature: string, enabled: boolean): Promise<TenantFeatureToggleResponse | null> => {
       const api = getApi()
       return api.put(`${BASE}/${tenantId}/features/${feature}`, { enabled } as TenantFeatureToggle)
     },

@@ -30,6 +30,7 @@ Configuracion via variables de entorno:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import threading
@@ -671,9 +672,7 @@ class TenantService:
         """
         with cls._lock:
             if cls._instance is not None:
-                try:
+                with contextlib.suppress(Exception):
                     cls._instance.close_all_tenant_connections()
-                except Exception:
-                    pass
                 cls._instance = None
         logger.info("Tenant: Todas las conexiones de tenant cerradas")

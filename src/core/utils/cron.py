@@ -14,12 +14,13 @@ restriccion el dia de la semana. La conversion correcta es::
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 
 def parse_cron_expression(expr: str) -> dict[str, list[int]]:
     """
     Parsea expresión cron de 5 campos estándar.
-    Retorna dict con campos: minute, hour, day_of_month, month, day_of_week
+    Retorna dict[str, Any] con campos: minute, hour, day_of_month, month, day_of_week
     Cada campo es una lista de valores permitidos.
     """
     fields = ["minute", "hour", "day_of_month", "month", "day_of_week"]
@@ -64,7 +65,7 @@ def _parse_cron_field(field: str, field_name: str) -> list[int]:
             start, end = part.split("-")
             values.extend(range(int(start), int(end) + 1))
         elif part == "*":
-            values = list(range(min_val, max_val + 1))
+            values = list[Any](range(min_val, max_val + 1))
             break
         else:
             values.append(int(part))

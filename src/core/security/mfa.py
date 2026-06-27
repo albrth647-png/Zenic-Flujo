@@ -19,6 +19,7 @@ import json
 import secrets
 import struct
 import time
+from typing import Any
 
 from src.core.db.sqlite_manager import DatabaseManager
 from src.core.logging import setup_logging
@@ -182,7 +183,7 @@ class MFAService:
 
     # ── Generación de secreto ─────────────────────────────
 
-    def generate_secret(self, user_id: int) -> dict:
+    def generate_secret(self, user_id: int) -> dict[str, Any]:
         """
         Genera un secreto TOTP para un usuario y lo almacena.
 
@@ -193,7 +194,7 @@ class MFAService:
             user_id: ID del usuario
 
         Returns:
-            dict con: status, secret, provisioning_uri
+            dict[str, Any] con: status, secret, provisioning_uri
         """
         user = self._db.fetchone(
             "SELECT id, username FROM users WHERE id = ?",
@@ -256,7 +257,7 @@ class MFAService:
 
     # ── Verificación de código ────────────────────────────
 
-    def verify_code(self, user_id: int, code: str) -> dict:
+    def verify_code(self, user_id: int, code: str) -> dict[str, Any]:
         """
         Verifica un código TOTP de 6 dígitos.
 
@@ -268,7 +269,7 @@ class MFAService:
             code: Código TOTP de 6 dígitos
 
         Returns:
-            dict con: valid (bool), message
+            dict[str, Any] con: valid (bool), message
         """
         user = self._db.fetchone("SELECT mfa_secret, mfa_enabled FROM users WHERE id = ?", (user_id,))
         if not user:
@@ -307,7 +308,7 @@ class MFAService:
 
     # ── Códigos de recuperación ───────────────────────────
 
-    def generate_recovery_codes(self, user_id: int) -> dict:
+    def generate_recovery_codes(self, user_id: int) -> dict[str, Any]:
         """
         Genera códigos de recuperación para un usuario.
 
@@ -318,7 +319,7 @@ class MFAService:
             user_id: ID del usuario
 
         Returns:
-            dict con: status, recovery_codes (texto plano, solo esta vez)
+            dict[str, Any] con: status, recovery_codes (texto plano, solo esta vez)
         """
         user = self._db.fetchone("SELECT id, mfa_secret FROM users WHERE id = ?", (user_id,))
         if not user:
@@ -344,7 +345,7 @@ class MFAService:
             "message": "Guarda estos códigos en un lugar seguro. No se volverán a mostrar.",
         }
 
-    def verify_recovery_code(self, user_id: int, code: str) -> dict:
+    def verify_recovery_code(self, user_id: int, code: str) -> dict[str, Any]:
         """
         Verifica y consume un código de recuperación.
 
@@ -356,7 +357,7 @@ class MFAService:
             code: Código de recuperación (formato: XXXX-XXXX)
 
         Returns:
-            dict con: valid (bool), message, remaining_codes
+            dict[str, Any] con: valid (bool), message, remaining_codes
         """
         user = self._db.fetchone("SELECT mfa_recovery_codes FROM users WHERE id = ?", (user_id,))
         if not user:
@@ -404,7 +405,7 @@ class MFAService:
 
     # ── Habilitar/deshabilitar MFA ────────────────────────
 
-    def enable_mfa(self, user_id: int) -> dict:
+    def enable_mfa(self, user_id: int) -> dict[str, Any]:
         """
         Habilita MFA para un usuario.
 
@@ -414,7 +415,7 @@ class MFAService:
             user_id: ID del usuario
 
         Returns:
-            dict con: status, message
+            dict[str, Any] con: status, message
         """
         user = self._db.fetchone("SELECT mfa_secret, mfa_enabled FROM users WHERE id = ?", (user_id,))
         if not user:
@@ -441,7 +442,7 @@ class MFAService:
             "recovery_codes": recovery.get("recovery_codes", []),
         }
 
-    def disable_mfa(self, user_id: int) -> dict:
+    def disable_mfa(self, user_id: int) -> dict[str, Any]:
         """
         Deshabilita MFA para un usuario.
 
@@ -449,7 +450,7 @@ class MFAService:
             user_id: ID del usuario
 
         Returns:
-            dict con: status, message
+            dict[str, Any] con: status, message
         """
         user = self._db.fetchone("SELECT mfa_enabled FROM users WHERE id = ?", (user_id,))
         if not user:
@@ -465,7 +466,7 @@ class MFAService:
         logger.info(f"MFA: Deshabilitado para usuario {user_id}")
         return {"status": "ok", "message": "MFA deshabilitado"}
 
-    def is_mfa_enabled(self, user_id: int) -> dict:
+    def is_mfa_enabled(self, user_id: int) -> dict[str, Any]:
         """
         Verifica si MFA está habilitado para un usuario.
 
@@ -473,7 +474,7 @@ class MFAService:
             user_id: ID del usuario
 
         Returns:
-            dict con: enabled (bool), has_secret (bool)
+            dict[str, Any] con: enabled (bool), has_secret (bool)
         """
         user = self._db.fetchone("SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?", (user_id,))
         if not user:
@@ -486,7 +487,7 @@ class MFAService:
 
     # ── Confiar en dispositivo ────────────────────────────
 
-    def trust_device(self, user_id: int, days: int = TRUSTED_DEVICE_DAYS) -> dict:
+    def trust_device(self, user_id: int, days: int = TRUSTED_DEVICE_DAYS) -> dict[str, Any]:
         """
         Genera un token de dispositivo confiable.
 
@@ -498,7 +499,7 @@ class MFAService:
             days: Días de validez del token
 
         Returns:
-            dict con: status, token, expires_at
+            dict[str, Any] con: status, token, expires_at
         """
         import base64
 
@@ -537,7 +538,7 @@ class MFAService:
             "expires_at": expires_at,
         }
 
-    def verify_trusted_device(self, token: str) -> dict:
+    def verify_trusted_device(self, token: str) -> dict[str, Any]:
         """
         Verifica un token de dispositivo confiable.
 
@@ -545,7 +546,7 @@ class MFAService:
             token: Token de dispositivo (generado por trust_device)
 
         Returns:
-            dict con: valid (bool), user_id (si válido), message
+            dict[str, Any] con: valid (bool), user_id (si válido), message
         """
         import base64
 
@@ -593,7 +594,7 @@ class MFAService:
             logger.error(f"MFA: Error verificando dispositivo confiable: {e}")
             return {"valid": False, "message": "Token inválido"}
 
-    def revoke_trusted_devices(self, user_id: int) -> dict:
+    def revoke_trusted_devices(self, user_id: int) -> dict[str, Any]:
         """
         Revoca todos los dispositivos confiables de un usuario.
 
@@ -601,7 +602,7 @@ class MFAService:
             user_id: ID del usuario
 
         Returns:
-            dict con: status, revoked_count
+            dict[str, Any] con: status, revoked_count
         """
         all_settings = self._db.fetchall(
             "SELECT key FROM settings WHERE key LIKE ?",

@@ -9,6 +9,7 @@ Cubre:
 """
 from __future__ import annotations
 
+import contextlib
 import math
 from pathlib import Path
 
@@ -58,10 +59,8 @@ def repo(tmp_db_path: Path, monkeypatch: pytest.MonkeyPatch) -> LedgerRepository
 
     yield LedgerRepository()
 
-    try:
+    with contextlib.suppress(Exception):
         db.close_connection()
-    except Exception:
-        pass
     DatabaseManager._instance = original_instance
     monkeypatch.setattr(sm_module, "DB_PATH", original_db_path)
 

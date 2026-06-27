@@ -9,27 +9,29 @@ Commands:
   check-module    Gates sobre un módulo específico
   report          Genera reporte de estado
   self-test       Ejecuta auto-test de gates en directorio temporal
+  ledger          Gestión de RunLedger (init, verify, show, list)
 """
+
+from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 
-def cmd_init(args):
+def cmd_init(args: argparse.Namespace) -> int:
     """Inicializa ledger vacío en el directorio actual."""
     from forge import RunLedger
 
     target = Path(args.dir).resolve()
-    ledger = RunLedger(target)
+    RunLedger(target)
     ledger_path = target / "run_ledger.json"
-    action = ledger._append_action
-    ledger._actions = []
-    ledger._persist()
     print(f"Ledger initialized at {ledger_path}")
+    return 0
 
 
-def cmd_verify(args):
+def cmd_verify(args: argparse.Namespace) -> int:
     """Corre todos los gates sobre el proyecto."""
     from forge import GateRunner
 
@@ -41,7 +43,7 @@ def cmd_verify(args):
     return 0 if report["overall"]["passed"] else 1
 
 
-def cmd_check_module(args):
+def cmd_check_module(args: argparse.Namespace) -> int:
     """Corre gates sobre un módulo específico."""
     from forge import GateRunner
 
@@ -54,7 +56,7 @@ def cmd_check_module(args):
     runner = GateRunner(root)
     py_files = list(module_path.rglob("*.py"))
     ts_files = list(module_path.rglob("*.ts")) + list(module_path.rglob("*.tsx"))
-    stacks = []
+    stacks: list[str] = []
     if py_files:
         stacks.append("python")
     if ts_files:
@@ -68,7 +70,7 @@ def cmd_check_module(args):
     return 0 if report["overall"]["passed"] else 1
 
 
-def cmd_report(args):
+def cmd_report(args: argparse.Namespace) -> int:
     """Genera reporte de estado del proyecto."""
     from forge import GateRunner
 
@@ -85,12 +87,26 @@ def cmd_report(args):
     return 0 if report["overall"]["passed"] else 1
 
 
-def cmd_self_test(args):
+def cmd_self_test(args: argparse.Namespace) -> int:
     """Ejecuta self-test en directorio temporal."""
     from forge.gates import self_test
 
     report = self_test()
     return 0 if report["overall"]["passed"] else 1
+
+
+def cmd_dashboard(args: argparse.Namespace) -> int:
+    """Genera dashboard HTML con score por módulo y tendencias."""
+    from forge.dashboard import DashboardGenerator
+
+    root = Path(args.dir).resolve()
+    gen = DashboardGenerator(root)
+    html = gen.generate()
+    output = Path(args.output) if args.output else root / "reports" / "dashboard.html"
+    saved = gen.save(html, output)
+    print(f"✅ Dashboard generated: {saved}")
+    print(f"   Open with: file://{saved.resolve()}")
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -117,6 +133,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("self-test", help="Ejecuta auto-test de gates en directorio temporal")
 
+    # Fase 7.3b: Subcomando dashboard
+    p_dashboard = sub.add_parser("dashboard", help="Genera dashboard HTML con score por módulo")
+    p_dashboard.add_argument("--dir", default=".", help="Directorio del proyecto")
+    p_dashboard.add_argument("--output", default=None, help="Path de salida (default: reports/dashboard.html)")
+
+    # Fase 4.3c: Subcomando ledger
+    from forge.ledger_cli import add_ledger_subparser
+    add_ledger_subparser(sub)
+
     return parser
 
 
@@ -124,17 +149,24 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    dispatch = {
+    # Si el comando tiene un handler asignado via set_defaults(func=...)
+    # (caso del subcomando ledger), usarlo directamente
+    if hasattr(args, "func"):
+        handler: Callable[[argparse.Namespace], int] = args.func
+        return handler(args)
+
+    dispatch: dict[str, Callable[[argparse.Namespace], int]] = {
         "init": cmd_init,
         "verify": cmd_verify,
         "check-module": cmd_check_module,
         "report": cmd_report,
         "self-test": cmd_self_test,
+        "dashboard": cmd_dashboard,
     }
 
-    handler = dispatch.get(args.command)
-    if handler:
-        return handler(args)
+    dispatched = dispatch.get(args.command)
+    if dispatched:
+        return dispatched(args)
     parser.print_help()
     return 1
 

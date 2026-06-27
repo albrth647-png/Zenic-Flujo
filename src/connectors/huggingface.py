@@ -264,7 +264,7 @@ class HuggingfaceConnector(BaseConnector):
             url = f"{self._base_url}/{model_id}"
 
             # Determine if image is base64 or a URL
-            if image.startswith("http://") or image.startswith("https://"):
+            if image.startswith(("http://", "https://")):
                 # Download the image first
                 img_response = req_lib.get(image, timeout=30)
                 if not img_response.ok:
@@ -320,7 +320,7 @@ class HuggingfaceConnector(BaseConnector):
             url = f"{self._base_url}/{model_id}"
 
             # Determine if audio is base64 or a URL
-            if audio.startswith("http://") or audio.startswith("https://"):
+            if audio.startswith(("http://", "https://")):
                 # Download the audio first
                 audio_response = req_lib.get(audio, timeout=30)
                 if not audio_response.ok:

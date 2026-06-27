@@ -137,7 +137,7 @@ class MongoDBService:
 
     # ── CRUD — Insert ────────────────────────────────────────
 
-    async def insert_one(self, collection: str, document: dict) -> str:
+    async def insert_one(self, collection: str, document: dict[str, Any]) -> str:
         """
         Inserta un documento en una coleccion.
 
@@ -161,7 +161,7 @@ class MongoDBService:
         logger.debug(f"insert_one en {collection}: {result.inserted_id}")
         return str(result.inserted_id)
 
-    async def insert_many(self, collection: str, documents: list[dict]) -> list[str]:
+    async def insert_many(self, collection: str, documents: list[dict[str, Any]]) -> list[str]:
         """
         Inserta multiples documentos en una coleccion.
 
@@ -190,7 +190,7 @@ class MongoDBService:
 
     # ── CRUD — Find ──────────────────────────────────────────
 
-    async def find_one(self, collection: str, query: dict) -> dict | None:
+    async def find_one(self, collection: str, query: dict[str, Any]) -> dict[str, Any] | None:
         """
         Busca un unico documento en una coleccion.
 
@@ -209,11 +209,11 @@ class MongoDBService:
     async def find_many(
         self,
         collection: str,
-        query: dict,
+        query: dict[str, Any],
         skip: int = 0,
         limit: int = 100,
         sort: list[tuple[str, int]] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Busca multiples documentos en una coleccion.
 
@@ -240,25 +240,25 @@ class MongoDBService:
 
     # ── CRUD — Update ────────────────────────────────────────
 
-    async def update_one(self, collection: str, query: dict, update: dict, upsert: bool = False) -> dict:
+    async def update_one(self, collection: str, query: dict[str, Any], update: dict[str, Any], upsert: bool = False) -> dict:
         """
         Actualiza un unico documento.
 
         Args:
             collection: Nombre de la coleccion
             query: Filtro para encontrar el documento
-            update: Operaciones de actualizacion (ej: {"$set": {...}})
+            update: Operaciones de actualizacion (ej: {"$set[Any]": {...}})
             upsert: Crear documento si no existe
 
         Returns:
-            dict con matched_count, modified_count, upserted_id
+            dict[str, Any] con matched_count, modified_count, upserted_id
         """
         await self._ensure_connection()
         col = self._db[collection]
 
-        # Agregar timestamp de actualizacion si es $set
-        if "$set" in update and "_updated_at" not in update["$set"]:
-            update["$set"]["_updated_at"] = datetime.utcnow()
+        # Agregar timestamp de actualizacion si es $set[Any]
+        if "$set[Any]" in update and "_updated_at" not in update["$set"]:
+            update["$set[Any]"]["_updated_at"] = datetime.utcnow()
 
         result = await col.update_one(query, update, upsert=upsert)
         response = {
@@ -270,7 +270,7 @@ class MongoDBService:
         logger.debug(f"update_one en {collection}: matched={result.matched_count}, modified={result.modified_count}")
         return response
 
-    async def update_many(self, collection: str, query: dict, update: dict) -> dict:
+    async def update_many(self, collection: str, query: dict[str, Any], update: dict[str, Any]) -> dict:
         """
         Actualiza multiples documentos.
 
@@ -280,13 +280,13 @@ class MongoDBService:
             update: Operaciones de actualizacion
 
         Returns:
-            dict con matched_count, modified_count
+            dict[str, Any] con matched_count, modified_count
         """
         await self._ensure_connection()
         col = self._db[collection]
 
-        if "$set" in update and "_updated_at" not in update["$set"]:
-            update["$set"]["_updated_at"] = datetime.utcnow()
+        if "$set[Any]" in update and "_updated_at" not in update["$set"]:
+            update["$set[Any]"]["_updated_at"] = datetime.utcnow()
 
         result = await col.update_many(query, update)
         logger.debug(f"update_many en {collection}: matched={result.matched_count}, modified={result.modified_count}")
@@ -297,7 +297,7 @@ class MongoDBService:
 
     # ── CRUD — Delete ────────────────────────────────────────
 
-    async def delete_one(self, collection: str, query: dict) -> int:
+    async def delete_one(self, collection: str, query: dict[str, Any]) -> int:
         """
         Elimina un unico documento.
 
@@ -314,7 +314,7 @@ class MongoDBService:
         logger.debug(f"delete_one en {collection}: deleted={result.deleted_count}")
         return result.deleted_count
 
-    async def delete_many(self, collection: str, query: dict) -> int:
+    async def delete_many(self, collection: str, query: dict[str, Any]) -> int:
         """
         Elimina multiples documentos.
 
@@ -333,7 +333,7 @@ class MongoDBService:
 
     # ── CRUD — Count ─────────────────────────────────────────
 
-    async def count_documents(self, collection: str, query: dict | None = None) -> int:
+    async def count_documents(self, collection: str, query: dict[str, Any] | None = None) -> int:
         """
         Cuenta documentos en una coleccion.
 
@@ -351,7 +351,7 @@ class MongoDBService:
 
     # ── Aggregation ──────────────────────────────────────────
 
-    async def aggregate(self, collection: str, pipeline: list[dict]) -> list[dict]:
+    async def aggregate(self, collection: str, pipeline: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Ejecuta un pipeline de agregacion.
 
@@ -405,7 +405,7 @@ class MongoDBService:
         logger.info(f"Indices creados en {collection}: {result}")
         return result
 
-    async def list_indexes(self, collection: str) -> list[dict]:
+    async def list_indexes(self, collection: str) -> list[dict[str, Any]]:
         """
         Lista los indices de una coleccion.
 
@@ -464,7 +464,7 @@ class MongoDBService:
         col = self._db[self._migration_collection]
         await col.update_one(
             {"collection": collection},
-            {"$set": {"collection": collection, "version": version, "updated_at": datetime.utcnow()}},
+            {"$set[Any]": {"collection": collection, "version": version, "updated_at": datetime.utcnow()}},
             upsert=True,
         )
         logger.info(f"Schema version actualizada: {collection} -> v{version}")
@@ -486,12 +486,12 @@ class MongoDBService:
             logger.error(f"MongoDB ping fallido: {e}")
             return False
 
-    async def get_stats(self) -> dict:
+    async def get_stats(self) -> dict[str, Any]:
         """
         Retorna estadisticas de la base de datos.
 
         Returns:
-            dict con estadisticas de la base de datos
+            dict[str, Any] con estadisticas de la base de datos
         """
         await self._ensure_connection()
         stats = await self._db.command("dbstats")
@@ -519,7 +519,7 @@ class MongoDBService:
     # ── Utilidades internas ──────────────────────────────────
 
     @staticmethod
-    def _serialize_doc(doc: dict) -> dict:
+    def _serialize_doc(doc: dict[str, Any]) -> dict[str, Any]:
         """Serializa un documento MongoDB convirtiendo ObjectId y datetime a string."""
         if doc is None:
             return {}

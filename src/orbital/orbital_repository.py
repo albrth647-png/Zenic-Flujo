@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any
 
 from src.core.logging import setup_logging
 from src.orbital.db import OrbitalDB
@@ -53,7 +54,7 @@ class OrbitalWorkflowDef:
         id: str = "",
         name: str = "",
         linear_workflow_id: int | None = None,
-        variables: list[dict] | None = None,
+        variables: list[dict[str, Any]] | None = None,
         cycles: list[dict] | None = None,
         trigger_type: str = "",
         trigger_config: dict | None = None,
@@ -319,7 +320,7 @@ class OrbitalRepository:
             return 0.05
         return 0.1
 
-    def _generate_orbital_id(self, linear_workflow: dict) -> str:
+    def _generate_orbital_id(self, linear_workflow: dict[str, Any]) -> str:
         """Genera un ID orbital determinista a partir del workflow lineal."""
         raw = f"{linear_workflow.get('id', '')}_{linear_workflow.get('name', '')}"
         # Hash no criptográfico: genera ID determinista para el workflow orbital (B324 mitigado).

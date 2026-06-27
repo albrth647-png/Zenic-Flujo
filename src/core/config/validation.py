@@ -1,7 +1,7 @@
 """
 Configuration validation for Zenic-Flujo.
 
-``validate_config()`` returns a list of human-readable warnings about
+``validate_config()`` returns a list[Any] of human-readable warnings about
 soft misconfigurations (e.g. short secrets, missing cookie-secure flag in
 production). Hard misconfigurations (missing secrets in production) are
 already caught at import time by ``src.core.config.secrets``.

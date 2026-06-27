@@ -17,7 +17,7 @@ export function LazyRoute<T extends Record<string, unknown>>({
 }: {
   loader: () => Promise<{ default: ComponentType<T> }>
 }) {
-  const LazyComponent = lazy(loader) as LazyExoticComponent<ComponentType<T>>
+  const LazyComponent = lazy(loader) as unknown as LazyExoticComponent<ComponentType<Record<string, never>>>
   return (
     <Suspense
       fallback={

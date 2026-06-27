@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from src.core.logging import get_logger
 from src.hat.agents_legacy.base import AgentConfig, BaseAgent

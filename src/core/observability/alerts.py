@@ -105,12 +105,12 @@ class AlertEvent:
     metric_value: float = 0.0
     threshold: float = 0.0
     message: str = ""
-    channels_notified: list[str] = field(default_factory=list)
+    channels_notified: list[str] = field(default_factory=list[Any])
     created_at: str = ""
     resolved_at: str | None = None
     status: str = "active"  # active, resolved, suppressed
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "rule_name": self.rule_name,
@@ -258,7 +258,7 @@ class SlackNotifier(Notifier):
                 return False
 
             severity_emoji = {
-                "info": "ℹ️",
+                "info": "ℹ️",  # noqa: RUF001
                 "warning": "⚠️",
                 "critical": "🚨",
             }.get(alert.severity, "⚠️")
@@ -428,7 +428,7 @@ class AlertService:
 
     def get_default_rules(self) -> list[AlertRule]:
         """Retorna las reglas por defecto del Sprint 11."""
-        return list(DEFAULT_RULES)
+        return list[Any](DEFAULT_RULES)
 
     def get_active_rules(self) -> list[AlertRule]:
         """Retorna las reglas activas. Por ahora usa DEFAULT_RULES filtradas por enabled."""
@@ -618,7 +618,7 @@ class AlertService:
         }
 
     @staticmethod
-    def _row_to_event(row: dict) -> AlertEvent:
+    def _row_to_event(row: dict[str, Any]) -> AlertEvent:
         channels = row.get("channels_notified") or "[]"
         try:
             channels_list = json.loads(channels) if isinstance(channels, str) else channels
@@ -631,7 +631,7 @@ class AlertService:
             metric_value=row["metric_value"],
             threshold=row["threshold"],
             message=row.get("message") or "",
-            channels_notified=channels_list if isinstance(channels_list, list) else [],
+            channels_notified=channels_list if isinstance(channels_list, list[Any]) else [],
             created_at=row.get("created_at") or "",
             resolved_at=row.get("resolved_at"),
             status=row["status"],
@@ -655,7 +655,7 @@ class AlertService:
 
     def stop(self) -> None:
         """Detiene el thread daemon."""
-        self._stop_event.set()
+        self._stop_event.set[Any]()
         if self._thread:
             self._thread.join(timeout=5)
             self._thread = None

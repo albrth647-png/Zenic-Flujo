@@ -180,7 +180,7 @@ class OrbitalRouter:
 
         for domain, card_vars in cards_by_domain.items():
             cycle_name = f"routing_{domain}_{safe_session}"
-            all_vars = [intent_var_name] + card_vars
+            all_vars = [intent_var_name, *card_vars]
             try:
                 self._ctx.rcc.register_cycle_from_names(
                     cycle_name, all_vars, threshold=ROUTING_CYCLE_THRESHOLD,

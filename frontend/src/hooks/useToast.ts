@@ -16,19 +16,20 @@ export function useToast() {
 
   const addToast = useCallback((options: ToastOptions) => {
     const id = `toast-${++counterRef.current}`
+    const duration = options.duration ?? defaultDuration
     const toast: Toast = {
       id,
       title: options.title,
       description: options.description,
       variant: options.variant || "default",
-      duration: options.duration ?? defaultDuration,
+      duration,
     }
     setToasts((prev) => [...prev, toast])
 
-    if (toast.duration > 0) {
+    if (duration > 0) {
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, toast.duration)
+      }, duration)
     }
 
     return id

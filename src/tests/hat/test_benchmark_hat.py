@@ -46,7 +46,7 @@ class TestSetupRouter:
         """setup_router() publica las 2 Agent Cards (web_researcher + query_builder)."""
         from src.hat.level1_orchestrator.ledger.repository import LedgerRepository
 
-        router = benchmark_module.setup_router()
+        benchmark_module.setup_router()
         repo = LedgerRepository()
         cards = repo.get_agent_cards()
         agent_ids = {c["agent_id"] for c in cards}

@@ -286,7 +286,7 @@ class TestTickRouterAntiDupIntegration:
 
     def test_second_identical_request_blocked(self, router_with_cards, session):
         """Segundo dispatch idéntico debe ser bloqueado por alguna capa."""
-        r1 = router_with_cards.handle(
+        router_with_cards.handle(
             session["user_id"], session["session_id"], "buscar python",
         )
         r2 = router_with_cards.handle(

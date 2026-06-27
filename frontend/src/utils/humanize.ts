@@ -99,7 +99,7 @@ const ENUM_MAP: Record<string, string> = {
   // Agent states
   idle: "En espera",
   running: "Ejecutando",
-  paused: "Pausado",
+  // paused: "Pausado" — duplicado de workflow status (línea 97)
   terminated: "Terminado",
   error: "Error",
   // Agent config capabilities
@@ -117,13 +117,13 @@ const ENUM_MAP: Record<string, string> = {
   unknown: "Desconocido",
   validation_error: "Error de validación",
   // NLU training status
-  idle: "Inactivo",
+  // idle: "Inactivo" — duplicado de agent states (línea 100)
   queued: "En cola",
   training: "Entrenando",
   completed: "Completado",
   failed: "Falló",
   // Tenant status
-  active: "Activo",
+  // active: "Activo" — duplicado de workflow status (línea 96)
   suspended: "Suspendido",
   deleted: "Eliminado",
   // Tenant plans
@@ -132,9 +132,9 @@ const ENUM_MAP: Record<string, string> = {
   enterprise: "Empresarial",
   // Partner status
   applicant: "Solicitante",
-  active: "Activo",
-  suspended: "Suspendido",
-  terminated: "Terminado",
+  // active: "Activo" — duplicado de workflow status (línea 96)
+  // suspended: "Suspendido" — duplicado de tenant status (línea 127)
+  // terminated: "Terminado" — duplicado de agent states (línea 103)
   // Conflict strategies
   timestamp_wins: "Gana el más reciente",
   version_wins: "Gana versión mayor",
@@ -150,8 +150,8 @@ const ENUM_MAP: Record<string, string> = {
   medium: "Medio",
   low: "Bajo",
   // BPMN
-  valid: "Válido",
-  invalid: "Inválido",
+  // valid: "Válido" — duplicado de NLU compile status (línea 111)
+  // invalid: "Inválido" — duplicado de NLU compile status (línea 113)
   // Fiscal
   issue: "Emitir",
   cancel: "Cancelar",

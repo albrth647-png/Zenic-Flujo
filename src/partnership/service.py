@@ -33,7 +33,7 @@ class PartnershipService:
     _instance: PartnershipService | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         if db_path is None:
             from src.core.config import PARTNERS_DB_PATH
             db_path = str(PARTNERS_DB_PATH)

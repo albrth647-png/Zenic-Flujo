@@ -30,13 +30,13 @@ import pytest
 
 logging.disable(logging.CRITICAL)
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from src.orbital.conley import (
+from src.orbital.conley import (  # noqa: E402
     ConleyClassifier,
     ConleyType,
 )
-from src.orbital.engine import OrbitalEngine
+from src.orbital.engine import OrbitalEngine  # noqa: E402
 
 # =============================================================================
 # Fixtures
@@ -119,7 +119,7 @@ def test_build_laplacian_off_diagonal_equals_neg_tor(desfasado_engine: OrbitalEn
 
 
 def test_build_laplacian_empty_engine() -> None:
-    """L es matriz 0×0 cuando no hay variables."""
+    """L es matriz 0×0 cuando no hay variables."""  # noqa: RUF002
     engine = OrbitalEngine()
     classifier = ConleyClassifier()
     L = classifier.build_laplacian(engine.ovc, engine.tor)
@@ -127,7 +127,7 @@ def test_build_laplacian_empty_engine() -> None:
 
 
 def test_build_laplacian_single_variable() -> None:
-    """L es matriz 1×1 con 0 cuando hay 1 sola variable."""
+    """L es matriz 1×1 con 0 cuando hay 1 sola variable."""  # noqa: RUF002
     engine = OrbitalEngine()
     engine.create_variable("solo", theta=1.5, amplitude=2.0)
     classifier = ConleyClassifier()
@@ -193,7 +193,7 @@ def test_jacobian_eigenvalues_formula(desfasado_engine: OrbitalEngine) -> None:
     )
     for lam, mu in zip(
         status.spectrum.eigenvalues,
-        status.spectrum.eigenvalues_laplacian,
+        status.spectrum.eigenvalues_laplacian, strict=False,
     ):
         expected = 1.0 - beta * mu
         assert math.isclose(lam, expected, rel_tol=1e-9), (

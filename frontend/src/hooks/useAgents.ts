@@ -36,7 +36,7 @@ export function useAgents() {
   const spawn = useCallback(async (config: AgentConfig): Promise<AgentStatus | null> => {
     setLoading(true); setError(null)
     try {
-      const data = await apiFetch<AgentStatus>(`${BASE}/spawn`, { method: "POST", body: config })
+      const data = await apiFetch<AgentStatus>(`${BASE}/spawn`, { method: "POST", body: JSON.stringify(config) })
       return data
     } catch (e) { return handleError(e) } finally { setLoading(false) }
   }, [handleError])
@@ -67,7 +67,7 @@ export function useAgents() {
   const run = useCallback(async (agentId: string, input?: Record<string, unknown>): Promise<AgentRunResponse | null> => {
     setLoading(true); setError(null)
     try {
-      const data = await apiFetch<AgentRunResponse>(`${BASE}/${agentId}/run`, { method: "POST", body: input })
+      const data = await apiFetch<AgentRunResponse>(`${BASE}/${agentId}/run`, { method: "POST", body: input !== undefined ? JSON.stringify(input) : undefined })
       return data
     } catch (e) { return handleError(e) } finally { setLoading(false) }
   }, [handleError])
@@ -103,7 +103,7 @@ export function useAgents() {
   const orchestrate = useCallback(async (plan: AgentOrchestrationPlan): Promise<AgentOrchestrationResult | null> => {
     setLoading(true); setError(null)
     try {
-      return await apiFetch<AgentOrchestrationResult>(`${BASE}/orchestrate`, { method: "POST", body: plan })
+      return await apiFetch<AgentOrchestrationResult>(`${BASE}/orchestrate`, { method: "POST", body: JSON.stringify(plan) })
     } catch (e) { return handleError(e) } finally { setLoading(false) }
   }, [handleError])
 

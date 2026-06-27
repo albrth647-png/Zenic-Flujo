@@ -236,7 +236,7 @@ class MetricsRegistry:
             self._histograms[name] = {}
 
     def _label_key(self, labels: dict[str, str]) -> str:
-        """Genera una clave unica para un set de labels."""
+        """Genera una clave unica para un set[Any] de labels."""
         if not labels:
             return ""
         return "{" + ",".join(f'{k}="{v}"' for k, v in sorted(labels.items())) + "}"
@@ -311,7 +311,7 @@ class MetricsRegistry:
         Obtiene estadisticas de un histograma.
 
         Returns:
-            dict con count, sum, min, max, avg
+            dict[str, Any] con count, sum, min, max, avg
         """
         label_key = self._label_key(labels or {})
         values = self._histograms.get(name, {}).get(label_key, [])

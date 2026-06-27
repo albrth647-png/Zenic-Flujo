@@ -136,7 +136,7 @@ class EncryptionService:
             context: Contexto adicional para derivacion de sub-clave (opcional)
 
         Returns:
-            dict con ciphertext (base64), iv (base64), tag (base64), key_version
+            dict[str, Any] con ciphertext (base64), iv (base64), tag (base64), key_version
         """
         effective_tenant = tenant_id or DEFAULT_TENANT
         key_bytes, version, _effective = self._key_manager.get_active_key(effective_tenant)
@@ -156,7 +156,7 @@ class EncryptionService:
         Descifra un texto cifrado usando la version de clave correcta.
 
         Args:
-            ciphertext_dict: dict con ciphertext, iv, tag, key_version
+            ciphertext_dict: dict[str, Any] con ciphertext, iv, tag, key_version
             tenant_id: ID del tenant (None = clave por defecto)
 
         Returns:
@@ -190,7 +190,7 @@ class EncryptionService:
             tenant_id: ID del tenant (None = clave por defecto)
 
         Returns:
-            dict con ciphertext, iv, tag, key_version, field_name
+            dict[str, Any] con ciphertext, iv, tag, key_version, field_name
         """
         effective_tenant = tenant_id or DEFAULT_TENANT
         key_bytes, version, _effective = self._key_manager.get_active_key(effective_tenant)

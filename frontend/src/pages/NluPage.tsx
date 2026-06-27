@@ -17,7 +17,6 @@ import { toast } from "@/components/ui/toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import {
@@ -28,10 +27,8 @@ import {
   Tags,
   BrainCircuit,
   Loader2,
-  CheckCircle2,
   XCircle,
   AlertTriangle,
-  Sparkles,
   RefreshCw,
   Activity,
 } from "lucide-react"
@@ -42,7 +39,6 @@ import type {
   NLUDryRunResult,
   NLUIntentsResponse,
   NLUEntitiesResponse,
-  NLUTrainResponse,
   NLUTrainingStatus,
 } from "@/types/nlu"
 
@@ -82,9 +78,11 @@ export default function NluPage() {
   // ── Actions ─────────────────────────────────────────────────────
 
   // Resetea loading al cambiar de tab para evitar interferencia entre tabs
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLoading(false)
   }, [activeTab])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleUnderstand = async () => {
     if (!text.trim()) return
@@ -92,6 +90,7 @@ export default function NluPage() {
     setUnderstandResult(null)
     try {
       const res = await understand(text.trim(), lang)
+      if (!res) return
       setUnderstandResult(res)
       toast({ title: "Pipeline NLU completado", description: `Confianza: ${(res.confidence * 100).toFixed(1)}%`, variant: "success" })
     } catch (err) {
@@ -107,6 +106,7 @@ export default function NluPage() {
     setCompileResult(null)
     try {
       const res = await compile(text.trim(), lang)
+      if (!res) return
       setCompileResult(res)
       toast({ title: `Workflow ${res.status}`, description: res.explanation.slice(0, 120), variant: "success" })
     } catch (err) {
@@ -122,6 +122,7 @@ export default function NluPage() {
     setDryRunResult(null)
     try {
       const res = await dryRun(text.trim(), lang)
+      if (!res) return
       setDryRunResult(res)
       toast({
         title: res.overall_feasible ? "Simulación viable" : "Simulación no viable",
@@ -157,7 +158,12 @@ export default function NluPage() {
     setLoading(true)
     try {
       const res = await train(trainingLang)
-      setTrainingStatus(res)
+      if (!res) return
+      setTrainingStatus({
+        job_id: res.job_id,
+        status: res.status,
+        progress: 0,
+      })
       toast({ title: `Entrenamiento ${res.status}`, description: res.message, variant: "success" })
     } catch (err) {
       toast({ title: "Error en entrenamiento", description: humanError(err), variant: "error" })
@@ -179,18 +185,22 @@ export default function NluPage() {
   }
 
   // Load intents/entities on tab switch
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     if (activeTab === "intents" && !intentsData) loadIntents()
     if (activeTab === "entities" && !entitiesData) loadEntities()
     if (activeTab === "training") refreshTrainingStatus()
   }, [activeTab, intentsData, entitiesData, loadIntents, loadEntities])
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   // Auto-refresh training status every 5s while training
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (trainingStatus?.status !== "training" && trainingStatus?.status !== "queued") return
     const interval = setInterval(refreshTrainingStatus, 5000)
     return () => clearInterval(interval)
   }, [trainingStatus?.status])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // ── Render by tab ───────────────────────────────────────────────
 

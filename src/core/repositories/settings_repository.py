@@ -11,6 +11,7 @@ responsabilidades y romper la clase dios.
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from src.core.db.interfaces import DatabaseInterface
 from src.core.logging import setup_logging
@@ -54,7 +55,7 @@ class SettingsRepository:
             default: Valor por defecto si no existe
 
         Returns:
-            Valor parseado (str, int, float, bool, list, dict) o default
+            Valor parseado (str, int, float, bool, list, dict[str, Any]) o default
         """
         row = self._db.fetchone("SELECT value FROM settings WHERE key = ?", (key,))
         if not row:
@@ -79,7 +80,7 @@ class SettingsRepository:
         )
         self._db.commit()
 
-    def get_all(self) -> dict:
+    def get_all(self) -> dict[str, Any]:
         """
         Obtiene todos los settings.
 

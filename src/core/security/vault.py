@@ -11,6 +11,7 @@ import json
 import os
 import threading
 from pathlib import Path
+from typing import Any
 
 from src.core.logging import setup_logging
 
@@ -66,7 +67,7 @@ class SecretVault:
         with self._lock:
             if not self.exists: raise VaultError("Vault no existe")
             self.unlock(old_password)
-            secrets_copy = dict(self._secrets)
+            secrets_copy = dict[str, Any](self._secrets)
             self._salt = os.urandom(VAULT_SALT_SIZE)
             self._key = self._derive_key(new_password, self._salt)
             self._secrets = secrets_copy
@@ -81,7 +82,7 @@ class SecretVault:
             ciphertext = base64.b64decode(encrypted["ciphertext"])
             plaintext = aesgcm.decrypt(nonce, ciphertext, None)
             return json.loads(plaintext.decode("utf-8"))
-    def set(self, key, value):
+    def set[Any](self, key, value):
         if self._key is None: raise VaultLockedError("Vault no desbloqueado.")
         with self._lock:
             aesgcm = AESGCM(self._key)
@@ -100,7 +101,7 @@ class SecretVault:
         return key in self._secrets
     def list_keys(self):
         if self._key is None: raise VaultLockedError("Vault no desbloqueado.")
-        return list(self._secrets.keys())
+        return list[Any](self._secrets.keys())
     def _derive_key(self, password, salt):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=AES_KEY_SIZE, salt=salt, iterations=PBKDF2_ITERATIONS).derive(password.encode("utf-8"))
     def _init(self, password):

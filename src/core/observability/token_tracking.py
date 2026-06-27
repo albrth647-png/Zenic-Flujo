@@ -72,7 +72,7 @@ class TokenUsageRecord:
     total_tokens: int = 0
     cost_usd: float = 0.0
     request_type: str = "chat"  # chat, completion, embedding, image
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict[str, Any])
 
     def __post_init__(self) -> None:
         if not self.record_id:
@@ -155,10 +155,10 @@ class TokenCostTracker:
             from src.core.config import TOKEN_USAGE_DB_PATH
             db_path = str(TOKEN_USAGE_DB_PATH)
         self._db_path = db_path
-        self._pricing: dict[str, ModelPricing] = dict(DEFAULT_PRICING)
+        self._pricing: dict[str, ModelPricing] = dict[str, Any](DEFAULT_PRICING)
         self._budgets: dict[str, dict[str, float]] = {}  # tenant_id -> {daily, monthly, total}
         self._alerts: list[BudgetAlert] = []
-        self._alert_callbacks: list = []
+        self._alert_callbacks: list[Any] = []
         self._conn: sqlite3.Connection | None = None
         self._local_lock = threading.Lock()
         self._init_db()
@@ -344,7 +344,7 @@ class TokenCostTracker:
         """Set budget limits for a tenant.
 
         Args:
-            tenant_id: The tenant to set budgets for.
+            tenant_id: The tenant to set[Any] budgets for.
             daily_limit: Maximum daily spend in USD.
             monthly_limit: Maximum monthly spend in USD.
             total_limit: Maximum total spend in USD (lifetime).
@@ -625,7 +625,7 @@ class TokenCostTracker:
         """
         budgets = self._budgets.get(tenant_id, {})
         if not budgets:
-            return True  # No budget set = unlimited
+            return True  # No budget set[Any] = unlimited
 
         now = time.time()
         day_start = now - (now % 86400)
@@ -662,7 +662,7 @@ class TokenCostTracker:
         unacknowledged_only: bool = False,
     ) -> list[BudgetAlert]:
         """Get budget alerts."""
-        alerts = list(self._alerts)
+        alerts = list[Any](self._alerts)
         if tenant_id:
             alerts = [a for a in alerts if a.tenant_id == tenant_id]
         if unacknowledged_only:

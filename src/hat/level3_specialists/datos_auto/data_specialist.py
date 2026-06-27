@@ -71,72 +71,86 @@ class DataSpecialist(SpecialistAgent):
             orbital_velocity=0.05,
         )
 
+    # Tabla de routing por tool: (keywords_tool, [(keywords_action, action_name)], default_action)
+    # Refactorizado de CC=52 a CC≈8 usando dict dispatch (Forge Fase 1.4).
+    _ROUTING_TABLE: tuple[tuple[
+        tuple[str, ...],                                  # keywords que activan este tool
+        list[tuple[tuple[str, ...], str]],                # (keywords de action, action_name)
+        str,                                              # default action
+        str,                                              # tool name
+    ], ...] = (
+        (
+            ("postgres", "postgresql", "sql", "base datos", "base de datos", "consulta sql"),
+            [
+                (("listar tablas", "list tables", "ver tablas"), "list_tables"),
+                (("esquema", "schema", "estructura tabla"), "get_schema"),
+                (("insertar", "crear registro", "alta", "insert"), "insert"),
+                (("actualizar", "modificar", "update"), "update"),
+                (("ejecutar", "execute", "ddl", "alter", "create table"), "execute"),
+            ],
+            "query",
+            "postgresql",
+        ),
+        (
+            ("drive", "google drive", "subir archivo", "archivo drive"),
+            [
+                (("subir", "upload", "subir archivo"), "upload"),
+                (("descargar", "download", "bajar archivo"), "download"),
+                (("buscar", "search"), "search"),
+                (("eliminar archivo", "borrar archivo", "delete"), "delete"),
+                (("crear carpeta", "nueva carpeta", "create folder"), "create_folder"),
+            ],
+            "list_files",
+            "drive",
+        ),
+        (
+            ("sheets", "hoja cálculo", "hoja calculo", "google sheets", "spreadsheet"),
+            [
+                (("escribir", "write", "sobrescribir"), "write_sheet"),
+                (("añadir fila", "agregar fila", "append", "append row"), "append_row"),
+                (("celda", "update cell", "actualizar celda"), "update_cell"),
+                (("crear hoja", "nueva hoja", "create spreadsheet"), "create_spreadsheet"),
+            ],
+            "read_sheet",
+            "sheets",
+        ),
+        (
+            ("colección", "coleccion", "collection", "data keeper"),
+            [
+                (("crear colección", "crear coleccion", "create collection", "nueva colección"), "create_collection"),
+                (("insertar", "agregar registro", "alta registro", "insert"), "insert"),
+                (("actualizar", "modificar", "update"), "update"),
+                (("eliminar", "borrar", "delete"), "delete"),
+                (("consultar", "buscar", "query", "filtrar"), "query"),
+                (("info colección", "info coleccion", "información colección"), "get_collection_info"),
+            ],
+            "list_collections",
+            "data_keeper",
+        ),
+    )
+
+    def _match_action(self, desc: str, actions: list[tuple[tuple[str, ...], str]], default: str) -> str:
+        """Devuelve la primera action cuyas keywords matcheen, sino default."""
+        for keywords, action_name in actions:
+            if any(kw in desc for kw in keywords):
+                return action_name
+        return default
+
     def route_action(self, subtask: Subtask) -> tuple[str, str, dict[str, Any]]:
-        """Decide qué tool y action ejecutar según el subtask."""
+        """Decide qué tool y action ejecutar según el subtask.
+
+        Implementación basada en tabla de routing (`_ROUTING_TABLE`) para
+        mantener baja la complejidad ciclomática. Antes CC=52, ahora CC≈8.
+        """
         desc = (subtask.get("description") or "").lower()
         params = {k: v for k, v in subtask.get("params", {}).items() if k not in ("query", "message")}
 
-        # --- PostgreSQL routing ---
-        if any(kw in desc for kw in ["postgres", "postgresql", "sql", "base datos", "base de datos", "consulta sql"]):
-            if any(kw in desc for kw in ["listar tablas", "list tables", "ver tablas"]):
-                return "postgresql", "list_tables", params
-            if any(kw in desc for kw in ["esquema", "schema", "estructura tabla"]):
-                return "postgresql", "get_schema", params
-            if any(kw in desc for kw in ["insertar", "crear registro", "alta", "insert"]):
-                return "postgresql", "insert", params
-            if any(kw in desc for kw in ["actualizar", "modificar", "update"]):
-                return "postgresql", "update", params
-            if any(kw in desc for kw in ["ejecutar", "execute", "ddl", "alter", "create table"]):
-                return "postgresql", "execute", params
-            # Default postgresql: query
-            return "postgresql", "query", params
+        for tool_keywords, actions, default_action, tool_name in self._ROUTING_TABLE:
+            if any(kw in desc for kw in tool_keywords):
+                action_name = self._match_action(desc, actions, default_action)
+                return tool_name, action_name, params
 
-        # --- Drive routing ---
-        if any(kw in desc for kw in ["drive", "google drive", "subir archivo", "archivo drive"]):
-            if any(kw in desc for kw in ["subir", "upload", "subir archivo"]):
-                return "drive", "upload", params
-            if any(kw in desc for kw in ["descargar", "download", "bajar archivo"]):
-                return "drive", "download", params
-            if any(kw in desc for kw in ["buscar", "search"]):
-                return "drive", "search", params
-            if any(kw in desc for kw in ["eliminar archivo", "borrar archivo", "delete"]):
-                return "drive", "delete", params
-            if any(kw in desc for kw in ["crear carpeta", "nueva carpeta", "create folder"]):
-                return "drive", "create_folder", params
-            # Default drive: listar archivos
-            return "drive", "list_files", params
-
-        # --- Sheets routing ---
-        if any(kw in desc for kw in ["sheets", "hoja cálculo", "hoja calculo", "google sheets", "spreadsheet"]):
-            if any(kw in desc for kw in ["escribir", "write", "sobrescribir"]):
-                return "sheets", "write_sheet", params
-            if any(kw in desc for kw in ["añadir fila", "agregar fila", "append", "append row"]):
-                return "sheets", "append_row", params
-            if any(kw in desc for kw in ["celda", "update cell", "actualizar celda"]):
-                return "sheets", "update_cell", params
-            if any(kw in desc for kw in ["crear hoja", "nueva hoja", "create spreadsheet"]):
-                return "sheets", "create_spreadsheet", params
-            # Default sheets: leer
-            return "sheets", "read_sheet", params
-
-        # --- DataKeeper routing ---
-        if any(kw in desc for kw in ["colección", "coleccion", "collection", "data keeper"]):
-            if any(kw in desc for kw in ["crear colección", "crear coleccion", "create collection", "nueva colección"]):
-                return "data_keeper", "create_collection", params
-            if any(kw in desc for kw in ["insertar", "agregar registro", "alta registro", "insert"]):
-                return "data_keeper", "insert", params
-            if any(kw in desc for kw in ["actualizar", "modificar", "update"]):
-                return "data_keeper", "update", params
-            if any(kw in desc for kw in ["eliminar", "borrar", "delete"]):
-                return "data_keeper", "delete", params
-            if any(kw in desc for kw in ["consultar", "buscar", "query", "filtrar"]):
-                return "data_keeper", "query", params
-            if any(kw in desc for kw in ["info colección", "info coleccion", "información colección"]):
-                return "data_keeper", "get_collection_info", params
-            # Default data_keeper: listar colecciones
-            return "data_keeper", "list_collections", params
-
-        # --- Default seguro: listar colecciones ---
+        # Default seguro: listar colecciones en data_keeper
         return "data_keeper", "list_collections", params
 
     def handle(self, subtask: Subtask) -> SpecialistResult:

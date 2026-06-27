@@ -42,7 +42,7 @@ import type {
 type View = "list" | "detail" | "create" | "edit"
 
 export default function TenantsPage() {
-  const { createTenant, getTenant, updateTenant, deleteTenant, suspendTenant, activateTenant, listUsers, addUser, listFeatures, toggleFeature } = useTenants()
+  const { createTenant, getTenant, deleteTenant, suspendTenant, activateTenant, listUsers, addUser, listFeatures, toggleFeature } = useTenants()
   const [view, setView] = useState<View>("list")
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
   const [tenants, setTenants] = useState<TenantResponse[]>([])
@@ -53,20 +53,32 @@ export default function TenantsPage() {
   const [creating, setCreating] = useState(false)
 
   // Resetea loading al cambiar de vista
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLoading(false)
   }, [view])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Form states
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string
+    slug: string
+    plan: "free" | "smb" | "enterprise"
+  }>({
     name: "",
     slug: "",
-    plan: "free" as const,
+    plan: "free",
   })
-  const [userForm, setUserForm] = useState({
+  const [userForm, setUserForm] = useState<{
+    username: string
+    password: string
+    role: "admin" | "editor" | "viewer"
+    display_name: string
+    email: string
+  }>({
     username: "",
     password: "",
-    role: "editor" as const,
+    role: "editor",
     display_name: "",
     email: "",
   })
@@ -87,6 +99,10 @@ export default function TenantsPage() {
         slug: form.slug,
         plan: form.plan,
       })
+      if (!newTenant) {
+        toast({ title: "Error creando tenant", variant: "error" })
+        return
+      }
       setTenants((prev) => [...prev, newTenant])
       setTenant(newTenant)
       setSelectedTenantId(newTenant.id)
@@ -108,6 +124,10 @@ export default function TenantsPage() {
         listUsers(id),
         listFeatures(id),
       ])
+      if (!t || !u || !f) {
+        toast({ title: "Error cargando tenant", variant: "error" })
+        return
+      }
       setTenant(t)
       setUsers(u)
       setFeatures(f.features)
@@ -170,7 +190,7 @@ export default function TenantsPage() {
       toast({ title: `Usuario "${userForm.username}" agregado`, variant: "success" })
       setUserForm({ username: "", password: "", role: "editor", display_name: "", email: "" })
       const updatedUsers = await listUsers(selectedTenantId)
-      setUsers(updatedUsers)
+      if (updatedUsers) setUsers(updatedUsers)
     } catch (err) {
       toast({ title: "Error agregando usuario", description: humanError(err), variant: "error" })
     }
@@ -191,11 +211,13 @@ export default function TenantsPage() {
   }
 
   // Load tenant data when selecting for detail
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (view === "detail" && selectedTenantId) {
       loadTenant(selectedTenantId)
     }
   }, [view, selectedTenantId, loadTenant])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // ── Render: List ────────────────────────────────
 

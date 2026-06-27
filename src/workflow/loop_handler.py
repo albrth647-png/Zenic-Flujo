@@ -176,7 +176,7 @@ class LoopHandler:
         self._ensure_loop_variable(loop_var_name, step)
 
         # Fix BUG-W7: filtrar variables por prefijo para no mezclar workflows ajenos
-        all_vars = [n for n in self._ctx.ovc.get_all_variables().keys() if n.startswith(orbital_prefix)]
+        all_vars = [n for n in self._ctx.ovc.get_all_variables() if n.startswith(orbital_prefix)]
         if len(all_vars) >= 2:
             try:
                 from src.orbital.models import CicloOrbital

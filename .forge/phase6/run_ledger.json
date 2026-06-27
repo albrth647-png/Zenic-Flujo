@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase6-homologation",
+  "spec": "Fase 6 del rollout Code-Forge: Homologación por Módulo.\nObjetivo: Aplicar el ciclo completo code-forge a cada módulo del proyecto en orden de criticidad.\nOrden:\n  6.1 src/core/ (infraestructura base)\n  6.2 src/orbital/ (motor determinista)\n  6.3 src/hat/ (HAT 5 niveles)\n  6.4 src/events/ (EventBus)\n  6.5 src/nlu/ (NLU pipeline)\n  6.6 src/workflow/ (motor de workflows)\n  6.7 src/hat/level5_tools/ (19 tools ZF)\n  6.8 src/web/ (Flask UI)\n  6.9 src/api_v2/ (FastAPI)\n  6.10 frontend/src/ (SPA React)\n  6.11 src/connectors/ (65 conectores)\n  6.12 src/tools/ (tools legacy)\nPor cada módulo: forge init + forge verify + remediación + documentación en forge/docs/fase6/.\nCriterio de salida: cada módulo homologado o documentado como deuda técnica.",
+  "created_at": "2026-06-27T15:47:31.682179+00:00",
+  "updated_at": "2026-06-27T15:47:31.682192+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

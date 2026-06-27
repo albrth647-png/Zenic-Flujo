@@ -37,7 +37,7 @@ def validate_identifier(name: str) -> str:
         El mismo nombre si es válido.
 
     Raises:
-        ValueError: Si el nombre contiene caracteres fuera del set seguro
+        ValueError: Si el nombre contiene caracteres fuera del set[Any] seguro
                     o excede 128 caracteres.
     """
     if not isinstance(name, str) or not name:
@@ -77,7 +77,7 @@ def build_update_query(
     *,
     where_clause: str = "id = ?",
     extra_set: dict[str, Any] | None = None,
-) -> tuple[str, tuple] | None:
+) -> tuple[str, tuple[Any, ...]] | None:
     """Construye una sentencia `UPDATE table SET ... WHERE ...` con placeholders seguros.
 
     Los nombres de columnas se validan contra `allowed_fields` (allowlist estricto).
@@ -87,7 +87,7 @@ def build_update_query(
     Args:
         table: Nombre de la tabla. Se valida con `validate_identifier`.
         allowed_fields: Set de nombres de columna permitidos. Cualquier campo
-            en `fields` que no esté en este set se ignora silenciosamente.
+            en `fields` que no esté en este set[Any] se ignora silenciosamente.
         fields: Dict de {columna: valor} a setear en la cláusula SET.
         where_clause: Cláusula WHERE con placeholders `?`. Default: `"id = ?"`.
             El llamador debe append el valor del WHERE a los params.

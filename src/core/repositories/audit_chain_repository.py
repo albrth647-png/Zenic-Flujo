@@ -68,7 +68,7 @@ class AuditChainRepository:
             action: Qué hace (create, update, delete, execute, ...).
             resource_type: Tipo de recurso (workflow, invoice, ...).
             resource_id: ID del recurso.
-            details: Detalles adicionales (dict serializable).
+            details: Detalles adicionales (dict[str, Any] serializable).
             tenant_id: Tenant al que pertenece el entry.
 
         Returns:
@@ -227,7 +227,7 @@ class AuditChainRepository:
 
     @staticmethod
     def _parse_details(details_str: str | None) -> dict[str, Any]:
-        """Parsea details JSON string a dict (para verificación de hash)."""
+        """Parsea details JSON string a dict[str, Any] (para verificación de hash)."""
         if not details_str:
             return {}
         try:

@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase3-sandbox",
+  "spec": "Fase 3 del rollout Code-Forge: integrar ForgeSandbox en GateRunner.\nObjetivos:\n- 3.1 Verificar ForgeSandbox: tests de fs isolation, network allowlist, rlimits, env sanitization\n- 3.2 Integrar sandbox en gates.py: GateRunner.run_all() debe ejecutar gates dentro del sandbox como context manager\n- 3.3 Modo airgap: detectar offline, desactivar gates que requieran red (npm install, pip install)\nCriterio de salida: ForgeSandbox funcional, integrado en GateRunner, con tests verificando aislamiento.",
+  "created_at": "2026-06-27T14:22:43.903405+00:00",
+  "updated_at": "2026-06-27T14:22:43.903416+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

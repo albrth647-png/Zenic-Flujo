@@ -67,66 +67,97 @@ class InvoiceSpecialist(SpecialistAgent):
             orbital_velocity=0.05,
         )
 
+    # Tabla de routing por tool (refactorizado de CC=47 a CC≈8, Forge Fase 1.4).
+    # Formato: (matcher_func, [(action_keywords, action_name)], default_action, tool_name)
+    _ROUTING_TABLE: tuple[tuple[
+        tuple[str, ...],                                  # keywords que activan este tool
+        list[tuple[tuple[str, ...], str]],                # (action_keywords, action_name)
+        str,                                              # default action
+        str,                                              # tool name
+    ], ...] = (
+        (
+            ("stripe",),
+            [
+                (("suscripción", "subscription"), "create_subscription"),
+                (("link de pago", "payment link", "link"), "create_payment_link"),
+                (("listar cliente", "list customers"), "list_customers"),
+                (("crear cliente", "nuevo cliente"), "create_customer"),
+                (("consultar pago", "retrieve", "estado de pago"), "retrieve_payment_intent"),
+                (("listar factura", "list invoice"), "list_invoices"),
+            ],
+            "create_payment_intent",
+            "stripe",
+        ),
+        (
+            ("mercadopago", "mp "),
+            [
+                (("webhook", "notificación", "notificacion"), "process_webhook"),
+                (("buscar pago", "search"), "search_payments"),
+                (("crear cliente", "nuevo cliente"), "create_customer"),
+                (("consultar pago", "get payment", "estado de pago"), "get_payment"),
+            ],
+            "create_preference",
+            "mercadopago",
+        ),
+        (
+            ("tarjeta",),
+            [],  # sin sub-actions: siempre create_payment_intent en stripe
+            "create_payment_intent",
+            "stripe",
+        ),
+        (
+            ("factura", "invoice", "recibo", "cobrar"),
+            [
+                (("crear", "nueva", "nuevo", "alta", "emitir"), "create_invoice"),
+                (("pagar", "paid", "pagada", "pagado", "marcar pagada"), "mark_paid"),
+                (("vencidas", "adeudadas", "overdue invoices", "facturas vencidas"), "get_overdue_invoices"),
+                (("vencida", "vencimiento", "overdue"), "mark_overdue"),
+                (("cancelar", "anular", "cancel"), "cancel"),
+                (("estadística", "stats", "resumen", "dashboard"), "get_stats"),
+                (("obtener", "buscar", "get", "ver factura"), "get_invoice"),
+            ],
+            "list_invoices",
+            "invoice",
+        ),
+    )
+
+    def _match_action(self, desc: str, actions: list[tuple[tuple[str, ...], str]], default: str) -> str:
+        """Devuelve la primera action cuyas keywords matcheen, sino default."""
+        for keywords, action_name in actions:
+            if any(kw in desc for kw in keywords):
+                return action_name
+        return default
+
+    def _match_tool(self, desc: str) -> tuple[tuple[str, ...], list[tuple[tuple[str, ...], str]], str, str] | None:
+        """Devuelve la entrada de la tabla de routing que aplica al description.
+
+        Soporta matcher especial para `desc.endswith(' mp')` (caso MercadoPago).
+        """
+        for entry in self._ROUTING_TABLE:
+            tool_keywords, _actions, _default_action, tool_name = entry
+            if tool_name == "mercadopago" and desc.endswith(" mp"):
+                return entry
+            if any(kw in desc for kw in tool_keywords):
+                return entry
+        return None
+
     def route_action(self, subtask: Subtask) -> tuple[str, str, dict[str, Any]]:
-        """Decide qué tool y action ejecutar según el subtask."""
+        """Decide qué tool y action ejecutar según el subtask.
+
+        Implementación basada en tabla de routing (`_ROUTING_TABLE`) para
+        mantener baja la complejidad ciclomática. Antes CC=47, ahora CC≈6.
+        """
         desc = (subtask.get("description") or "").lower()
         params = {k: v for k, v in subtask.get("params", {}).items() if k not in ("query", "message")}
 
-        # --- Stripe routing ---
-        if any(kw in desc for kw in ["stripe"]):
-            if any(kw in desc for kw in ["suscripción", "subscription"]):
-                return "stripe", "create_subscription", params
-            if any(kw in desc for kw in ["link de pago", "payment link", "link"]):
-                return "stripe", "create_payment_link", params
-            if any(kw in desc for kw in ["listar cliente", "list customers"]):
-                return "stripe", "list_customers", params
-            if any(kw in desc for kw in ["crear cliente", "nuevo cliente"]):
-                return "stripe", "create_customer", params
-            if any(kw in desc for kw in ["consultar pago", "retrieve", "estado de pago"]):
-                return "stripe", "retrieve_payment_intent", params
-            if any(kw in desc for kw in ["listar factura", "list invoice"]):
-                return "stripe", "list_invoices", params
-            # Default stripe: payment intent
-            return "stripe", "create_payment_intent", params
-
-        # --- MercadoPago routing ---
-        if any(kw in desc for kw in ["mercadopago", "mp "]) or desc.endswith(" mp"):
-            if any(kw in desc for kw in ["webhook", "notificación", "notificacion"]):
-                return "mercadopago", "process_webhook", params
-            if any(kw in desc for kw in ["buscar pago", "search"]):
-                return "mercadopago", "search_payments", params
-            if any(kw in desc for kw in ["crear cliente", "nuevo cliente"]):
-                return "mercadopago", "create_customer", params
-            if any(kw in desc for kw in ["consultar pago", "get payment", "estado de pago"]):
-                return "mercadopago", "get_payment", params
-            # Default mp: create preference
-            return "mercadopago", "create_preference", params
-
-        # --- Tarjeta genérica → stripe ---
-        if any(kw in desc for kw in ["tarjeta"]):
-            return "stripe", "create_payment_intent", params
-
-        # --- Invoice routing ---
-        if any(kw in desc for kw in ["factura", "invoice", "recibo", "cobrar"]):
-            if any(kw in desc for kw in ["crear", "nueva", "nuevo", "alta", "emitir"]):
-                return "invoice", "create_invoice", params
-            if any(kw in desc for kw in ["pagar", "paid", "pagada", "pagado", "marcar pagada"]):
-                return "invoice", "mark_paid", params
-            if any(kw in desc for kw in ["vencidas", "adeudadas", "overdue invoices", "facturas vencidas"]):
-                return "invoice", "get_overdue_invoices", params
-            if any(kw in desc for kw in ["vencida", "vencimiento", "overdue"]):
-                return "invoice", "mark_overdue", params
-            if any(kw in desc for kw in ["cancelar", "anular", "cancel"]):
-                return "invoice", "cancel", params
-            if any(kw in desc for kw in ["estadística", "stats", "resumen", "dashboard"]):
-                return "invoice", "get_stats", params
-            if any(kw in desc for kw in ["obtener", "buscar", "get", "ver factura"]):
-                return "invoice", "get_invoice", params
-            # Default invoice: listar
+        entry = self._match_tool(desc)
+        if entry is None:
+            # Default seguro: listar facturas
             return "invoice", "list_invoices", params
 
-        # --- Default seguro: listar facturas ---
-        return "invoice", "list_invoices", params
+        _tool_keywords, actions, default_action, tool_name = entry
+        action_name = self._match_action(desc, actions, default_action)
+        return tool_name, action_name, params
 
     def handle(self, subtask: Subtask) -> SpecialistResult:
         """Ejecuta el specialist: route → invoke tool → return result."""

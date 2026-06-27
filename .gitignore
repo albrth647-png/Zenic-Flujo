@@ -79,3 +79,16 @@ blueprint_fosos_extracted.txt
 *.db-journal
 *.db-wal
 *.db-shm
+
+# ── Code-Forge artifacts ───────────────────────────────
+# Stryker temp directory (confunde a eslint)
+.stryker-tmp/
+# Coverage reports (generados por vitest --coverage)
+frontend/coverage/
+# Dashboard history (generado dinámicamente, no necesita commitearse)
+.forge/dashboard_history.json
+# Reports directory (generado por forge dashboard)
+reports/
+# Mutmut workspace (generado por mutation testing, no commitear)
+mutants/
+.mutmut-cache/

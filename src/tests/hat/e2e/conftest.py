@@ -10,6 +10,7 @@ causaba 24 falsos negativos.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import tempfile
@@ -98,18 +99,14 @@ def _reset_all_state(hat_router):
         db = DatabaseManager()
         # Limpiar tablas HAT que acumulan entre tests
         for table in ("hat_facts", "hat_hypotheses", "hat_progress"):
-            try:
+            with contextlib.suppress(Exception):
                 db.execute(f"DELETE FROM {table}")  # nosec B608 — table name es literal
-            except Exception:
-                pass  # tabla puede no existir aún
     except Exception:
         pass
 
     # 4. Reset HATRouter session state
-    try:
+    with contextlib.suppress(Exception):
         hat_router._current_session_id = "default"
-    except Exception:
-        pass
 
     yield
 

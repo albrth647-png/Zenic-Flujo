@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forge RunLedger — Template Canónico",
+  "description": "Template canónico para run_ledger.json. Cada cambio al proyecto debe tener un ledger asociado que registre acciones, rollback, approvals y gate results.",
+  "type": "object",
+  "required": ["run_id", "spec", "created_at", "updated_at", "actions", "approvals", "proof", "final_status", "metadata"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Identificador único del run. Formato: forge-<phase>-<topic> o zenic-fix-<YYYYMMDD_HHMMSS>",
+      "examples": ["forge-phase1-rollout", "zenic-fix-20260627_143022", "forge-feature-add-auth"]
+    },
+    "spec": {
+      "type": "string",
+      "description": "SPEC original en texto plano. EARS notation recomendada. Debe responder: qué, por qué, criterio de salida.",
+      "minLength": 10
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO 8601 de creación del ledger (UTC)"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO 8601 de última actualización (UTC)"
+    },
+    "actions": {
+      "type": "array",
+      "description": "Lista de acciones del agente. Cada acción debe tener rollback definido si es high-risk (edit_file, git_commit).",
+      "items": {"$ref": "#/$defs/LedgerAction"}
+    },
+    "approvals": {
+      "type": "array",
+      "description": "Aprobaciones de fase (specify, plan, tasks, implement, verify, fix).",
+      "items": {"$ref": "#/$defs/Approval"}
+    },
+    "proof": {
+      "type": "array",
+      "description": "Resultados de gates (evidence de calidad).",
+      "items": {"$ref": "#/$defs/GateProof"}
+    },
+    "final_status": {
+      "type": "string",
+      "enum": ["running", "pass", "fail", "halted"],
+      "description": "Estado final del run. 'running' durante ejecución, 'pass'/'fail' al completar, 'halted' si se aborta."
+    },
+    "metadata": {"$ref": "#/$defs/LedgerMetadata"},
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp de completación (UTC). Null si final_status='running'."
+    },
+    "rolled_back": {
+      "type": "boolean",
+      "description": "True si el run completo fue rolled back.",
+      "default": false
+    },
+    "rollback_reason": {
+      "type": "string",
+      "description": "Razón del rollback si rolled_back=true.",
+      "default": ""
+    }
+  },
+  "$defs": {
+    "LedgerAction": {
+      "type": "object",
+      "required": ["action_type", "permission", "target", "diff_summary", "before_sha", "after_sha", "rollback", "verified", "timestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "enum": ["edit_file", "create_file", "delete_file", "refactor", "git_commit", "install_dep", "run_test", "run_gate", "other"],
+          "description": "Tipo de acción. 'edit_file' y 'git_commit' requieren rollback obligatorio."
+        },
+        "permission": {
+          "type": "string",
+          "enum": ["allow", "ask", "deny"],
+          "description": "Permiso requerido para ejecutar la acción.",
+          "default": "allow"
+        },
+        "target": {
+          "type": "string",
+          "description": "Archivo o comando afectado. Path relativo al project root para archivos."
+        },
+        "diff_summary": {
+          "type": "string",
+          "description": "Resumen del cambio (máx 200 chars). Ej: 'Added dict dispatch to route_action'",
+          "default": ""
+        },
+        "before_sha": {
+          "type": "string",
+          "description": "Git SHA antes de la acción. Vacío si no aplica.",
+          "default": ""
+        },
+        "after_sha": {
+          "type": "string",
+          "description": "Git SHA después de la acción. Vacío si no aplica.",
+          "default": ""
+        },
+        "rollback": {
+          "type": "string",
+          "description": "Comando para deshacer la acción. OBLIGATORIO para action_type='edit_file' o 'git_commit'. Ej: 'git checkout src/main.py'",
+          "default": ""
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "True si la acción fue verificada (tests pasaron, gate PASS).",
+          "default": false
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp ISO 8601 de la acción (UTC)"
+        },
+        "rolled_back": {
+          "type": "boolean",
+          "description": "True si esta acción específica fue rolled back.",
+          "default": false
+        },
+        "rollback_reason": {
+          "type": "string",
+          "description": "Razón del rollback de esta acción.",
+          "default": ""
+        },
+        "stack": {
+          "type": "string",
+          "enum": ["python", "typescript", "both"],
+          "description": "Stack afectado. 'both' para cambios cross-stack.",
+          "default": "python"
+        },
+        "blast_radius": {
+          "type": "string",
+          "description": "Para action_type='refactor': estimación del impacto. Ej: 'high (3 módulos dependientes)', 'low (1 archivo aislado)'.",
+          "default": ""
+        }
+      }
+    },
+    "Approval": {
+      "type": "object",
+      "required": ["phase", "approved_by", "timestamp", "notes"],
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "type": "string",
+          "enum": ["specify", "plan", "tasks", "implement", "verify", "fix", "final"],
+          "description": "Fase aprobada."
+        },
+        "approved_by": {
+          "type": "string",
+          "description": "Quien aprueba. 'human' para approval manual, 'auto' para automático."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notas adicionales del approval.",
+          "default": ""
+        }
+      }
+    },
+    "GateProof": {
+      "type": "object",
+      "required": ["gate_name", "passed", "evidence", "stack", "timestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "gate_name": {
+          "type": "string",
+          "enum": ["tests_pass", "tests_deterministic", "no_security_issues", "no_broken_imports", "no_circular_imports", "integration_smoke", "coverage_branch", "lint_clean", "types_clean", "mutation_score", "complexity_max", "test_quality"],
+          "description": "Nombre del gate."
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "True si el gate pasó, False si falló o fue SKIPPED."
+        },
+        "evidence": {
+          "type": "string",
+          "description": "Evidence del gate (stdout resumen, error, o 'SKIPPED: ...'). Máx 500 chars.",
+          "default": ""
+        },
+        "stack": {
+          "type": "string",
+          "enum": ["python", "typescript", "ambos"],
+          "description": "Stack del gate."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "LedgerMetadata": {
+      "type": "object",
+      "required": ["hard_gates_passed", "soft_score", "total_files_changed", "rollbacks_executed", "canary_fixes_applied"],
+      "additionalProperties": false,
+      "properties": {
+        "hard_gates_passed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6,
+          "description": "Número de hard gates que pasaron (max 6).",
+          "default": 0
+        },
+        "soft_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Score ponderado de soft goals (0-10). Threshold: 8.0.",
+          "default": 0.0
+        },
+        "total_files_changed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total de archivos modificados (incrementado por cada edit_file).",
+          "default": 0
+        },
+        "rollbacks_executed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Número de rollbacks ejecutados.",
+          "default": 0
+        },
+        "canary_fixes_applied": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Número de canary fixes aplicados (1 archivo a la vez).",
+          "default": 0
+        }
+      }
+    }
+  }
+}

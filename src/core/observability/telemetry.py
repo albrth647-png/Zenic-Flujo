@@ -303,7 +303,7 @@ class TelemetryService(
 
         Args:
             config_key: Clave de configuracion
-            config_value: Valor de configuracion (dict serializable)
+            config_value: Valor de configuracion (dict[str, Any] serializable)
             tenant_id: ID del tenant (default: global)
         """
         now = datetime.now(UTC).isoformat()
@@ -328,7 +328,7 @@ class TelemetryService(
             tenant_id: ID del tenant
 
         Returns:
-            Configuracion como dict, o None si no existe
+            Configuracion como dict[str, Any], o None si no existe
         """
         row = self._db.fetchone(
             "SELECT config_value FROM telemetry_config WHERE tenant_id = ? AND config_key = ?",
@@ -353,7 +353,7 @@ class TelemetryService(
         logger.info("TelemetryService: cerrando...")
 
         # Cerrar spans pendientes
-        for key, span in list(self._active_spans.items()):
+        for key, span in list[Any](self._active_spans.items()):
             try:
                 self._tracing.end_span(span)
             except Exception as e:

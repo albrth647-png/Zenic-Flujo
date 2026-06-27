@@ -268,8 +268,7 @@ class TestRetrofeed:
         # Al menos algunas variables deben tener theta diferente
         changed = 0
         for name in phases_before:
-            if name in phases_after:
-                if not math.isclose(phases_before[name], phases_after[name], abs_tol=1e-9):
+            if name in phases_after and not math.isclose(phases_before[name], phases_after[name], abs_tol=1e-9):
                     changed += 1
         assert changed > 0, "ninguna fase cambió después de run_tick (retrofeed no funciona)"
 

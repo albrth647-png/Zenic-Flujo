@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase2-ts-gates",
+  "spec": "Fase 2 del rollout Code-Forge: ejecutar los gates TypeScript sobre frontend/src/.\nObjetivos:\n- lint_clean (eslint): diagnosticar y aplicar auto-fix sobre frontend/src/\n- types_clean (tsc --noEmit --strict): diagnosticar errores\n- tests_pass (vitest run): verificar suite existe y pasa; si no, smoke tests\n- no_circular_imports (madge): ya verificado en Fase 1 (0 ciclos)\n- mutation_score (stryker): baseline solo en módulos core del frontend\n- coverage_branch (vitest --coverage): diagnóstico\n- complexity_max (eslint complexity rule): diagnóstico\nCriterio de salida: reporte consolidado con score por gate, comparativa con baseline, y plan de remediación.",
+  "created_at": "2026-06-27T13:35:04.948745+00:00",
+  "updated_at": "2026-06-27T13:35:04.948756+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

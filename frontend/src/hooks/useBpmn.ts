@@ -35,7 +35,7 @@ export function useBpmn() {
     setLoading(true); setError(null)
     try {
       return await apiFetch<BPMNImportResponse>(`${BASE}/import?validate=${validate}`, {
-        method: "POST", body: { xml_content: xmlContent, validate },
+        method: "POST", body: JSON.stringify({ xml_content: xmlContent, validate }),
       })
     } catch (e) { return handleError(e) } finally { setLoading(false) }
   }, [handleError])
@@ -61,7 +61,7 @@ export function useBpmn() {
     setLoading(true); setError(null)
     try {
       return await apiFetch<BPMNValidateResponse>(`${BASE}/validate`, {
-        method: "POST", body: { xml_content: xmlContent },
+        method: "POST", body: JSON.stringify({ xml_content: xmlContent }),
       })
     } catch (e) { return handleError(e) } finally { setLoading(false) }
   }, [handleError])

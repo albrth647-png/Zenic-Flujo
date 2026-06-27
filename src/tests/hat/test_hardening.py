@@ -82,7 +82,6 @@ class TestBugW5Fix:
         ctx = OrbitalContext()
         tor_before = ctx.tor
         rcc_before = ctx.rcc
-        cod_before = ctx.cod
 
         ctx.engine.reset()
 

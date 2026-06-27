@@ -22,6 +22,7 @@ Paradigma: CIRCULAR — Lo que un componente retroalimenta, otro lo recibe.
 from __future__ import annotations
 
 import threading
+from typing import Any
 
 from src.core.logging import setup_logging
 from src.orbital.cod import COD
@@ -148,7 +149,7 @@ class OrbitalContext:
 
     # ── Consultas ──────────────────────────────────────────────
 
-    def get_snapshot(self) -> dict:
+    def get_snapshot(self) -> dict[str, Any]:
         """Retorna un snapshot completo del estado orbital compartido."""
         # Fix Sprint 2 bug #13: usar métodos públicos en vez de atributos privados.
         rcc_cycle_count = (
@@ -232,10 +233,9 @@ class OrbitalContext:
             # Fallback: iterar y eliminar una por una
             var_names = list(self._ovc.get_variable_names())
             for name in var_names:
-                if name.startswith(prefix):
-                    if hasattr(self._ovc, "delete_variable"):
-                        self._ovc.delete_variable(name)
-                        removed += 1
+                if name.startswith(prefix) and hasattr(self._ovc, "delete_variable"):
+                    self._ovc.delete_variable(name)
+                    removed += 1
 
         # Limpiar ciclo fantasma workflow_cycle_<exec_id> si existe
         cycle_name = f"workflow_cycle_{execution_id}"

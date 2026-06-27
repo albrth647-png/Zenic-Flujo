@@ -201,7 +201,7 @@ function Editor() {
             } as WorkflowNode,
           ])
         }
-      } catch (e) {
+      } catch {
         // Invalid payload — silently ignored
       }
     },

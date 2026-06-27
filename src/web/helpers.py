@@ -102,7 +102,7 @@ def _check_rate_limit(ip: str) -> bool:
     if ip not in _login_attempts:
         _login_attempts[ip] = []
     _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < window]
-    if len(_login_attempts[ip]) >= LOGIN_MAX_ATTEMPTS:
+    if len(_login_attempts[ip]) >= LOGIN_MAX_ATTEMPTS:  # noqa: SIM103
         return False
     # NO registrar aquí — solo registrar cuando el login FALLA (ver _register_failed_login)
     return True

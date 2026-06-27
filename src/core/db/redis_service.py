@@ -14,7 +14,7 @@ Configuracion via variables de entorno:
 
 Caracteristicas:
 - Singleton thread-safe con doble check locking
-- Cache: get, set, delete, exists, expire, ttl
+- Cache: get, set[Any], delete, exists, expire, ttl
 - Cache JSON: get_json, set_json con serializacion automatica
 - PubSub: publish, subscribe, unsubscribe
 - Sesiones: set_session, get_session, delete_session
@@ -27,6 +27,7 @@ Caracteristicas:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import threading
@@ -143,7 +144,7 @@ class RedisService:
             logger.error(f"Redis get error para key={key}: {e}")
             return None
 
-    def set(self, key: str, value: str, ttl: int | None = None) -> bool:
+    def set[Any](self, key: str, value: str, ttl: int | None = None) -> bool:
         """
         Establece un valor en el cache.
 
@@ -157,10 +158,10 @@ class RedisService:
         """
         try:
             client = self._get_client()
-            result = client.setex(key, ttl, value) if ttl is not None else client.set(key, value)
+            result = client.setex(key, ttl, value) if ttl is not None else client.set[Any](key, value)
             return bool(result)
         except Exception as e:
-            logger.error(f"Redis set error para key={key}: {e}")
+            logger.error(f"Redis set[Any] error para key={key}: {e}")
             return False
 
     def delete(self, key: str) -> int:
@@ -267,7 +268,7 @@ class RedisService:
         """
         try:
             serialized = json.dumps(value, default=str, ensure_ascii=False)
-            return self.set(key, serialized, ttl=ttl)
+            return self.set[Any](key, serialized, ttl=ttl)
         except (TypeError, ValueError) as e:
             logger.error(f"Redis set_json: error serializando key={key}: {e}")
             return False
@@ -338,7 +339,7 @@ class RedisService:
             logger.error(f"Redis unsubscribe error en canal={channel}: {e}")
             return False
 
-    def get_message(self, timeout: float = 0.1) -> dict | None:
+    def get_message(self, timeout: float = 0.1) -> dict[str, Any] | None:
         """
         Obtiene un mensaje del PubSub (no bloqueante por defecto).
 
@@ -346,7 +347,7 @@ class RedisService:
             timeout: Tiempo de espera en segundos
 
         Returns:
-            Mensaje como dict o None
+            Mensaje como dict[str, Any] o None
         """
         try:
             if self._pubsub is not None:
@@ -363,13 +364,13 @@ class RedisService:
 
     # ── Sesiones ─────────────────────────────────────────────
 
-    def set_session(self, session_id: str, data: dict, ttl: int = 86400) -> bool:
+    def set_session(self, session_id: str, data: dict[str, Any], ttl: int = 86400) -> bool:
         """
         Almacena datos de sesion.
 
         Args:
             session_id: ID de la sesion
-            data: Datos de la sesion como dict
+            data: Datos de la sesion como dict[str, Any]
             ttl: Tiempo de vida en segundos (default: 24h)
 
         Returns:
@@ -378,7 +379,7 @@ class RedisService:
         key = f"{_SESSION_PREFIX}{session_id}"
         return self.set_json(key, data, ttl=ttl)
 
-    def get_session(self, session_id: str) -> dict | None:
+    def get_session(self, session_id: str) -> dict[str, Any] | None:
         """
         Obtiene datos de sesion.
 
@@ -386,7 +387,7 @@ class RedisService:
             session_id: ID de la sesion
 
         Returns:
-            Datos de la sesion como dict o None
+            Datos de la sesion como dict[str, Any] o None
         """
         key = f"{_SESSION_PREFIX}{session_id}"
         return self.get_json(key)
@@ -406,7 +407,7 @@ class RedisService:
 
     # ── Rate Limiting ────────────────────────────────────────
 
-    def check_rate_limit(self, key: str, max_requests: int, window_seconds: int) -> dict:
+    def check_rate_limit(self, key: str, max_requests: int, window_seconds: int) -> dict[str, Any]:
         """
         Verifica si una accion esta dentro del limite de frecuencia.
 
@@ -418,7 +419,7 @@ class RedisService:
             window_seconds: Tamano de la ventana en segundos
 
         Returns:
-            dict con allowed (bool), remaining (int), reset_at (int)
+            dict[str, Any] con allowed (bool), remaining (int), reset_at (int)
         """
         redis_key = f"{_RATE_LIMIT_PREFIX}{key}"
         try:
@@ -428,7 +429,7 @@ class RedisService:
             now = int(time.time())
             window_start = now - window_seconds
 
-            # Usar sorted set para sliding window
+            # Usar sorted set[Any] para sliding window
             pipe.zremrangebyscore(redis_key, 0, window_start)
             pipe.zcard(redis_key)
             pipe.zadd(redis_key, {str(now): now})
@@ -490,7 +491,7 @@ class RedisService:
         token = str(uuid.uuid4())
         try:
             client = self._get_client()
-            acquired = client.set(redis_key, token, nx=True, ex=timeout)
+            acquired = client.set[Any](redis_key, token, nx=True, ex=timeout)
             if acquired:
                 logger.debug(f"Lock adquirido: {name} (token={token})")
                 return token
@@ -558,8 +559,8 @@ class RedisService:
 
         Uso:
             pipe = redis_service.pipeline()
-            pipe.set("key1", "val1")
-            pipe.set("key2", "val2")
+            pipe.set[Any]("key1", "val1")
+            pipe.set[Any]("key2", "val2")
             pipe.get("key1")
             results = redis_service.execute_pipeline(pipe)
         """
@@ -598,12 +599,12 @@ class RedisService:
             logger.error(f"Redis ping fallido: {e}")
             return False
 
-    def get_info(self) -> dict:
+    def get_info(self) -> dict[str, Any]:
         """
         Retorna informacion del servidor Redis.
 
         Returns:
-            dict con informacion del servidor
+            dict[str, Any] con informacion del servidor
         """
         try:
             client = self._get_client()
@@ -651,8 +652,6 @@ class RedisService:
         """
         with cls._lock:
             if cls._instance is not None:
-                try:
+                with contextlib.suppress(Exception):
                     cls._instance.close()
-                except Exception:
-                    pass
                 cls._instance = None

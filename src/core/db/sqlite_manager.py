@@ -6,6 +6,7 @@ Gestion de UNA sola base de datos: workflow_determinista.db
 import sqlite3
 import threading
 from pathlib import Path
+from typing import Any
 
 from src.core.config import DB_PATH
 from src.core.db.interfaces import DatabaseInterface
@@ -717,16 +718,16 @@ class DatabaseManager(DatabaseInterface):
         conn = self.get_connection()
         return conn.executemany(sql, params_list)
 
-    def fetchone(self, sql: str, params: tuple = ()) -> dict | None:
-        """Ejecuta una consulta y retorna una fila como dict."""
+    def fetchone(self, sql: str, params: tuple = ()) -> dict[str, Any] | None:
+        """Ejecuta una consulta y retorna una fila como dict[str, Any]."""
         cursor = self.execute(sql, params)
         row = cursor.fetchone()
-        return dict(row) if row else None
+        return dict[str, Any](row) if row else None
 
-    def fetchall(self, sql: str, params: tuple = ()) -> list[dict]:
+    def fetchall(self, sql: str, params: tuple = ()) -> list[dict[str, Any]]:
         """Ejecuta una consulta y retorna todas las filas como lista de dicts."""
         cursor = self.execute(sql, params)
-        return [dict(row) for row in cursor.fetchall()]
+        return [dict[str, Any](row) for row in cursor.fetchall()]
 
     def commit(self) -> None:
         """Confirma la transaccion actual."""
@@ -775,23 +776,23 @@ class DatabaseManager(DatabaseInterface):
         """Wrapper: delega a AuditRepository."""
         self._audit.log(event, details, ip_address, user_id)
 
-    def create_user(self, username: str, password: str, role: str = "admin", display_name: str = "", email: str = "") -> dict:
+    def create_user(self, username: str, password: str, role: str = "admin", display_name: str = "", email: str = "") -> dict[str, Any]:
         """Wrapper: delega a UserRepository."""
         return self._users.create_user(username, password, role, display_name, email)
 
-    def get_user(self, user_id: int) -> dict | None:
+    def get_user(self, user_id: int) -> dict[str, Any] | None:
         """Wrapper: delega a UserRepository."""
         return self._users.get_user(user_id)
 
-    def get_user_by_username(self, username: str) -> dict | None:
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
         """Wrapper: delega a UserRepository."""
         return self._users.get_user_by_username(username)
 
-    def list_users(self) -> list[dict]:
+    def list_users(self) -> list[dict[str, Any]]:
         """Wrapper: delega a UserRepository."""
         return self._users.list_users()
 
-    def update_user(self, user_id: int, updates: dict) -> bool:
+    def update_user(self, user_id: int, updates: dict[str, Any]) -> bool:
         """Wrapper: delega a UserRepository."""
         return self._users.update_user(user_id, updates)
 

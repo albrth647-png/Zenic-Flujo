@@ -5,6 +5,7 @@ VERIFY F0-D8 — 10 verificaciones del protocolo Code-Forge Agent v2.0.
 from __future__ import annotations
 
 import ast
+import contextlib
 import re
 from pathlib import Path
 
@@ -25,11 +26,9 @@ def test_v01_tests_pass():
     assert spec is not None, f"No se pudo cargar spec de {test_path}"
     assert spec.loader is not None, "Spec loader es None"
     module = importlib.util.module_from_spec(spec)
-    try:
+    with contextlib.suppress(SystemExit):
         spec.loader.exec_module(module)  # type: ignore[union-attr]
-    except SystemExit:
-        pass
-    test_funcs = [n for n in dir(module) if n.startswith("test_") or n.startswith("Test")]
+    test_funcs = [n for n in dir(module) if n.startswith(("test_", "Test"))]
     assert len(test_funcs) > 0, f"No se encontraron tests en {test_path}"
 
 
@@ -46,7 +45,7 @@ def test_v02_coverage_above_90():
         src = filepath.read_text()
         tree = ast.parse(src)
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
+            if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):  # noqa: SIM102
                 if node.col_offset == 0 and node.name != "main":
                     assert node.name in test_src, (
                         f"{filepath.name}: función {node.name} no en tests"
@@ -124,9 +123,8 @@ def test_v07_no_circular_imports():
         # Verificar que no hay imports circulares internos al script
         tree = ast.parse(src)
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module and "benchmark_hat" in node.module:
-                    pytest.fail(f"Import circular en {filepath.name}")
+            if isinstance(node, ast.ImportFrom) and node.module and "benchmark_hat" in node.module:
+                pytest.fail(f"Import circular en {filepath.name}")
 
 
 def test_v08_complexity_below_7():

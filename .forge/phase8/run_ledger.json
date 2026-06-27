@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase8-docs",
+  "spec": "Fase 8 del rollout Code-Forge: Documentación y Onboarding.\nObjetivos:\n- 8.1 Quickstart: docs/fase8/quickstart.md — cómo empezar a usar code-forge\n- 8.2 Workflow de desarrollo: docs/fase8/workflow.md — forge start/verify/fix/commit/pr\n- 8.3 Training: 3 ejemplos concretos en docs/fase8/examples/:\n  - 01-fix-bug-crm.md — fix de bug con ciclo completo\n  - 02-add-tool.md — añadir una tool N4 paso a paso\n  - 03-refactor-module.md — refactor con gates y rollback\n- 8.4 README principal de forge/ actualizado con links a toda la documentación\nCriterio de salida: documentación completa (quickstart + workflow + 3 ejemplos).",
+  "created_at": "2026-06-27T16:15:58.420643+00:00",
+  "updated_at": "2026-06-27T16:15:58.420653+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

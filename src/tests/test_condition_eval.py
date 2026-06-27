@@ -143,7 +143,7 @@ class TestConditionEvaluator:
         lines = source.split("\n")
         for line in lines:
             stripped = line.strip()
-            if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
+            if stripped.startswith(("#", '"""', "'''")):
                 continue
             # Allow the word "eval" in comments/strings but not as a function call
             if "eval(" in stripped and "NUNCA" not in stripped and "eval_ast" not in stripped:

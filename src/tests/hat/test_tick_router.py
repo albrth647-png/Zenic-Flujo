@@ -20,17 +20,17 @@ pytestmark = pytest.mark.skip(
            "está en src/tests/hat/e2e/test_e2e_hat.py."
 )
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime  # noqa: E402
 
-from src.hat.agents_legacy.orchestrator import MultiAgentOrchestrator
+from src.hat.agents_legacy.orchestrator import MultiAgentOrchestrator  # noqa: E402
 
 # WebResearcherSpecialist / QueryBuilderWorker were eliminated in HAT v2.
 # Tests that referenced them via the router_with_cards fixture are skipped
 # at the module level (see pytestmark above).
-from src.hat.level1_orchestrator.ledger.ovc_bridge import OVCLedgerBridge
-from src.hat.level1_orchestrator.ledger.repository import LedgerRepository
-from src.hat.level1_orchestrator.tick_router import HATRouter
-from src.orbital.context import OrbitalContext
+from src.hat.level1_orchestrator.ledger.ovc_bridge import OVCLedgerBridge  # noqa: E402
+from src.hat.level1_orchestrator.ledger.repository import LedgerRepository  # noqa: E402
+from src.hat.level1_orchestrator.tick_router import HATRouter  # noqa: E402
+from src.orbital.context import OrbitalContext  # noqa: E402
 
 
 @pytest.fixture

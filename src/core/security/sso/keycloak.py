@@ -5,6 +5,7 @@ SSO — Keycloak Embebido: auto-configuracion como IdP.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from src.core.db.sqlite_manager import DatabaseManager
 from src.core.logging import setup_logging
@@ -13,14 +14,14 @@ from src.core.security.sso.constants import KEYCLOAK_REALM, KEYCLOAK_URL
 logger = setup_logging(__name__)
 
 
-def auto_configure_keycloak(db: DatabaseManager) -> dict:
+def auto_configure_keycloak(db: DatabaseManager) -> dict[str, Any]:
     """Auto-configura Keycloak como IdP si no hay otros proveedores.
 
     Crea la configuracion del cliente Keycloak para Zenic-Flijo usando
     las variables de entorno WFD_SSO_KEYCLOAK_*.
 
     Returns:
-        dict con status y nombre del proveedor configurado
+        dict[str, Any] con status y nombre del proveedor configurado
     """
     if not KEYCLOAK_URL:
         return {"status": "error", "message": "WFD_SSO_KEYCLOAK_URL no configurada"}

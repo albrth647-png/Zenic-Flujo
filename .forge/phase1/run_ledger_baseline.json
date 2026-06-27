@@ -1,0 +1,414 @@
+{
+  "run_id": "forge-phase1-rollout",
+  "spec": "Fase 1 del rollout Code-Forge: instalar y ejecutar los 6 gates Python sobre src/.\nObjetivos:\n- lint_clean (ruff): diagnosticar y aplicar auto-fix seguro sobre src/\n- types_clean (mypy): diagnosticar con config gradual, documentar errores\n- complexity_max (radon): identificar top-10 funciones con cc > 10\n- no_security_issues: escanear AST sobre src/, listar hallazgos high severity\n- no_broken_imports + no_circular_imports: verificar imports\n- mutation_score (mutmut): baseline solo en módulos core (src/orbital/ y src/core/)\nCriterio de salida: reporte consolidado con score por gate, archivos afectados, y plan de remediación.",
+  "created_at": "2026-06-27T12:30:59.446015+00:00",
+  "updated_at": "2026-06-27T12:30:59.446025+00:00",
+  "actions": [],
+  "approvals": [
+    {
+      "phase": "fix-phase1",
+      "approved_by": "auto",
+      "timestamp": "2026-06-27T12:55:15.769330+00:00",
+      "notes": "Inicio fase de remediación Fase 1"
+    }
+  ],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  },
+  "phase1_gates": {
+    "lint_clean": {
+      "gate": "lint_clean",
+      "stack": "python",
+      "tool": "ruff",
+      "initial_issues": 204,
+      "final_issues": 171,
+      "auto_fixed": 33,
+      "passed": false,
+      "initial_top_codes": {
+        "F405": 59,
+        "E402": 31,
+        "SIM105": 16,
+        "F821": 16,
+        "SIM102": 13,
+        "N815": 12,
+        "RUF002": 9,
+        "F841": 9,
+        "RUF013": 7,
+        "B904": 4,
+        "F401": 4,
+        "SIM108": 4,
+        "RUF003": 3,
+        "UP042": 3,
+        "B905": 3
+      },
+      "final_top_codes": {
+        "F405": 59,
+        "E402": 31,
+        "F821": 16,
+        "N815": 12,
+        "RUF002": 9,
+        "SIM105": 9,
+        "F841": 9,
+        "SIM102": 7,
+        "B904": 4,
+        "F401": 4,
+        "F403": 3,
+        "RUF003": 3,
+        "RUF001": 1,
+        "N817": 1,
+        "RUF043": 1
+      },
+      "evidence": "ruff check src/ → 171 issues (initial: 204)"
+    },
+    "types_clean": {
+      "gate": "types_clean",
+      "stack": "python",
+      "tool": "mypy",
+      "config": "mypy.ini (gradual: core/orbital/level1 strict; level4/level5/connectors/web/api_v2/tests permisivo)",
+      "errors": 4075,
+      "notes": 164,
+      "passed": false,
+      "top_codes": {
+        "type-arg": 1232,
+        "no-untyped-call": 814,
+        "union-attr": 367,
+        "no-untyped-def": 310,
+        "untyped-decorator": 190,
+        "no-any-return": 187,
+        "unused-ignore": 144,
+        "arg-type": 143,
+        "attr-defined": 113,
+        "assignment": 106,
+        "misc": 98,
+        "index": 81,
+        "has-type": 69,
+        "typeddict-item": 55,
+        "operator": 44
+      },
+      "top_files": {
+        "src/tests/test_foso2_fase2e.py": 133,
+        "src/tests/test_orbital_fase2.py": 59,
+        "src/api_v2/models.py": 57,
+        "src/tests/test_api.py": 46,
+        "src/sync/engine.py": 44,
+        "src/tests/test_foso2_fase2c.py": 39,
+        "src/workflow/workflow_variables.py": 38,
+        "src/workflow/engine.py": 38,
+        "src/tests/test_integrations.py": 37,
+        "src/tests/test_foso2_fase2b.py": 37,
+        "src/tests/test_environment_promotion.py": 35,
+        "src/tests/test_orbital_fase3.py": 33,
+        "src/web/blueprints/tools.py": 32,
+        "src/workflow/condition_evaluator.py": 28,
+        "src/partnership/service.py": 27
+      },
+      "evidence": "mypy src/ → 4075 errors, 164 notes"
+    },
+    "complexity_max": {
+      "gate": "complexity_max",
+      "stack": "python",
+      "tool": "radon cc",
+      "blocks_high_complexity": 28,
+      "blocks_over_max": 28,
+      "max_threshold": 10,
+      "passed": false,
+      "top_20_complex": [
+        {
+          "file": "src/hat/level3_specialists/datos_auto/data_specialist.py",
+          "name": "route_action",
+          "type": "method",
+          "complexity": 52,
+          "rank": "F",
+          "lineno": 74
+        },
+        {
+          "file": "src/orbital/haken.py",
+          "name": "analyze",
+          "type": "method",
+          "complexity": 51,
+          "rank": "F",
+          "lineno": 214
+        },
+        {
+          "file": "src/hat/level3_specialists/operaciones/invoice_specialist.py",
+          "name": "route_action",
+          "type": "method",
+          "complexity": 47,
+          "rank": "F",
+          "lineno": 70
+        },
+        {
+          "file": "src/hat/level3_specialists/datos_auto/code_specialist.py",
+          "name": "route_action",
+          "type": "method",
+          "complexity": 43,
+          "rank": "F",
+          "lineno": 78
+        },
+        {
+          "file": "src/workflow/workflow_variables.py",
+          "name": "execute",
+          "type": "method",
+          "complexity": 35,
+          "rank": "E",
+          "lineno": 323
+        },
+        {
+          "file": "src/orbital/cod.py",
+          "name": "collapse",
+          "type": "method",
+          "complexity": 34,
+          "rank": "E",
+          "lineno": 113
+        },
+        {
+          "file": "src/core/security/sso/saml.py",
+          "name": "_extract_attributes",
+          "type": "method",
+          "complexity": 29,
+          "rank": "D",
+          "lineno": 199
+        },
+        {
+          "file": "src/security/sso/saml.py",
+          "name": "_extract_attributes",
+          "type": "method",
+          "complexity": 29,
+          "rank": "D",
+          "lineno": 112
+        },
+        {
+          "file": "src/hat/level5_tools/automation/logic_gate/condition_evaluator.py",
+          "name": "_tokenize",
+          "type": "method",
+          "complexity": 28,
+          "rank": "D",
+          "lineno": 218
+        },
+        {
+          "file": "src/orbital/orbital_compiler.py",
+          "name": "compile",
+          "type": "method",
+          "complexity": 28,
+          "rank": "D",
+          "lineno": 241
+        },
+        {
+          "file": "src/workflow/condition_evaluator.py",
+          "name": "_tokenize",
+          "type": "method",
+          "complexity": 28,
+          "rank": "D",
+          "lineno": 218
+        },
+        {
+          "file": "src/workflow/error_handler.py",
+          "name": "handle",
+          "type": "method",
+          "complexity": 27,
+          "rank": "D",
+          "lineno": 87
+        },
+        {
+          "file": "src/main.py",
+          "name": "main",
+          "type": "function",
+          "complexity": 23,
+          "rank": "D",
+          "lineno": 109
+        },
+        {
+          "file": "src/hat/level3_specialists/operaciones/inventory_specialist.py",
+          "name": "route_action",
+          "type": "method",
+          "complexity": 23,
+          "rank": "D",
+          "lineno": 57
+        },
+        {
+          "file": "src/workflow/engine.py",
+          "name": "execute",
+          "type": "method",
+          "complexity": 23,
+          "rank": "D",
+          "lineno": 131
+        },
+        {
+          "file": "src/connectors/datadog.py",
+          "name": "_get_credentials",
+          "type": "method",
+          "complexity": 23,
+          "rank": "D",
+          "lineno": 38
+        },
+        {
+          "file": "src/hat/level3_specialists/operaciones/crm_specialist.py",
+          "name": "route_action",
+          "type": "method",
+          "complexity": 22,
+          "rank": "D",
+          "lineno": 53
+        },
+        {
+          "file": "src/orbital/conley.py",
+          "name": "classify",
+          "type": "method",
+          "complexity": 22,
+          "rank": "D",
+          "lineno": 273
+        },
+        {
+          "file": "src/nlu/pipeline.py",
+          "name": "smart_compile",
+          "type": "method",
+          "complexity": 22,
+          "rank": "D",
+          "lineno": 117
+        },
+        {
+          "file": "src/nlu/entities/duration.py",
+          "name": "extract",
+          "type": "method",
+          "complexity": 22,
+          "rank": "D",
+          "lineno": 162
+        }
+      ],
+      "distribution_by_rank": {
+        "F": 4,
+        "E": 2,
+        "D": 22
+      },
+      "top_modules": {
+        "hat": 7,
+        "workflow": 7,
+        "orbital": 4,
+        "connectors": 2,
+        "nlu": 2,
+        "core": 1,
+        "security": 1,
+        "main.py": 1,
+        "sdk": 1,
+        "tests": 1
+      },
+      "evidence": "radon cc src/ -n C → 28 blocks rank>=C, 28 over max(10)"
+    },
+    "no_security_issues": {
+      "gate": "no_security_issues",
+      "stack": "ambos",
+      "tool": "forge.SecurityScanner (AST)",
+      "total_issues": 16,
+      "by_severity": {
+        "medium": 7,
+        "high": 9
+      },
+      "high_count": 9,
+      "passed": false,
+      "by_pattern": {
+        "hardcoded secret": 5,
+        "import subprocess": 4,
+        "import shutil": 3,
+        "__import__()": 2,
+        "exec()": 2
+      },
+      "high_samples": [
+        {
+          "severity": "high",
+          "message": "__import__() detectado en línea 94",
+          "line": 94,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "Posible secreto hardcodeado en línea 265",
+          "line": 265,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "Posible secreto hardcodeado en línea 62",
+          "line": 62,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "Posible secreto hardcodeado en línea 49",
+          "line": 49,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "Posible secreto hardcodeado en línea 93",
+          "line": 93,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "Posible secreto hardcodeado en línea 133",
+          "line": 133,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "exec() detectado en línea 210",
+          "line": 210,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "exec() detectado en línea 208",
+          "line": 208,
+          "stack": "python"
+        },
+        {
+          "severity": "high",
+          "message": "__import__() detectado en línea 282",
+          "line": 282,
+          "stack": "python"
+        }
+      ],
+      "evidence": "SecurityScanner → 16 issues (9 high)"
+    },
+    "no_broken_imports": {
+      "gate": "no_broken_imports",
+      "stack": "python",
+      "modules_tested": 28,
+      "modules_ok": 28,
+      "modules_fail": 0,
+      "failures": [],
+      "passed": true,
+      "evidence": "import src.* → 28/28 OK"
+    },
+    "no_circular_imports": {
+      "gate": "no_circular_imports",
+      "stack": "ambos",
+      "python_cycles": 0,
+      "python_cycles_samples": [],
+      "python_passed": true,
+      "ts_skipped": false,
+      "ts_passed": true,
+      "ts_stdout": "Processed 142 files (1.6s) (124 warnings)\n\n\n",
+      "passed": true,
+      "evidence": "Python AST: 0 ciclos; TS madge: ok"
+    },
+    "mutation_score": {
+      "gate": "mutation_score",
+      "stack": "python",
+      "tool": "mutmut",
+      "target_module": "src/core/utils",
+      "files_mutated": 8,
+      "score": 0,
+      "threshold": 80.0,
+      "passed": false,
+      "status": "blocked",
+      "note": "Baseline rápida bloqueada por dependencias profundas: mutmut 3.x corre pytest dentro de mutants/ workspace, pero los tests de src/core/utils/ importan src.core.db, src.config, src.tests.conftest, etc. Necesitaría copiar gran parte de src/ al workspace mutants/ o crear tests unitarios aislados por módulo. Postergar a Fase 6 (homologación por módulo) donde se escribirán tests específicos por módulo. Alternativa: usar pytest-cov con --cov-fail-under=80 como proxy en Fase 1.",
+      "evidence": "\n⠋ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n⠴ Generating mutants\n⠦ Generating mutants\n⠧ Generating mutants\n⠇ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n⠴ Generating mutants\n⠦ Generating mutants\n⠧ Generating mutants\n⠇ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n⠴ Generating mutants\n⠦ Generating mutants\n⠧ Generating mutants\n⠇ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n⠴ Generating mutants\n⠦ Generating mutants\n⠧ Generating mutants\n⠇ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n⠴ Generating mutants\n⠦ Generating mutants\n⠧ Generating mutants\n⠇ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠏ Generating mutants\n⠋ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠙ Generating mutants\n⠹ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n⠸ Generating mutants\n⠼ Generating mutants\n    done in 495ms (8 files mutated, 0 ignored, 0 unmodified)\n\n⠏ Running stats     \n⠋ Running stats\n⠙ Running stats\n⠹ Running stats\n⠸ Running stats\n⠼ Running stats\n⠴ Running stats\n⠦ Running stats\n⠧ Running stats\n⠇ Running stats\n⠏ Running stats\n⠋ Running stats\n⠙ Running stats\n⠹ Running stats\n⠸ Running stats\n⠼ Running stats\n⠴ Running stats\n⠦ Running stats\n\n==================================== ERRORS ====================================\n________________ ERROR collecting src/tests/test_sql_helper.py _________________\nImportError while importing test module '/home/z/my-project/Zenic-Flujo/mutants/src/tests/test_sql_helper.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.13/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/tests/test_sql_helper.py:17: in <module>\n    from src.core.db import (\nE   ModuleNotFoundError: No module named 'src.core.db'\n=========================== short test summary info ============================\nERROR src/tests/test_sql_helper.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.14s\nfailed to collect stats. runner returned 2\n\n"
+    }
+  }
+}

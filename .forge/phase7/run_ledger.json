@@ -1,0 +1,17 @@
+{
+  "run_id": "forge-phase7-cicd",
+  "spec": "Fase 7 del rollout Code-Forge: CI/CD — Automatización de Gates.\nObjetivos:\n- 7.1 GitHub Actions workflow (creado en Fase 4 — verificar)\n- 7.2 Pre-commit hooks (creados en Fase 4 — verificar)\n- 7.3 Dashboard de calidad: forge dashboard genera HTML report con:\n  - Score por módulo (radar chart)\n  - Gates pasando/fallando\n  - Historial de scores (ultimas 10 ejecuciones)\n  - Tendencias de calidad\nCriterio de salida: forge dashboard funcional, accesible via CLI, con HTML navegable.",
+  "created_at": "2026-06-27T15:57:27.970238+00:00",
+  "updated_at": "2026-06-27T15:57:27.970249+00:00",
+  "actions": [],
+  "approvals": [],
+  "proof": [],
+  "final_status": "running",
+  "metadata": {
+    "hard_gates_passed": 0,
+    "soft_score": 0.0,
+    "total_files_changed": 0,
+    "rollbacks_executed": 0,
+    "canary_fixes_applied": 0
+  }
+}

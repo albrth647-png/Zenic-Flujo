@@ -58,8 +58,8 @@ class TestLicenseGenerator:
         if not PRIVATE_KEY_FILE.exists():
             pytest.skip("No hay clave privada — este test se ejecuta en entorno con keys existentes")
         # Si la clave existe pero damos password incorrecto
-        with pytest.raises(ValueError, match="no disponible|incorrecta"):
-            license_generator.generate(admin_password="wrong-password-123")
+        with pytest.raises(ValueError, match="no disponible|incorrecta"):  # noqa: RUF043
+            license_generator.generate(admin_password="wrong-password-123")  # forge-ignore-security: test wrong password
 
 
 class TestLicenseValidator:

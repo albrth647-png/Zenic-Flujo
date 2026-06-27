@@ -17,7 +17,7 @@ Uso:
 import json
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -60,7 +60,7 @@ class PersistentMemory:
             self.data: MemoryData = {
                 "version": "1.0",
                 "reflections": [],
-                "created_at": datetime.now(tz=timezone.utc).isoformat(),
+                "created_at": datetime.now(tz=UTC).isoformat(),
             }
             self._save()
 
@@ -78,7 +78,7 @@ class PersistentMemory:
     ) -> Reflection:
         reflection: Reflection = {
             "iteration_id": iteration_id,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
             "summary": summary[:500],
             "verbal_reflection": verbal_reflection,
             "score": score,

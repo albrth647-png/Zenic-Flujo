@@ -221,7 +221,7 @@ class SOC2TypeIIManager:
     _instance: SOC2TypeIIManager | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         if db_path is None:
             from src.core.config import COMPLIANCE_DB_PATH
             db_path = str(COMPLIANCE_DB_PATH)

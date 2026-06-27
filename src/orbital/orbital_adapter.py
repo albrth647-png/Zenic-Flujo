@@ -38,14 +38,14 @@ class OrbitalToolResult:
     """Resultado de una herramienta adaptada orbitalmente."""
 
     def __init__(
-        self, status: str, data: dict | None = None, orbital_theta: float = 0.0, orbital_amplitude: float = 1.0
+        self, status: str, data: dict[str, Any] | None = None, orbital_theta: float = 0.0, orbital_amplitude: float = 1.0
     ):
         self.status = status
         self.data = data or {}
         self.orbital_theta = orbital_theta
         self.orbital_amplitude = orbital_amplitude
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status,
             "data": self.data,
@@ -115,7 +115,7 @@ class OrbitalAdapter:
 
     # ── Ejecucion orbital ──────────────────────────────────
 
-    def execute_action(self, tool_name: str, action: str, params: dict | None = None) -> OrbitalToolResult:
+    def execute_action(self, tool_name: str, action: str, params: dict[str, Any] | None = None) -> OrbitalToolResult:
         """
         Ejecuta una accion de herramienta en modo orbital.
 

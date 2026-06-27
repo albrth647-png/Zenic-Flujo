@@ -385,7 +385,7 @@ class FiscalDispatcher:
 
 # ── Singleton + función de conveniencia ──────────────────────────────
 
-import functools
+import functools  # noqa: E402
 
 
 @functools.lru_cache(maxsize=1)

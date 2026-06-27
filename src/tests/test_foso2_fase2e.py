@@ -262,7 +262,7 @@ class TestE2EAFIPArgentina:
         })
         assert connector.connect() is True
         # Configurar token+sign manualmente (sin llamar a WSAA real)
-        connector._token = "TOKEN_TEST_12345"  # type: ignore[attr-defined]
+        connector._token = "TOKEN_TEST_12345"  # type: ignore[attr-defined]  # forge-ignore-security: test fixture token
         connector._sign = "SIGN_TEST_67890"  # type: ignore[attr-defined]
         connector._cuit = "30712345678"  # type: ignore[attr-defined]
 

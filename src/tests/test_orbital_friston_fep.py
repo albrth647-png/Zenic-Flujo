@@ -30,13 +30,13 @@ import pytest
 
 logging.disable(logging.CRITICAL)
 
-from src.orbital.engine import OrbitalEngine
-from src.orbital.friston_fep import (
+from src.orbital.engine import OrbitalEngine  # noqa: E402
+from src.orbital.friston_fep import (  # noqa: E402
     DEFAULT_N_BINS,
     FEPSnapshot,
     FEPTracker,
 )
-from src.orbital.models import TWO_PI
+from src.orbital.models import TWO_PI  # noqa: E402
 
 # =============================================================================
 # Fixtures
@@ -214,10 +214,10 @@ def test_F_with_cycle_variable_ids() -> None:
     engine.create_cycle("partial", ["in1", "in2"], threshold=0.5)
 
     tracker = FEPTracker()
-    F_cycle, U_cycle, S_cycle = tracker.compute_F(
+    _F_cycle, U_cycle, S_cycle = tracker.compute_F(
         engine.ovc, engine.tor, cycle_variable_ids=["in1", "in2"]
     )
-    F_all, U_all, S_all = tracker.compute_F(engine.ovc, engine.tor)
+    _F_all, U_all, S_all = tracker.compute_F(engine.ovc, engine.tor)
 
     # U_cycle = -cos(0)/2 = -0.5 (1 pareja, N=2)
     assert math.isclose(U_cycle, -0.5, rel_tol=1e-9), f"U_cycle debería ser -0.5, got {U_cycle}"
@@ -245,7 +245,7 @@ def test_FEP_violation_detection() -> None:
     engine.create_cycle("test", [f"v{i}" for i in range(4)], threshold=0.5)
 
     tracker = FEPTracker()
-    status1 = tracker.update(engine.ovc, engine.tor)
+    tracker.update(engine.ovc, engine.tor)
 
     # Mover todas las variables a la misma fase → F cambia (energía baja, entropía baja)
     for i in range(4):
@@ -398,7 +398,7 @@ def test_F_deterministic() -> None:
 
     run1 = run_workflow()
     run2 = run_workflow()
-    assert all(math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12) for a, b in zip(run1, run2)), (
+    assert all(math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12) for a, b in zip(run1, run2, strict=False)), (
         f"F no determinista:\nRun 1: {run1}\nRun 2: {run2}"
     )
 

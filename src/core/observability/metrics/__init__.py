@@ -15,14 +15,16 @@ Este paquete consolida:
   componer su API publica de ``record_*`` / ``set_*`` sin duplicar
   logica. Cada mixin asume que la clase coordinadora provee los
   atributos ``_metrics`` (MetricsRegistry), ``_tracing``
-  (TracingManager), ``_active_spans`` (dict),
-  ``_active_workflow_timers`` (dict) y ``_db`` (DatabaseManager).
+  (TracingManager), ``_active_spans`` (dict[str, Any]),
+  ``_active_workflow_timers`` (dict[str, Any]) y ``_db`` (DatabaseManager).
 
 Convenciones:
 - Los mixins NO definen ``__init__``: la inicializacion vive en
   ``TelemetryService``.
 - Cada archivo mixin debe mantenerse <200 LOC.
 """
+
+from typing import Any
 
 from src.core.observability.metrics.agent_metrics import AgentMetricsMixin
 from src.core.observability.metrics.auth_metrics import AuthMetricsMixin

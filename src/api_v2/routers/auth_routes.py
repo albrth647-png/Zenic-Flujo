@@ -478,7 +478,7 @@ async def verify_mfa(
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Servidor no configurado para TOTP (pyotp faltante).",
-            )
+            ) from None
 
         # Actualizar last_used_at para detección de reuso
         db.execute(

@@ -34,6 +34,8 @@ Ejemplo de uso:
 
 from __future__ import annotations
 
+from typing import Any
+
 from src.core.logging import setup_logging
 from src.orbital.models import (
     DEFAULT_THRESHOLD,
@@ -237,7 +239,7 @@ class RCC:
             return None
         return max(results, key=lambda r: r.resonance_strength)
 
-    def get_resonance_summary(self) -> dict:
+    def get_resonance_summary(self) -> dict[str, Any]:
         """
         Retorna un resumen del estado de resonancia del sistema.
 

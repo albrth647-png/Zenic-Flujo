@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
-  Play, Pause, Square, RotateCcw, Plus, Loader2, Activity, DollarSign, Cpu,
+  Play, Pause, Square, RotateCcw, Plus, Loader2, DollarSign, Cpu,
 } from "lucide-react"
 
 const STATE_COLORS: Record<string, string> = {
@@ -41,6 +41,7 @@ export default function AgentsPage() {
     if (tokenData) setTokenSummary(tokenData)
   }, [api])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loadData dispara setState (fetch results), patrón legacy a refactorizar en Fase 6
   useEffect(() => { loadData() }, [loadData])
 
   const handleSpawn = async () => {

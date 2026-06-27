@@ -5,7 +5,6 @@ Cobertura: add_reflection, find_similar (Jaccard), persistence, stats
 
 import json
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -29,7 +28,7 @@ class TestPersistentMemoryCreation:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem1 = PersistentMemory(tmpdir)
             mem1.add_reflection("iter-1", "Resumen 1", "Reflexión 1", score=8.0)
-            
+
             mem2 = PersistentMemory(tmpdir)
             assert len(mem2.data["reflections"]) == 1
             assert mem2.data["reflections"][0]["iteration_id"] == "iter-1"
@@ -39,11 +38,11 @@ class TestPersistentMemoryCreation:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem = PersistentMemory(tmpdir)
             mem.add_reflection("iter-1", "Test", "Test", score=5.0)
-            
+
             # Corromper
             with open(mem.memory_path, "w") as f:
                 f.write("{ invalid }")
-            
+
             # Nueva instancia - el _load actual no maneja error
             with pytest.raises(json.JSONDecodeError):
                 PersistentMemory(tmpdir)
@@ -57,7 +56,7 @@ class TestAddReflection:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem = PersistentMemory(tmpdir)
             ref = mem.add_reflection("iter-1", "Resumen", "Reflexión verbal", score=8.0)
-            
+
             assert ref["iteration_id"] == "iter-1"
             assert ref["summary"] == "Resumen"
             assert ref["verbal_reflection"] == "Reflexión verbal"
@@ -77,7 +76,7 @@ class TestAddReflection:
                 files_affected=["src/service.py", "src/__init__.py"],
                 key_learnings=["Always check __init__.py", "Use absolute imports"],
             )
-            
+
             assert ref["root_cause"] == "Missing __init__.py"
             assert ref["files_affected"] == ["src/service.py", "src/__init__.py"]
             assert ref["key_learnings"] == ["Always check __init__.py", "Use absolute imports"]
@@ -107,7 +106,7 @@ class TestAddReflection:
             mem.add_reflection("iter-1", "Sum1", "Ref1", score=5.0)
             mem.add_reflection("iter-2", "Sum2", "Ref2", score=7.0)
             mem.add_reflection("iter-3", "Sum3", "Ref3", score=9.0)
-            
+
             assert len(mem.data["reflections"]) == 3
 
 
@@ -126,14 +125,14 @@ class TestJaccardSimilarity:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem = PersistentMemory(tmpdir)
             mem.add_reflection(
-                "iter-1", 
+                "iter-1",
                 "Error de import en service.py",
                 "El problema fue que faltaba __init__.py en el subdirectorio",
                 score=8.0,
                 root_cause="Missing __init__.py",
                 key_learnings=["Siempre verificar __init__.py antes de importar"]
             )
-            
+
             results = mem.find_similar("error de import", top_n=5)
             assert len(results) == 1
             assert results[0]["iteration_id"] == "iter-1"
@@ -149,7 +148,7 @@ class TestJaccardSimilarity:
                 score=8.0,
                 root_cause="Circular import",
             )
-            
+
             # Búsqueda con keywords parciales
             results = mem.find_similar("circular import problema", top_n=5)
             assert len(results) == 1
@@ -163,7 +162,7 @@ class TestJaccardSimilarity:
             mem.add_reflection("iter-1", "Error import A", "Missing __init__.py", score=5.0, root_cause="Missing __init__.py")
             mem.add_reflection("iter-2", "Error import B", "Missing __init__.py in subdir", score=7.0, root_cause="Missing __init__.py")
             mem.add_reflection("iter-3", "Error import C", "Typo in import statement", score=6.0, root_cause="Typo")
-            
+
             results = mem.find_similar("import error", top_n=2)
             assert len(results) == 2
             # Debe ordenar por similitud Jaccard, no por score guardado
@@ -176,7 +175,7 @@ class TestJaccardSimilarity:
             mem = PersistentMemory(tmpdir)
             # Reflexión con keywords: "error", "import", "missing", "init"
             mem.add_reflection("iter-1", "Error import", "Missing __init__.py", score=8.0)
-            
+
             # Query: "error import" -> keywords: {"error", "import"}
             # Ref keywords: {"error", "import", "missing", "init"}
             # Intersection: {"error", "import"} = 2
@@ -190,7 +189,7 @@ class TestJaccardSimilarity:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem = PersistentMemory(tmpdir)
             mem.add_reflection("iter-1", "Error import", "Missing __init__.py", score=8.0)
-            
+
             results = mem.find_similar("conexión base datos", top_n=5)
             assert results == []
 
@@ -199,7 +198,7 @@ class TestJaccardSimilarity:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem = PersistentMemory(tmpdir)
             mem.add_reflection("iter-1", "Error import", "The problem was missing init", score=8.0)
-            
+
             # "the" y "was" son stopwords, no deberían afectar similitud
             results = mem.find_similar("the problem was missing", top_n=5)
             assert len(results) == 1
@@ -213,7 +212,7 @@ class TestPersistence:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem1 = PersistentMemory(tmpdir)
             mem1.add_reflection("iter-1", "Sum1", "Ref1", score=8.0)
-            
+
             mem2 = PersistentMemory(tmpdir)
             assert len(mem2.data["reflections"]) == 1
             assert mem2.data["reflections"][0]["summary"] == "Sum1"
@@ -224,7 +223,7 @@ class TestPersistence:
             mem = PersistentMemory(tmpdir)
             mem.add_reflection("iter-1", "Sum1", "Ref1", score=5.0)
             mem.add_reflection("iter-2", "Sum2", "Ref2", score=7.0)
-            
+
             all_refs = mem.get_all_reflections()
             assert len(all_refs) == 2
             assert all_refs[0]["iteration_id"] == "iter-1"
@@ -248,7 +247,7 @@ class TestStats:
             mem.add_reflection("iter-1", "Sum1", "Ref1", score=5.0, root_cause="Cause A", files_affected=["a.py"])
             mem.add_reflection("iter-2", "Sum2", "Ref2", score=9.0, root_cause="Cause B", files_affected=["b.py"])
             mem.add_reflection("iter-3", "Sum3", "Ref3", score=7.0, root_cause="Cause A", files_affected=["a.py", "c.py"])
-            
+
             stats = mem.stats()
             assert stats["total_reflections"] == 3
             assert stats["avg_score"] == 7.0  # (5+9+7)/3

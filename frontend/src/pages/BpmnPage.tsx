@@ -3,13 +3,12 @@ import { useBpmn } from "@/hooks/useBpmn"
 import type { BPMNProcessSummary, BPMNProcess } from "@/types/bpmn"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
-  Upload, Download, Repeat, Trash2, FileText, CheckCircle, XCircle, Loader2,
+  Upload, Download, Repeat, Trash2, CheckCircle, XCircle, Loader2,
 } from "lucide-react"
 
 export default function BpmnPage() {
@@ -27,6 +26,7 @@ export default function BpmnPage() {
     if (data) setProcesses(data)
   }, [api])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loadProcesses dispara setState (fetch results), patrón legacy a refactorizar en Fase 6
   useEffect(() => { loadProcesses() }, [loadProcesses])
 
   const handleImport = async () => {

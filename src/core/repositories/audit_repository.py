@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import random
+from typing import Any
 
 from src.core.db.interfaces import DatabaseInterface
 from src.core.logging import setup_logging
@@ -77,7 +78,7 @@ class AuditRepository:
 
     # ── Consultas ────────────────────────────────────────────
 
-    def get_recent(self, limit: int = 100) -> list[dict]:
+    def get_recent(self, limit: int = 100) -> list[dict[str, Any]]:
         """
         Retorna los eventos de auditoría más recientes.
 

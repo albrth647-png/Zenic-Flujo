@@ -1,0 +1,528 @@
+{
+  "run_id": "forge-phase6-homologation",
+  "completed_at": "2026-06-27T16:01:04.601219",
+  "modules": [
+    {
+      "module": "6.1-core",
+      "path": "src/core",
+      "stack": "python",
+      "criticality": "high",
+      "file_count": 74,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 9.16,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 218 errors (top: {'no-untyped-def': 46, 'no-any-return': 37, 'has-type': 33, 'type-arg': 30, 'no-untyped-call': 23})",
+          "score": 7.82
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 10 blocks CC>10 (total rank>=C: 10) | top: 29 (D) _extract_attributes",
+          "score": 8.0
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 2 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:49.789225"
+    },
+    {
+      "module": "6.2-orbital",
+      "path": "src/orbital",
+      "stack": "python",
+      "criticality": "high",
+      "file_count": 20,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 9.38,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 210 errors (top: {'no-untyped-def': 50, 'no-untyped-call': 36, 'no-any-return': 31, 'type-arg': 30, 'has-type': 24})",
+          "score": 7.9
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 5 blocks CC>10 (total rank>=C: 5) | top: 39 (E) analyze",
+          "score": 9.0
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:50.297695"
+    },
+    {
+      "module": "6.3-hat",
+      "path": "src/hat",
+      "stack": "python",
+      "criticality": "high",
+      "file_count": 151,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 7.51,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 606 errors (top: {'type-arg': 336, 'no-untyped-call': 40, 'no-untyped-def': 35, 'no-any-return': 35, 'has-type': 24})",
+          "score": 3.9400000000000004
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 32 blocks CC>10 (total rank>=C: 32) | top: 43 (F) route_action",
+          "score": 3.5999999999999996
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:51.421845"
+    },
+    {
+      "module": "6.4-events",
+      "path": "src/events",
+      "stack": "python",
+      "criticality": "medium",
+      "file_count": 11,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 8.7,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 570 errors (top: {'type-arg': 220, 'no-untyped-def': 81, 'no-untyped-call': 58, 'no-any-return': 45, 'has-type': 39})",
+          "score": 4.3
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 4 blocks CC>10 (total rank>=C: 4) | top: 19 (C) _poll_imap",
+          "score": 9.2
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:52.273625"
+    },
+    {
+      "module": "6.5-nlu",
+      "path": "src/nlu",
+      "stack": "python",
+      "criticality": "medium",
+      "file_count": 32,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 8.83,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 224 errors (top: {'type-arg': 79, 'no-untyped-def': 28, 'no-any-return': 26, 'no-untyped-call': 24, 'has-type': 24})",
+          "score": 7.76
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 18 blocks CC>10 (total rank>=C: 18) | top: 22 (D) smart_compile",
+          "score": 6.4
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:52.754287"
+    },
+    {
+      "module": "6.6-workflow",
+      "path": "src/workflow",
+      "stack": "python",
+      "criticality": "medium",
+      "file_count": 29,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 8.27,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 523 errors (top: {'type-arg': 199, 'no-untyped-def': 77, 'no-untyped-call': 52, 'no-any-return': 44, 'has-type': 39})",
+          "score": 4.77
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 17 blocks CC>10 (total rank>=C: 17) | top: 35 (E) execute",
+          "score": 6.6
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:53.276834"
+    },
+    {
+      "module": "6.7-level5-tools",
+      "path": "src/hat/level5_tools",
+      "stack": "python",
+      "criticality": "medium",
+      "file_count": 74,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 7.83,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 585 errors (top: {'type-arg': 330, 'no-untyped-call': 40, 'no-untyped-def': 35, 'no-any-return': 34, 'has-type': 24})",
+          "score": 4.15
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 25 blocks CC>10 (total rank>=C: 25) | top: 28 (D) _tokenize",
+          "score": 5.0
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:53.904493"
+    },
+    {
+      "module": "6.8-web",
+      "path": "src/web",
+      "stack": "python",
+      "criticality": "medium",
+      "file_count": 22,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 7.76,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 1493 errors (top: {'type-arg': 518, 'union-attr': 294, 'no-untyped-def': 124, 'no-untyped-call': 115, 'no-any-return': 111})",
+          "score": 0
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 6 blocks CC>10 (total rank>=C: 6) | top: 21 (D) api_orbital_status",
+          "score": 8.8
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:54.807161"
+    },
+    {
+      "module": "6.9-api-v2",
+      "path": "src/api_v2",
+      "stack": "python",
+      "criticality": "medium",
+      "file_count": 20,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 7.76,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 1270 errors (top: {'type-arg': 491, 'union-attr': 195, 'no-untyped-def': 110, 'no-any-return': 109, 'no-untyped-call': 82})",
+          "score": 0
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 6 blocks CC>10 (total rank>=C: 6) | top: 16 (C) health_check",
+          "score": 8.8
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:00:55.744537"
+    },
+    {
+      "module": "6.10-frontend",
+      "path": "frontend/src",
+      "stack": "typescript",
+      "criticality": "medium",
+      "file_count": 139,
+      "gates_pass": 2,
+      "gates_total": 4,
+      "avg_score": 7.5,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": false,
+          "evidence": "eslint: exit 2, 0 errors",
+          "score": 5.0
+        },
+        {
+          "name": "types_clean",
+          "passed": true,
+          "evidence": "tsc: 0 errors",
+          "score": 10.0
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": false,
+          "evidence": "madge: exit 1",
+          "score": 5.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:01:02.949644"
+    },
+    {
+      "module": "6.11-connectors",
+      "path": "src/connectors",
+      "stack": "python",
+      "criticality": "low",
+      "file_count": 65,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 7.05,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 476 errors (top: {'union-attr': 196, 'type-arg': 122, 'no-any-return': 64, 'attr-defined': 27, 'has-type': 24})",
+          "score": 5.24
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 84 blocks CC>10 (total rank>=C: 84) | top: 23 (D) _get_credentials",
+          "score": 0
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:01:04.066031"
+    },
+    {
+      "module": "6.12-tools",
+      "path": "src/tools",
+      "stack": "python",
+      "criticality": "low",
+      "file_count": 47,
+      "gates_pass": 3,
+      "gates_total": 5,
+      "avg_score": 7.24,
+      "status": "PARCIAL",
+      "results": [
+        {
+          "name": "lint_clean",
+          "passed": true,
+          "evidence": "ruff: 0 issues",
+          "score": 10.0
+        },
+        {
+          "name": "types_clean",
+          "passed": false,
+          "evidence": "mypy: 1014 errors (top: {'type-arg': 546, 'no-untyped-def': 117, 'no-untyped-call': 77, 'no-any-return': 70, 'has-type': 48})",
+          "score": 0
+        },
+        {
+          "name": "complexity_max",
+          "passed": false,
+          "evidence": "radon: 19 blocks CC>10 (total rank>=C: 19) | top: 20 (C) _request_with_pagination",
+          "score": 6.2
+        },
+        {
+          "name": "no_security_issues",
+          "passed": true,
+          "evidence": "scanner: 0 HIGH / 0 total",
+          "score": 10.0
+        },
+        {
+          "name": "no_circular_imports",
+          "passed": true,
+          "evidence": "AST: 0 ciclos",
+          "score": 10.0
+        }
+      ],
+      "homologated_at": "2026-06-27T16:01:04.601208"
+    }
+  ]
+}

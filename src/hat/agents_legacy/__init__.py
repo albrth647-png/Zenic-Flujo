@@ -24,9 +24,9 @@ warnings.warn(
     stacklevel=2,
 )
 
-from src.hat.agents_legacy.base import AgentCapability, AgentConfig, BaseAgent
-from src.hat.agents_legacy.orchestrator import MultiAgentOrchestrator, OrchestrationPattern
-from src.hat.agents_legacy.runtime import AgentRuntime
+from src.hat.agents_legacy.base import AgentCapability, AgentConfig, BaseAgent  # noqa: E402
+from src.hat.agents_legacy.orchestrator import MultiAgentOrchestrator, OrchestrationPattern  # noqa: E402
+from src.hat.agents_legacy.runtime import AgentRuntime  # noqa: E402
 
 __all__ = [
     "AgentCapability",

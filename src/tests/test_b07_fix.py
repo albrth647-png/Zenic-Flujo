@@ -46,7 +46,7 @@ class TestBugB07PIIGuardrailsCheckTextForPII:
     def test_check_text_for_pii_blocks_api_key(self) -> None:
         """Un prompt con api_key=... debe resultar en BLOCK (riesgo HIGH)."""
         pii = PIIGuardrails(lang="es")
-        result = pii.check_text_for_pii('mi api_key="sk-AbCdEf1234567890XyZwVuTsRqPoNmLkJiHg"')
+        result = pii.check_text_for_pii('mi api_key="sk-AbCdEf1234567890XyZwVuTsRqPoNmLkJiHg"')  # forge-ignore-security: test fixture PII string
         assert result.action == GuardrailAction.BLOCK
         findings = result.details.get("findings", {})
         assert "api_key_like" in findings
@@ -90,7 +90,7 @@ class TestBugB07GuardrailManagerCheckPrompt:
     def test_check_prompt_blocks_api_key(self) -> None:
         """Un prompt con API key debe ser bloqueado por la capa PII."""
         mgr = GuardrailManager(lang="es")
-        text = 'usa esta api_key="sk-AbCdEf1234567890XyZwVuTsRqPoNmLkJiHg" para acceder'
+        text = 'usa esta api_key="sk-AbCdEf1234567890XyZwVuTsRqPoNmLkJiHg" para acceder'  # forge-ignore-security: test fixture PII string
         result = mgr.check_prompt(text)
         assert result.blocked
         # Y debe estar bloqueado por PII, no solo por content.
@@ -130,7 +130,7 @@ class TestBugB07GuardrailManagerCheckPrompt:
     def test_check_prompt_pii_dict_blocks_api_key(self) -> None:
         """check_prompt_pii debe bloquear API keys en el prompt."""
         mgr = GuardrailManager(lang="es")
-        result = mgr.check_prompt_pii('api_key="sk-AbCdEf1234567890XyZwVuTsRqPoNmLkJiHg"')
+        result = mgr.check_prompt_pii('api_key="sk-AbCdEf1234567890XyZwVuTsRqPoNmLkJiHg"')  # forge-ignore-security: test fixture PII string
         assert result.get("blocked") is True
         assert "api_key_like" in result.get("patterns", [])
 

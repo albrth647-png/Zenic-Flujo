@@ -6,6 +6,7 @@ La clave privada se cifra con una contraseña derivada del admin (PBKDF2).
 
 import json
 import os
+from datetime import datetime
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -91,7 +92,7 @@ def generate_keypair(admin_password: str) -> tuple[ed25519.Ed25519PrivateKey, ed
 
     metadata = {
         "algorithm": "Ed25519",
-        "created_at": __import__("datetime").datetime.now().isoformat(),
+        "created_at": datetime.now().isoformat(),
     }
     with open(METADATA_FILE, "w") as f:
         json.dump(metadata, f, indent=2)

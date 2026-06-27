@@ -37,12 +37,12 @@ def test_v01_tests_pass():
     assert spec.loader is not None, "Spec loader es None"
     # Verificar que el módulo se puede cargar (sintaxis + imports OK)
     module = importlib.util.module_from_spec(spec)
-    try:
+    try:  # noqa: SIM105
         spec.loader.exec_module(module)  # type: ignore[union-attr]
     except SystemExit:
         pass  # pytest.main() puede llamar sys.exit
     # Verificar que tiene al menos 1 test function
-    test_funcs = [n for n in dir(module) if n.startswith("test_") or n.startswith("Test")]
+    test_funcs = [n for n in dir(module) if n.startswith(("test_", "Test"))]
     assert len(test_funcs) > 0, f"No se encontraron tests en {test_path}"
 
 
@@ -64,7 +64,7 @@ def test_v02_coverage_above_90():
                             assert method.name in test_src, (
                                 f"{filepath.name}: método público {method.name} no aparece en tests"
                             )
-            elif isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
+            elif isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):  # noqa: SIM102
                 if node.col_offset == 0:
                     total_public_funcs += 1
                     assert node.name in test_src, (
@@ -153,9 +153,8 @@ def test_v07_no_circular_imports():
         module_name = filepath.stem
         imports = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module and "src.hat" in node.module:
-                    imports.add(node.module.split(".")[-1])
+            if isinstance(node, ast.ImportFrom) and node.module and "src.hat" in node.module:
+                imports.add(node.module.split(".")[-1])
         module_imports[module_name] = imports
 
     for mod_a, imports_a in module_imports.items():

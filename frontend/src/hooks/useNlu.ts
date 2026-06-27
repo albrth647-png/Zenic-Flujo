@@ -34,7 +34,7 @@ export function useNlu() {
   const { getApi } = useApi()
 
   const understand = useCallback(
-    async (text: string, lang?: string): Promise<NLUUnderstandResponse> => {
+    async (text: string, lang?: string): Promise<NLUUnderstandResponse | null> => {
       const api = getApi()
       return api.post(`${BASE}/understand`, { text, lang } as NLUUnderstandRequest)
     },
@@ -42,7 +42,7 @@ export function useNlu() {
   )
 
   const compile = useCallback(
-    async (text: string, lang?: string): Promise<NLUCompileResponse> => {
+    async (text: string, lang?: string): Promise<NLUCompileResponse | null> => {
       const api = getApi()
       return api.post(`${BASE}/compile`, { text, lang } as NLUCompileRequest)
     },
@@ -50,32 +50,32 @@ export function useNlu() {
   )
 
   const dryRun = useCallback(
-    async (text: string, lang?: string, context?: Record<string, unknown>): Promise<NLUDryRunResult> => {
+    async (text: string, lang?: string, context?: Record<string, unknown>): Promise<NLUDryRunResult | null> => {
       const api = getApi()
       return api.post(`${BASE}/dry-run`, { text, lang, context } as NLUDryRunRequest)
     },
     [getApi],
   )
 
-  const listIntents = useCallback(async (): Promise<NLUIntentsResponse> => {
+  const listIntents = useCallback(async (): Promise<NLUIntentsResponse | null> => {
     const api = getApi()
     return api.get(`${BASE}/intents`)
   }, [getApi])
 
-  const listEntities = useCallback(async (): Promise<NLUEntitiesResponse> => {
+  const listEntities = useCallback(async (): Promise<NLUEntitiesResponse | null> => {
     const api = getApi()
     return api.get(`${BASE}/entities`)
   }, [getApi])
 
   const train = useCallback(
-    async (language: string): Promise<NLUTrainResponse> => {
+    async (language: string): Promise<NLUTrainResponse | null> => {
       const api = getApi()
       return api.post(`${BASE}/train`, { language } as NLUTrainRequest)
     },
     [getApi],
   )
 
-  const getTrainingStatus = useCallback(async (): Promise<NLUTrainingStatus> => {
+  const getTrainingStatus = useCallback(async (): Promise<NLUTrainingStatus | null> => {
     const api = getApi()
     return api.get(`${BASE}/status`)
   }, [getApi])

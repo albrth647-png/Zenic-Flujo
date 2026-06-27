@@ -2,6 +2,8 @@
 Blueprints — Admin: Users, Dead Letter Queue y Work Queue
 """
 
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request, session
 
 from src.core.repositories import AuditRepository, UserRepository
@@ -279,7 +281,7 @@ def api_admin_metrics():
         "workflow_stats_1h": workflow_stats,
         "slowest_workflows_1h": [dict(r) for r in slowest_workflows],
         "timeline_24h": [dict(r) for r in timeline],
-        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+        "timestamp": datetime.utcnow().isoformat(),
     })
 
 

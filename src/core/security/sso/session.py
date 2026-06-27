@@ -9,6 +9,7 @@ import secrets
 import time
 import uuid
 from datetime import datetime
+from typing import Any
 
 from src.core.db.redis_service import RedisService
 from src.core.db.sqlite_manager import DatabaseManager
@@ -19,7 +20,7 @@ logger = setup_logging(__name__)
 
 
 def create_sso_session(db: DatabaseManager, redis: RedisService, provider_name: str, user_id: int,
-                       idp_session: str | None = None) -> dict:
+                       idp_session: str | None = None) -> dict[str, Any]:
     """Crea una sesion SSO en la base de datos y Redis."""
     session_id = str(uuid.uuid4())
     expires_at = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() + SSO_SESSION_TTL))
@@ -39,7 +40,7 @@ def create_sso_session(db: DatabaseManager, redis: RedisService, provider_name: 
     return {"session_id": session_id, "expires_at": expires_at}
 
 
-def validate_sso_session(db: DatabaseManager, redis: RedisService, session_id: str) -> dict | None:
+def validate_sso_session(db: DatabaseManager, redis: RedisService, session_id: str) -> dict[str, Any] | None:
     """Valida una sesion SSO y retorna la informacion del usuario."""
     cached = redis.get_json(f"{SSO_SESSION_PREFIX}{session_id}")
     if cached:
@@ -69,7 +70,7 @@ def validate_sso_session(db: DatabaseManager, redis: RedisService, session_id: s
     return result
 
 
-def logout_session(db: DatabaseManager, redis: RedisService, session_id: str) -> dict:
+def logout_session(db: DatabaseManager, redis: RedisService, session_id: str) -> dict[str, Any]:
     """Invalida una sesion SSO."""
     session_data = redis.get_json(f"{SSO_SESSION_PREFIX}{session_id}")
     redis.delete(f"{SSO_SESSION_PREFIX}{session_id}")
@@ -96,7 +97,7 @@ def cleanup_expired_sessions(db: DatabaseManager, redis: RedisService) -> int:
 
 # ── User mapping ─────────────────────────────────────────────
 
-def create_or_link_user(db: DatabaseManager, provider_name: str, external_id: str, user_info: dict) -> dict:
+def create_or_link_user(db: DatabaseManager, provider_name: str, external_id: str, user_info: dict[str, Any]) -> dict:
     """Crea un usuario local o vincula un usuario IdP existente."""
     existing_mapping = db.fetchone(
         "SELECT user_id FROM sso_user_mapping WHERE provider_name = ? AND external_id = ?",
@@ -168,7 +169,7 @@ def create_or_link_user(db: DatabaseManager, provider_name: str, external_id: st
     return {"status": "ok", "user_id": local_user_id, "linked": False}
 
 
-def link_existing_user(db: DatabaseManager, user_id: int, provider_name: str, external_id: str) -> dict:
+def link_existing_user(db: DatabaseManager, user_id: int, provider_name: str, external_id: str) -> dict[str, Any]:
     """Vincula manualmente un usuario local con una cuenta IdP."""
     existing_user = db.fetchone("SELECT id FROM users WHERE id = ? AND is_active = 1", (user_id,))
     if not existing_user:

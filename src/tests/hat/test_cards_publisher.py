@@ -8,6 +8,9 @@ Cobertura:
 - Integración: WebResearcher.get_card() y QueryBuilder.get_card()
 - E2E: publicar 2 cards y verificar resonancia (variable OVC creada)
 """
+# ruff: noqa: F821 — Tests en TestIntegrationWebResearcher referencian
+# WebResearcherSpecialist y QueryBuilderWorker que fueron eliminados en HAT v2;
+# las clases están marcadas con @pytest.mark.skip.
 
 from __future__ import annotations
 
@@ -192,7 +195,7 @@ class TestCardPublisherMixin:
                 )
 
         agent = TestAgent(AgentConfig(name="test_agent"))
-        card = agent.publish_card(repo=repo, ctx=ctx)
+        agent.publish_card(repo=repo, ctx=ctx)
 
         # Verificar en DB
         db_card = repo.get_agent_card(unique_agent_id)
@@ -327,7 +330,7 @@ class TestIntegrationWebResearcher:
 
     def test_web_researcher_publish_card_e2e(self, repo, ctx):
         specialist = WebResearcherSpecialist(AgentConfig(name="wr"))
-        card = specialist.publish_card(repo=repo, ctx=ctx)
+        specialist.publish_card(repo=repo, ctx=ctx)
 
         # Verificar DB
         db_card = repo.get_agent_card("web_researcher")
@@ -357,7 +360,7 @@ class TestIntegrationQueryBuilder:
 
     def test_query_builder_publish_card_e2e(self, repo, ctx):
         worker = QueryBuilderWorker(AgentConfig(name="qb"))
-        card = worker.publish_card(repo=repo, ctx=ctx)
+        worker.publish_card(repo=repo, ctx=ctx)
 
         # Verificar DB
         db_card = repo.get_agent_card("query_builder")
