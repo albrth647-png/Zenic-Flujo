@@ -30,6 +30,7 @@ from src.nlu.guardrails import (
     GuardrailResult,
     PIIGuardrails,
 )
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -104,7 +105,7 @@ FORMATO:
 class AIGenerationResult:
     """Resultado de la generación IA de un workflow."""
 
-    workflow: dict
+    workflow: dict[str, Any]
     provider: str
     model: str
     explanation: str
@@ -375,7 +376,7 @@ class WorkflowAIGenerator:
         return data["content"][0]["text"]
 
     @staticmethod
-    def _parse_workflow(raw: str) -> dict | None:
+    def _parse_workflow(raw: str) -> dict[str, Any] | None:
         """Parsea la respuesta del LLM como workflow JSON."""
         try:
             # Buscar JSON en la respuesta
@@ -405,7 +406,7 @@ class WorkflowAIGenerator:
             return None
 
     @staticmethod
-    def _validate_workflow(workflow: dict) -> list[str]:
+    def _validate_workflow(workflow: dict[str, Any]) -> list[str]:
         """Valida que el workflow generado tenga tools y actions válidas."""
         errors = []
 
@@ -439,7 +440,7 @@ class WorkflowAIGenerator:
 
         return errors
 
-    def _generate_explanation(self, workflow: dict, lang: str) -> str:
+    def _generate_explanation(self, workflow: dict[str, Any], lang: str) -> str:
         """Genera explicación del workflow generado por IA."""
         name = workflow.get("name", "Sin nombre")
         trigger = workflow.get("trigger_type", "manual")

@@ -14,6 +14,12 @@ Endpoints del pipeline de procesamiento de lenguaje natural:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager, RedisService
+    from src.nlu.pipeline import Pipeline
+
 import uuid
 from typing import Any
 
@@ -50,7 +56,7 @@ router = APIRouter(prefix="/api/v2/nlu", tags=["NLU"])
 async def understand_text(
     request: NLUUnderstandRequest,
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    pipeline: Any = Depends(get_nlu_pipeline),
+    pipeline: Pipeline = Depends(get_nlu_pipeline),
 ) -> NLUUnderstandResponse:
     """Ejecuta el pipeline NLU (etapas 1-6) para comprender texto en lenguaje natural."""
     try:
@@ -83,7 +89,7 @@ async def understand_text(
 async def compile_workflow(
     request: NLUCompileRequest,
     user: dict[str, Any] = Depends(require_permission("workflow", "create")),
-    pipeline: Any = Depends(get_nlu_pipeline),
+    pipeline: Pipeline = Depends(get_nlu_pipeline),
 ) -> NLUCompileResponse:
     """Compila un workflow desde texto en lenguaje natural."""
     try:
@@ -112,7 +118,7 @@ async def compile_workflow(
 async def dry_run_workflow(
     request: NLUDryRunRequest,
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    pipeline: Any = Depends(get_nlu_pipeline),
+    pipeline: Pipeline = Depends(get_nlu_pipeline),
 ) -> NLUDryRunResponse:
     """Ejecuta una simulacion dry-run del pipeline NLU."""
     try:
@@ -143,7 +149,7 @@ async def dry_run_workflow(
 )
 async def list_intents(
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Lista las intenciones registradas en el clasificador de intenciones."""
     from src.nlu.intent_classifier import IntentClassifier
@@ -211,8 +217,8 @@ async def list_entities(
 async def train_nlu(
     request: NLUTrainRequest,
     user: dict[str, Any] = Depends(require_permission("workflow", "create")),
-    db: Any = Depends(get_db),
-    redis: Any = Depends(get_redis),
+    db: DatabaseManager = Depends(get_db),
+    redis: RedisService = Depends(get_redis),
 ) -> NLUTrainResponse:
     """Dispara un entrenamiento del pipeline NLU."""
     # Verificar si ya hay un entrenamiento en curso
@@ -272,7 +278,7 @@ async def train_nlu(
 )
 async def get_training_status(
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    redis: Any = Depends(get_redis),
+    redis: RedisService = Depends(get_redis),
 ) -> NLUTrainingStatus:
     """Obtiene el estado del entrenamiento NLU."""
     training_status = redis.get_json("nlu:training:status")

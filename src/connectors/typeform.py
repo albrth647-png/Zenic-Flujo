@@ -20,6 +20,7 @@ class TypeformConnector(BaseConnector):
     icon = "file-plus"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_key: str = ""; self._http: HttpClient | None = None
@@ -33,6 +34,7 @@ class TypeformConnector(BaseConnector):
         self._http.set_header("Authorization", f"Bearer {self._api_key}")
         self._connected = True; self._log_operation("connect"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"list_forms": self._list_forms, "get_form": self._get_form, "get_responses": self._get_responses,
                        "create_webhook": self._create_webhook, "delete_webhook": self._delete_webhook}
@@ -42,7 +44,8 @@ class TypeformConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -52,13 +55,13 @@ class TypeformConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _list_forms(self, p: dict) -> dict: return self._api("get", "/forms", params=p)
-    def _get_form(self, p: dict) -> dict: return self._api("get", f"/forms/{p.get('form_id', '')}")
-    def _get_responses(self, p: dict) -> dict: return self._api("get", f"/forms/{p.get('form_id', '')}/responses", params=p)
-    def _create_webhook(self, p: dict) -> dict:
+    def _list_forms(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/forms", params=p)
+    def _get_form(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/forms/{p.get('form_id', '')}")
+    def _get_responses(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/forms/{p.get('form_id', '')}/responses", params=p)
+    def _create_webhook(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("put", f"/forms/{p.get('form_id', '')}/webhooks/{p.get('tag', 'default')}",
                          json={"url": p.get("url", ""), "enabled": p.get("enabled", True), "secret": p.get("secret", "")})
-    def _delete_webhook(self, p: dict) -> dict:
+    def _delete_webhook(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("delete", f"/forms/{p.get('form_id', '')}/webhooks/{p.get('tag', 'default')}")
 
 

@@ -39,7 +39,8 @@ class FactRow(TypedDict):
     user_id: str
     session_id: str
     fact_key: str
-    fact_value: Any  # JSON decoded → dict/list/str/int/float/bool/None
+    # object: JSON decoded → dict/list/str/int/float/bool/None. Fuerza isinstance al consumir.
+    fact_value: object
     confidence: float
     orbital_theta: float
     orbital_amplitude: float
@@ -53,7 +54,8 @@ class HypothesisRow(TypedDict):
     user_id: str
     session_id: str
     hypothesis_key: str
-    hypothesis_value: Any  # JSON decoded
+    # object: JSON decoded → dict/list/str/int/float/bool/None.
+    hypothesis_value: object
     confidence: float
     orbital_theta: float
     orbital_amplitude: float
@@ -77,8 +79,9 @@ class ProgressRow(TypedDict):
     status: str
     specialist: str | None
     worker: str | None
-    result_summary: Any  # JSON decoded
-    result_cache: Any    # Alias de compatibilidad
+    # object: JSON decoded → dict/list/str/int/float/bool/None.
+    result_summary: object
+    result_cache: object    # Alias de compatibilidad
     orbital_resonance: float | None
     intent_hash: str | None
     ttl_expires_at: str | None
@@ -118,7 +121,7 @@ class LedgerRepository:
         user_id: str,
         session_id: str,
         fact_key: str,
-        fact_value: Any,
+        fact_value: object,
         confidence: float = 1.0,
         orbital_theta: float = 0.0,
         orbital_amplitude: float = 1.0,
@@ -188,7 +191,7 @@ class LedgerRepository:
         user_id: str,
         session_id: str,
         hypothesis_key: str,
-        hypothesis_value: Any,
+        hypothesis_value: object,
         confidence: float = 0.5,
         orbital_theta: float = 0.785,  # π/4
         orbital_amplitude: float = 0.5,
@@ -286,7 +289,7 @@ class LedgerRepository:
         status: str,
         specialist: str | None = None,
         worker: str | None = None,
-        result_summary: Any = None,
+        result_summary: object = None,
         orbital_resonance: float | None = None,
         intent_hash: str | None = None,
         ttl_expires_at: str | None = None,
@@ -417,7 +420,7 @@ class LedgerRepository:
     def complete_dispatch(
         self,
         intent_hash: str,
-        result: Any,
+        result: object,
         status: str = "completed",
     ) -> bool:
         """Marca un dispatch como completado/failed en hat_progress.

@@ -71,7 +71,7 @@ class OrbitalWorkflowDef:
         self.retrofeed_damping = retrofeed_damping
         self.status = status
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -85,7 +85,7 @@ class OrbitalWorkflowDef:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> OrbitalWorkflowDef:
+    def from_dict(cls, data: dict[str, Any]) -> OrbitalWorkflowDef:
         return cls(
             id=data.get("id", ""),
             name=data.get("name", ""),
@@ -112,7 +112,7 @@ class OrbitalRepository:
 
     # ── Conversion Lineal → Orbital ────────────────────────
 
-    def convert_linear_to_orbital(self, linear_workflow: dict) -> OrbitalWorkflowDef:
+    def convert_linear_to_orbital(self, linear_workflow: dict[str, Any]) -> OrbitalWorkflowDef:
         """
         Convierte una definicion de workflow lineal a orbital.
 
@@ -269,7 +269,7 @@ class OrbitalRepository:
 
     # ── Estadisticas ───────────────────────────────────────
 
-    def get_migration_stats(self) -> dict:
+    def get_migration_stats(self) -> dict[str, Any]:
         """Retorna estadisticas de la migracion lineal → orbital."""
         stats = self._db.get_stats()
         return {
@@ -287,7 +287,7 @@ class OrbitalRepository:
         hash_val = int(hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:8], 16)
         return (hash_val % 10000) / 10000.0 * TWO_PI
 
-    def _step_amplitude(self, step: dict) -> float:
+    def _step_amplitude(self, step: dict[str, Any]) -> float:
         """
         Calcula la amplitud de un paso basado en su importancia.
 
@@ -303,7 +303,7 @@ class OrbitalRepository:
             base += 1.0
         return min(base, 5.0)
 
-    def _step_velocity(self, step: dict) -> float:
+    def _step_velocity(self, step: dict[str, Any]) -> float:
         """
         Calcula la velocidad orbital de un paso.
 

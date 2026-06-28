@@ -14,6 +14,7 @@ from src.core.config import FREE_TIER_MAX_WORKFLOWS
 from src.core.db import DatabaseManager, build_update_query
 from src.core.logging import setup_logging
 from src.core.utils import now_iso
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -27,7 +28,7 @@ class WorkflowDefinition:
         name: str = "",
         description: str = "",
         trigger_type: str = "",
-        trigger_config: dict | None = None,
+        trigger_config: dict[str, Any] | None = None,
         steps: list[dict] | None = None,
         status: str = "active",
         created_at: str | None = None,
@@ -43,7 +44,7 @@ class WorkflowDefinition:
         self.created_at = created_at or now_iso()
         self.updated_at = updated_at or now_iso()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -57,7 +58,7 @@ class WorkflowDefinition:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "WorkflowDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkflowDefinition":
         return cls(
             id=data.get("id"),
             name=data.get("name", ""),
@@ -71,6 +72,7 @@ class WorkflowDefinition:
         )
 
     @staticmethod
+    # legítimo: parsea JSON dinámico, retorno puede ser dict/list/str/etc.
     def _safe_json_loads(value: dict | list | str) -> dict | list | str:
         if isinstance(value, (dict, list)):
             return value
@@ -90,7 +92,7 @@ class WorkflowExecution:
         id: int | None = None,
         workflow_id: int = 0,
         status: str = "pending",
-        trigger_data: dict | None = None,
+        trigger_data: dict[str, Any] | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
         duration_ms: int | None = None,
@@ -105,7 +107,7 @@ class WorkflowExecution:
         self.duration_ms = duration_ms
         self.error_message = error_message
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -195,7 +197,7 @@ class WorkflowRepository:
     def update(
         self,
         workflow_id: int,
-        updates: dict,
+        updates: dict[str, Any],
         create_version: bool = False,
         change_summary: str = "",
         user_id: int | None = None,
@@ -278,7 +280,7 @@ class WorkflowRepository:
 
     # ── Workflow Executions ──────────────────────────────────
 
-    def create_execution(self, workflow_id: int, trigger_data: dict | None = None) -> WorkflowExecution:
+    def create_execution(self, workflow_id: int, trigger_data: dict[str, Any] | None = None) -> WorkflowExecution:
         """Crea un nuevo registro de ejecución."""
         cursor = self._db.execute(
             """INSERT INTO workflow_executions (workflow_id, status, trigger_data)
@@ -355,8 +357,8 @@ class WorkflowRepository:
         step_id: int,
         tool: str,
         action: str,
-        input_data: dict,
-        output_data: dict | None,
+        input_data: dict[str, Any],
+        output_data: dict[str, Any] | None,
         status: str,
         duration_ms: int,
         error_message: str | None = None,
@@ -409,7 +411,7 @@ class WorkflowRepository:
 
     # ── Export / Import ───────────────────────────────────────
 
-    def export_workflow(self, workflow_id: int) -> dict | None:
+    def export_workflow(self, workflow_id: int) -> dict[str, Any] | None:
         """Exporta un workflow completo como dict JSON-serializable.
 
         Incluye definición, pasos, trigger config y ejecuciones.
@@ -434,7 +436,7 @@ class WorkflowRepository:
             "executions": [e.to_dict() for e in executions],
         }
 
-    def import_workflow(self, data: dict) -> WorkflowDefinition:
+    def import_workflow(self, data: dict[str, Any]) -> WorkflowDefinition:
         """Importa un workflow desde un dict generado por export_workflow().
 
         Valida campos requeridos, sanitiza IDs, y crea un nuevo workflow
@@ -505,7 +507,7 @@ class WorkflowRepository:
         )
         return [WorkflowDefinition.from_dict(r) for r in rows]
 
-    def create_from_dict(self, data: dict) -> WorkflowDefinition:
+    def create_from_dict(self, data: dict[str, Any]) -> WorkflowDefinition:
         """Create a workflow from a dict (used by sync import)."""
         import copy
         wf_data = copy.deepcopy(data)
@@ -518,7 +520,7 @@ class WorkflowRepository:
             steps=wf_data.get("steps", []),
         ))
 
-    def get_stats(self, user_id: int | None = None) -> dict:
+    def get_stats(self, user_id: int | None = None) -> dict[str, Any]:
         """Retorna estadísticas para el dashboard, opcionalmente filtradas por usuario."""
         if user_id:
             total = self._db.fetchone(
@@ -562,7 +564,7 @@ class WorkflowRepository:
 
     # ── Conversion Orbital ──────────────────────────────────
 
-    def to_orbital(self, workflow_id: int) -> dict | None:
+    def to_orbital(self, workflow_id: int) -> dict[str, Any] | None:
         """
         Convierte una definicion de workflow lineal a orbital.
 
@@ -582,7 +584,7 @@ class WorkflowRepository:
 
         return orbital_def.to_dict()
 
-    def get_orbital_stats(self) -> dict:
+    def get_orbital_stats(self) -> dict[str, Any]:
         """Retorna estadisticas de las tablas orbitales."""
         from src.orbital.db import OrbitalDB
 

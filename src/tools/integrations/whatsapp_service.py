@@ -59,7 +59,7 @@ class WhatsAppService:
         to: str,
         text: str,
         preview_url: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía un mensaje de texto vía WhatsApp.
 
@@ -128,7 +128,7 @@ class WhatsAppService:
         template_name: str,
         language: str = "en",
         components: list[dict] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía un mensaje con plantilla (template) vía WhatsApp.
 
@@ -204,7 +204,7 @@ class WhatsAppService:
         media_id: str = "",
         caption: str = "",
         filename: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía un mensaje multimedia (imagen, documento, video, audio) vía WhatsApp.
 
@@ -284,7 +284,7 @@ class WhatsAppService:
 
     # ── Webhook ───────────────────────────────────────────
 
-    def verify_webhook(self, mode: str, challenge: str, verify_token: str) -> dict:
+    def verify_webhook(self, mode: str, challenge: str, verify_token: str) -> dict[str, Any]:
         """
         Verifica el webhook de WhatsApp (Meta verification flow).
 
@@ -309,7 +309,7 @@ class WhatsAppService:
             logger.warning("WhatsApp: Verificación de webhook fallida")
             return {"status": "error", "message": "Verificación fallida: token o modo inválido"}
 
-    def process_webhook(self, payload: dict) -> dict:
+    def process_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
         """
         Procesa un payload de webhook entrante de WhatsApp.
 
@@ -432,7 +432,7 @@ class WhatsAppService:
         logger.info("WhatsApp: Credenciales guardadas")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         """
         Verifica la conexión con WhatsApp Business API.
 
@@ -466,7 +466,7 @@ class WhatsAppService:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Estado de la integración WhatsApp."""
         phone_number_id, access_token = self._get_credentials()
         verify_token = self._db.get_setting("whatsapp_verify_token") or None
@@ -488,7 +488,7 @@ class WhatsAppService:
     # ── Tool Definition ───────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "whatsapp",

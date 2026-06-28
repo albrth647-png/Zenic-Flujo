@@ -26,7 +26,7 @@ Implementado en F0-D4; simplificado en M9 siguiendo IMPLEMENTATION_PLAN.md §M9.
 from __future__ import annotations
 
 import math
-from typing import Final
+from typing import Final, Any
 
 from src.core.logging import setup_logging
 from src.hat.level1_orchestrator.ledger.repository import LedgerRepository
@@ -217,7 +217,7 @@ class OVCLedgerBridge:
         self,
         user_id: str,
         session_id: str,
-        metadata: dict,
+        metadata: dict[str, Any],
         var: object,
     ) -> tuple[int, int]:
         """Persiste una variable OVC al Ledger según su tipo.

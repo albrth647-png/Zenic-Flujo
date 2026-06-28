@@ -22,22 +22,24 @@ class DatabaseInterface(ABC):
     """
 
     @abstractmethod
-    def execute(self, sql: str, params: tuple = ()) -> Any:
+    # legítimo: retorna cursor de DB, tipo depende del backend
+    def execute(self, sql: str, params: tuple[Any, ...] = ()) -> Any:
         """Execute a SQL query with parameters."""
         ...
 
     @abstractmethod
+    # legítimo: retorna cursor de DB, tipo depende del backend
     def executemany(self, sql: str, params_list: list[tuple]) -> Any:
         """Execute a SQL query with multiple parameter sets."""
         ...
 
     @abstractmethod
-    def fetchone(self, sql: str, params: tuple = ()) -> dict | None:
+    def fetchone(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
         """Execute a query and return one row as dict."""
         ...
 
     @abstractmethod
-    def fetchall(self, sql: str, params: tuple = ()) -> list[dict]:
+    def fetchall(self, sql: str, params: tuple[Any, ...] = ()) -> list[dict]:
         """Execute a query and return all rows as list of dicts."""
         ...
 

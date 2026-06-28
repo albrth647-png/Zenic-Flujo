@@ -13,6 +13,7 @@ from datetime import datetime
 from src.data.database_manager import DatabaseManager
 from src.tools.data_keeper.models import validate_name, validate_schema
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -37,7 +38,7 @@ class DataKeeperRepository:
         """)
         conn.commit()
 
-    def create_collection(self, name: str, schema: dict) -> dict:
+    def create_collection(self, name: str, schema: dict[str, Any]) -> dict[str, Any]:
         """Crea una nueva colección con su schema."""
         self._init_collections_catalog()
 
@@ -80,7 +81,7 @@ class DataKeeperRepository:
             result.append(collection)
         return result
 
-    def get_collection(self, name: str) -> dict | None:
+    def get_collection(self, name: str) -> dict[str, Any] | None:
         """Obtiene una colección por nombre."""
         self._init_collections_catalog()
         row = self._db.fetchone(
@@ -93,7 +94,7 @@ class DataKeeperRepository:
         collection["schema"] = json.loads(collection["schema"])
         return collection
 
-    def _ensure_data_table(self, collection_name: str, schema: dict) -> None:
+    def _ensure_data_table(self, collection_name: str, schema: dict[str, Any]) -> None:
         """
         Crea o asegura que existe la tabla de datos para una colección.
         Cada colección tiene su propia tabla: dk_{collection_name}
@@ -128,7 +129,7 @@ class DataKeeperRepository:
         conn.execute(create_sql)
         conn.commit()
 
-    def insert(self, collection_name: str, data: dict) -> dict:
+    def insert(self, collection_name: str, data: dict[str, Any]) -> dict[str, Any]:
         """Inserta un registro en una colección."""
         collection = self.get_collection(collection_name)
         if not collection:
@@ -164,7 +165,7 @@ class DataKeeperRepository:
         return self.get(collection_name, record_id)
 
     @staticmethod
-    def _convert_types(record: dict, schema: dict) -> dict:
+    def _convert_types(record: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
         """Convierte tipos de datos al recuperar de SQLite.
         SQLite no tiene booleanos nativos - los guarda como 0/1.
         """
@@ -174,7 +175,7 @@ class DataKeeperRepository:
                 converted[field_name] = bool(converted[field_name])
         return converted
 
-    def get(self, collection_name: str, record_id: int) -> dict | None:
+    def get(self, collection_name: str, record_id: int) -> dict[str, Any] | None:
         """Obtiene un registro por ID."""
         collection = self.get_collection(collection_name)
         if not collection:
@@ -204,7 +205,7 @@ class DataKeeperRepository:
         except sqlite3.OperationalError:
             return None
 
-    def query(self, collection_name: str, filters: dict | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
+    def query(self, collection_name: str, filters: dict[str, Any] | None = None, limit: int = 100, offset: int = 0) -> list[dict]:
         """Consulta registros con filtros opcionales."""
         collection = self.get_collection(collection_name)
         if not collection:
@@ -243,7 +244,7 @@ class DataKeeperRepository:
         except sqlite3.OperationalError:
             return []
 
-    def update(self, collection_name: str, record_id: int, data: dict) -> dict | None:
+    def update(self, collection_name: str, record_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
         """Actualiza un registro."""
         collection = self.get_collection(collection_name)
         if not collection:

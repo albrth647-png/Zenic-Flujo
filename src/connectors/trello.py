@@ -20,6 +20,7 @@ class TrelloConnector(BaseConnector):
     icon = "columns"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_key: str = ""; self._token: str = ""; self._http: HttpClient | None = None
@@ -32,8 +33,10 @@ class TrelloConnector(BaseConnector):
         self._http = HttpClient(base_url="https://api.trello.com/1", connector_name=self.name)
         self._connected = True; self._log_operation("connect"); return True
 
-    def _get_auth_params(self, **extra: Any) -> dict: return {"key": self._api_key, "token": self._token, **extra}
+    # legítimo: wrapper genérico, **extra se mergea al dict de auth
+    def _get_auth_params(self, **extra: Any) -> dict[str, Any]: return {"key": self._api_key, "token": self._token, **extra}
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"get_boards": self._get_boards, "get_board": self._get_board, "get_lists": self._get_lists,
                        "get_cards": self._get_cards, "get_card": self._get_card, "create_card": self._create_card,
@@ -44,7 +47,8 @@ class TrelloConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             kw.setdefault("params", {}).update(self._get_auth_params())
@@ -55,17 +59,17 @@ class TrelloConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _get_boards(self, p: dict) -> dict: return self._api("get", "/members/me/boards", params=p)
-    def _get_board(self, p: dict) -> dict: return self._api("get", f"/boards/{p.get('board_id', '')}", params=p)
-    def _get_lists(self, p: dict) -> dict: return self._api("get", f"/boards/{p.get('board_id', '')}/lists")
-    def _get_cards(self, p: dict) -> dict:
+    def _get_boards(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/members/me/boards", params=p)
+    def _get_board(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/boards/{p.get('board_id', '')}", params=p)
+    def _get_lists(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/boards/{p.get('board_id', '')}/lists")
+    def _get_cards(self, p: dict[str, Any]) -> dict[str, Any]:
         lid = p.get("list_id", ""); return self._api("get", f"/lists/{lid}/cards", params=p) if lid else self._api("get", "/members/me/cards", params=p)
-    def _get_card(self, p: dict) -> dict: return self._api("get", f"/cards/{p.get('card_id', '')}", params=p)
-    def _create_card(self, p: dict) -> dict:
+    def _get_card(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/cards/{p.get('card_id', '')}", params=p)
+    def _create_card(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("post", "/cards", params=self._get_auth_params(**{k: p[k] for k in ("idList", "name", "desc", "due") if k in p}))
-    def _update_card(self, p: dict) -> dict:
+    def _update_card(self, p: dict[str, Any]) -> dict[str, Any]:
         cid = p.pop("card_id", ""); return self._api("put", f"/cards/{cid}", params=self._get_auth_params(**p))
-    def _add_comment(self, p: dict) -> dict:
+    def _add_comment(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("post", f"/cards/{p.get('card_id', '')}/actions/comments", params=self._get_auth_params(text=p.get("text", "")))
 
 

@@ -194,6 +194,7 @@ class TracingManager:
         return self._tracer
 
     @contextmanager
+    # legítimo: opentelemetry.trace.Span, no tipado por compatibilidad
     def span(
         self,
         name: str,
@@ -218,6 +219,7 @@ class TracingManager:
         with self._tracer.start_as_current_span(name, attributes=attributes or {}) as span:
             yield span
 
+    # legítimo: opentelemetry.trace.Span, no tipado por compatibilidad
     def start_span(
         self,
         name: str,
@@ -246,6 +248,7 @@ class TracingManager:
 
         return self._tracer.start_span(name, **kwargs)
 
+    # legítimo: opentelemetry.trace.Span no tipado por compatibilidad
     def end_span(self, span: Any) -> None:
         """Finaliza un span manualmente."""
         if span and hasattr(span, "end"):

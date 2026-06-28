@@ -40,8 +40,8 @@ class DeadLetterEntry:
         action: str = "",
         error_message: str = "",
         retry_count: int = 0,
-        step_definition: dict | None = None,
-        context_snapshot: dict | None = None,
+        step_definition: dict[str, Any] | None = None,
+        context_snapshot: dict[str, Any] | None = None,
         status: str = "pending",
         created_at: str | None = None,
         updated_at: str | None = None,
@@ -63,7 +63,7 @@ class DeadLetterEntry:
         self.updated_at = updated_at or datetime.now().isoformat()
         self.notified = notified  # 0 = no, 1 = yes
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -111,8 +111,8 @@ class DeadLetterManager:
         action: str,
         error_message: str,
         retry_count: int,
-        step_definition: dict | None = None,
-        context_snapshot: dict | None = None,
+        step_definition: dict[str, Any] | None = None,
+        context_snapshot: dict[str, Any] | None = None,
     ) -> int:
         """
         Agrega una entrada a la Dead Letter Queue.
@@ -207,7 +207,7 @@ class DeadLetterManager:
         row = self._db.fetchone(sql, tuple(params))
         return row["count"] if row else 0
 
-    def retry(self, entry_id: int) -> dict:
+    def retry(self, entry_id: int) -> dict[str, Any]:
         """
         Reintenta una entrada de dead letter.
 
@@ -334,7 +334,7 @@ class DeadLetterManager:
         logger.info(f"DeadLetter: entrada #{entry_id} descartada")
         return True
 
-    def retry_all(self, status: str = "pending") -> dict:
+    def retry_all(self, status: str = "pending") -> dict[str, Any]:
         """
         Reintenta todas las entradas con un estado dado.
 
@@ -380,7 +380,7 @@ class DeadLetterManager:
 
     # ── Stats ───────────────────────────────────────────────
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """
         Retorna estadísticas de la Dead Letter Queue.
 
@@ -495,7 +495,7 @@ class DeadLetterManager:
     # ── Helpers ─────────────────────────────────────────────
 
     @staticmethod
-    def _row_to_entry(row: dict) -> DeadLetterEntry:
+    def _row_to_entry(row: dict[str, Any]) -> DeadLetterEntry:
         """Convierte una fila SQL en DeadLetterEntry."""
         return DeadLetterEntry(
             id=row.get("id"),
@@ -516,6 +516,7 @@ class DeadLetterManager:
         )
 
 
+# legítimo: parsea JSON dinámico, retorno puede ser dict/list/str/etc.
 def _safe_json_loads(value: str | dict | list, default: Any = None) -> Any:
     """Carga JSON de forma segura."""
     if isinstance(value, (dict, list)):

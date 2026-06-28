@@ -43,6 +43,7 @@ class AzureBlobConnector(BaseConnector):
     # Azure Blob Storage API version
     _API_VERSION = "2023-01-03"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://{account}.blob.core.windows.net"
@@ -123,6 +124,7 @@ class AzureBlobConnector(BaseConnector):
             logger.error(f"AzureBlobConnector: API fallo: {exc}")
             return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Azure Blob Storage."""
         action_map: dict[str, Any] = {
@@ -374,6 +376,7 @@ class AzureBlobConnector(BaseConnector):
 
     # ── Azure REST API con SharedKey ────────────────────────────
 
+    # legítimo: retorna respuesta HTTP raw de API externa (skill §9.1)
     def _azure_request(
         self,
         method: str,
@@ -444,6 +447,7 @@ class AzureBlobConnector(BaseConnector):
 
         resp = req_lib.request(**request_kwargs)
 
+        # legítimo: JSON decoded de API externa, se valida al consumir (skill §9.1)
         resp_body: Any
         try:
             resp_body = resp.json()

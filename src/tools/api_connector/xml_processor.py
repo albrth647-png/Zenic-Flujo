@@ -6,6 +6,7 @@ Sprint 5.6 del Roadmap Competitivo.
 from __future__ import annotations
 
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -18,7 +19,7 @@ class XMLProcessor:
     """
 
     @staticmethod
-    def parse(xml_string: str) -> dict:
+    def parse(xml_string: str) -> dict[str, Any]:
         try:
             import xmltodict
             result = xmltodict.parse(xml_string)
@@ -30,7 +31,7 @@ class XMLProcessor:
             return {"error": f"Error parseando XML: {e}", "format": "xml"}
 
     @staticmethod
-    def generate(data: dict, root_name: str = "root") -> str:
+    def generate(data: dict[str, Any], root_name: str = "root") -> str:
         try:
             import xmltodict
             result = xmltodict.unparse({root_name: data}, pretty=True)
@@ -42,7 +43,7 @@ class XMLProcessor:
             return f"<!-- Error generando XML: {e} -->"
 
     @staticmethod
-    def _basic_parse(xml_string: str) -> dict:
+    def _basic_parse(xml_string: str) -> dict[str, Any]:
         import re
         result = {}
         pattern = r"<(\w+)>([^<]+)</\1>"
@@ -58,7 +59,7 @@ class XMLProcessor:
         return {"parsed": result, "format": "xml", "parser": "basic"}
 
     @staticmethod
-    def _basic_generate(data: dict, root_name: str = "root", indent: int = 0) -> str:
+    def _basic_generate(data: dict[str, Any], root_name: str = "root", indent: int = 0) -> str:
         indent_str = "  " * indent
         lines = [f"{indent_str}<{root_name}>"]
         for key, value in data.items():

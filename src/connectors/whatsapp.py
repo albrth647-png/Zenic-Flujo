@@ -43,6 +43,7 @@ class WhatsAppConnector(BaseConnector):
     icon = "message-circle"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._phone_number_id: str = ""
@@ -107,6 +108,7 @@ class WhatsAppConnector(BaseConnector):
             logger.error(f"WhatsAppConnector: error inesperado: {e}")
             return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector WhatsApp.
 
@@ -371,7 +373,7 @@ class WhatsAppConnector(BaseConnector):
     # ── Webhook helpers (static) ─────────────────────────────
 
     @staticmethod
-    def verify_webhook_challenge(mode: str, challenge: str, verify_token: str, expected_token: str) -> dict:
+    def verify_webhook_challenge(mode: str, challenge: str, verify_token: str, expected_token: str) -> dict[str, Any]:
         """Verifica el challenge del webhook de WhatsApp (Meta verification flow).
 
         Args:
@@ -414,7 +416,7 @@ class WhatsAppConnector(BaseConnector):
         return hmac.compare_digest(expected_sig, received_sig)
 
     @staticmethod
-    def process_webhook_payload(payload: dict) -> dict:
+    def process_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
         """Procesa un payload de webhook entrante de WhatsApp.
 
         Args:

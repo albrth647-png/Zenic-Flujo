@@ -31,6 +31,7 @@ from src.hat.level5_tools.business.invoice.fiscal_dispatcher import (
     SUPPORTED_COUNTRIES,
 )
 from src.license.validator import LicenseValidator
+from typing import Any
 
 router = APIRouter(prefix="/api/v2/fiscal", tags=["fiscal"])
 
@@ -43,11 +44,11 @@ _license_validator = LicenseValidator()
 class FiscalIssueRequest(BaseModel):
     """Body para POST /issue — emisión de comprobante fiscal."""
     country: str = Field(..., description="ISO-3166-1 alpha-2 (AR, MX, BR, CL, CO, PE, EC)")
-    action_params: dict = Field(
+    action_params: dict[str, Any] = Field(
         default_factory=dict,
         description="Parámetros específicos del país y operación (emisor, receptor, items, etc.)",
     )
-    credentials: dict = Field(
+    credentials: dict[str, Any] = Field(
         default_factory=dict,
         description="Credenciales del connector (cuit/rfc/cert_path/cert_password/ambiente).",
     )
@@ -58,7 +59,7 @@ class FiscalCancelRequest(BaseModel):
     country: str
     tracking_id: str = Field(..., description="CAE/UUID/CUFE/chave/TrackId del comprobante")
     motivo: str = Field(default="", description="Motivo de cancelación (requerido por algunos países)")
-    credentials: dict = Field(default_factory=dict)
+    credentials: dict[str, Any] = Field(default_factory=dict)
 
 
 class FiscalResponse(BaseModel):
@@ -69,7 +70,7 @@ class FiscalResponse(BaseModel):
     country_tracking_id: str = ""
     xml: str = ""
     pdf_base64: str = ""
-    government_response: dict = {}
+    government_response: dict[str, Any] = {}
     reject_code: str = ""
     reject_message: str = ""
     error: str = ""
@@ -96,7 +97,7 @@ def _resolve_license_type(x_license_key: str | None) -> str:
 # ── Endpoints ────────────────────────────────────────────────────────
 
 @router.get("/countries")
-async def list_supported_countries() -> dict:
+async def list_supported_countries() -> dict[str, Any]:
     """Lista los países LATAM soportados y los disponibles actualmente."""
     available = _dispatcher.supported_countries()
     return {

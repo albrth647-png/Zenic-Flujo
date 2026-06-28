@@ -143,7 +143,9 @@ class TOR:
                 self._cache_hits += 1
                 # Amplitudes pueden cambiar aunque las fases no
                 tor_value = var_i.amplitude * var_j.amplitude * cached_alignment
-                is_resonant = abs(tor_value) > threshold if threshold > 0 else False
+                # Fix bug: threshold=0 debe significar "cualquier tensión > 0 es resonante",
+                # no "nunca resonante". Antes: `if threshold > 0 else False` era siempre False con default 0.
+                is_resonant = abs(tor_value) > threshold
                 result = TORResult(
                     variable_i=var_i.name,
                     variable_j=var_j.name,
@@ -158,7 +160,8 @@ class TOR:
         self._cache_misses += 1
         alignment = math.cos(phase_diff)
         tor_value = var_i.amplitude * var_j.amplitude * alignment
-        is_resonant = abs(tor_value) > threshold if threshold > 0 else False
+        # Fix bug: misma lógica que en el cache hit.
+        is_resonant = abs(tor_value) > threshold
 
         # Actualizar cache
         self._cache[pair_key] = (phase_hash, tor_value, alignment, is_resonant)

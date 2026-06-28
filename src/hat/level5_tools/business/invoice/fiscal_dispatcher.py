@@ -292,6 +292,7 @@ class FiscalDispatcher:
         self,
         country: str,
         action: str,
+        # legítimo: raw XML/JSON de documento fiscal, tipo dinámico
         raw: Any,
         dispatched_at: str,
     ) -> FiscalResult:

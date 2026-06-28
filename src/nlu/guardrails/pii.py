@@ -9,7 +9,7 @@ emails, telefonos, documentos, API keys, datos bancarios.
 from __future__ import annotations
 
 import re
-from typing import ClassVar
+from typing import ClassVar, Any
 
 from src.nlu.guardrails.result import GuardrailResult, RiskLevel
 
@@ -61,7 +61,7 @@ class PIIGuardrails:
     def __init__(self, lang: str = "es"):
         self.lang = lang
 
-    def check_workflow_for_pii(self, workflow: dict) -> GuardrailResult:
+    def check_workflow_for_pii(self, workflow: dict[str, Any]) -> GuardrailResult:
         """Escanea un workflow completo en busca de PII.
 
         Args:
@@ -112,7 +112,7 @@ class PIIGuardrails:
             {"reason": "pii_detected", "findings": findings, "total": total_findings},
         )
 
-    def check_params_for_pii(self, params: dict) -> GuardrailResult:
+    def check_params_for_pii(self, params: dict[str, Any]) -> GuardrailResult:
         """Escanea parametros especificos en busca de PII.
 
         Util para validar slots antes de compilar el workflow.

@@ -48,7 +48,7 @@ class WorkflowVariables:
     # ── Variable operations ─────────────────────────────────
 
     @staticmethod
-    def set_variable(name: str, value: Any, context: dict) -> dict:
+    def set_variable(name: str, value: object, context: dict[str, Any]) -> dict[str, Any]:
         """
         Establece una variable en el contexto del workflow.
 
@@ -65,7 +65,7 @@ class WorkflowVariables:
         return {"name": name, "value": value, "status": "set"}
 
     @staticmethod
-    def get_variable(name: str, context: dict, default: Any = None) -> dict:
+    def get_variable(name: str, context: dict[str, Any], default: object = None) -> dict[str, Any]:
         """
         Obtiene una variable del contexto del workflow.
 
@@ -90,7 +90,7 @@ class WorkflowVariables:
         return {"name": name, "value": value, "found": found}
 
     @staticmethod
-    def delete_variable(name: str, context: dict) -> dict:
+    def delete_variable(name: str, context: dict[str, Any]) -> dict[str, Any]:
         """
         Elimina una variable del contexto del workflow.
 
@@ -108,7 +108,7 @@ class WorkflowVariables:
         return {"name": name, "existed": existed, "status": "deleted"}
 
     @staticmethod
-    def exists_variable(name: str, context: dict) -> dict:
+    def exists_variable(name: str, context: dict[str, Any]) -> dict[str, Any]:
         """
         Verifica si una variable existe en el contexto.
 
@@ -132,39 +132,39 @@ class WorkflowVariables:
     # ── Transform functions ────────────────────────────────
 
     @staticmethod
-    def transform_upper(value: str) -> dict:
+    def transform_upper(value: str) -> dict[str, Any]:
         """Convierte a mayúsculas."""
         return {"result": str(value).upper()}
 
     @staticmethod
-    def transform_lower(value: str) -> dict:
+    def transform_lower(value: str) -> dict[str, Any]:
         """Convierte a minúsculas."""
         return {"result": str(value).lower()}
 
     @staticmethod
-    def transform_trim(value: str) -> dict:
+    def transform_trim(value: str) -> dict[str, Any]:
         """Elimina espacios al inicio y final."""
         return {"result": str(value).strip()}
 
     @staticmethod
-    def transform_replace(value: str, old: str, new: str, count: int = -1) -> dict:
+    def transform_replace(value: str, old: str, new: str, count: int = -1) -> dict[str, Any]:
         """Reemplaza una subcadena por otra."""
         if count >= 0:
             return {"result": str(value).replace(old, new, count)}
         return {"result": str(value).replace(old, new)}
 
     @staticmethod
-    def transform_split(value: str, delimiter: str = ",") -> dict:
+    def transform_split(value: str, delimiter: str = ",") -> dict[str, Any]:
         """Divide un string en una lista usando un delimitador."""
         return {"result": str(value).split(delimiter)}
 
     @staticmethod
-    def transform_join(values: list, delimiter: str = ",") -> dict:
+    def transform_join(values: list[Any], delimiter: str = ",") -> dict[str, Any]:
         """Une una lista en un string usando un delimitador."""
         return {"result": delimiter.join(str(v) for v in values)}
 
     @staticmethod
-    def transform_substring(value: str, start: int = 0, end: int | None = None) -> dict:
+    def transform_substring(value: str, start: int = 0, end: int | None = None) -> dict[str, Any]:
         """Extrae una subcadena."""
         s = str(value)
         if end is not None:
@@ -172,7 +172,7 @@ class WorkflowVariables:
         return {"result": s[start:]}
 
     @staticmethod
-    def transform_length(value: Any) -> dict:
+    def transform_length(value: object) -> dict[str, Any]:
         """Retorna la longitud de un string, lista o dict."""
         try:
             return {"result": len(value)}
@@ -182,84 +182,84 @@ class WorkflowVariables:
     # ── Math functions ─────────────────────────────────────
 
     @staticmethod
-    def math_add(a: float, b: float) -> dict:
+    def math_add(a: float, b: float) -> dict[str, Any]:
         """Suma dos números."""
         return {"result": float(a) + float(b), "a": a, "b": b}
 
     @staticmethod
-    def math_subtract(a: float, b: float) -> dict:
+    def math_subtract(a: float, b: float) -> dict[str, Any]:
         """Resta dos números."""
         return {"result": float(a) - float(b), "a": a, "b": b}
 
     @staticmethod
-    def math_multiply(a: float, b: float) -> dict:
+    def math_multiply(a: float, b: float) -> dict[str, Any]:
         """Multiplica dos números."""
         return {"result": float(a) * float(b), "a": a, "b": b}
 
     @staticmethod
-    def math_divide(a: float, b: float) -> dict:
+    def math_divide(a: float, b: float) -> dict[str, Any]:
         """Divide dos números. Retorna error si b es 0."""
         if float(b) == 0:
             return {"result": None, "error": "division_by_zero", "a": a, "b": b}
         return {"result": float(a) / float(b), "a": a, "b": b}
 
     @staticmethod
-    def math_floor(value: float) -> dict:
+    def math_floor(value: float) -> dict[str, Any]:
         """Redondea hacia abajo."""
         return {"result": math.floor(float(value))}
 
     @staticmethod
-    def math_ceil(value: float) -> dict:
+    def math_ceil(value: float) -> dict[str, Any]:
         """Redondea hacia arriba."""
         return {"result": math.ceil(float(value))}
 
     @staticmethod
-    def math_round(value: float, decimals: int = 0) -> dict:
+    def math_round(value: float, decimals: int = 0) -> dict[str, Any]:
         """Redondea a N decimales."""
         return {"result": round(float(value), decimals)}
 
     @staticmethod
-    def math_abs(value: float) -> dict:
+    def math_abs(value: float) -> dict[str, Any]:
         """Valor absoluto."""
         return {"result": abs(float(value))}
 
     @staticmethod
-    def math_min(a: float, b: float) -> dict:
+    def math_min(a: float, b: float) -> dict[str, Any]:
         """Retorna el menor de dos números."""
         return {"result": min(float(a), float(b))}
 
     @staticmethod
-    def math_max(a: float, b: float) -> dict:
+    def math_max(a: float, b: float) -> dict[str, Any]:
         """Retorna el mayor de dos números."""
         return {"result": max(float(a), float(b))}
 
     @staticmethod
-    def math_power(base: float, exponent: float) -> dict:
+    def math_power(base: float, exponent: float) -> dict[str, Any]:
         """Potencia: base^exponent."""
         return {"result": math.pow(float(base), float(exponent))}
 
     @staticmethod
-    def math_sqrt(value: float) -> dict:
+    def math_sqrt(value: float) -> dict[str, Any]:
         """Raíz cuadrada. Retorna error si value < 0."""
         if float(value) < 0:
             return {"result": None, "error": "negative_sqrt", "value": value}
         return {"result": math.sqrt(float(value))}
 
     @staticmethod
-    def math_modulo(a: float, b: float) -> dict:
+    def math_modulo(a: float, b: float) -> dict[str, Any]:
         """Módulo (resto de división)."""
         return {"result": float(a) % float(b), "a": a, "b": b}
 
     # ── Aggregators ────────────────────────────────────────
 
     @staticmethod
-    def aggregate_sum(values: list) -> dict:
+    def aggregate_sum(values: list[Any]) -> dict[str, Any]:
         """Suma todos los elementos numéricos de una lista."""
         total = sum(float(v) for v in values)
         return {"result": total, "count": len(values)}
 
     @staticmethod
-    def aggregate_avg(values: list) -> dict:
+    def aggregate_avg(values: list[Any]) -> dict[str, Any]:
         """Promedio de los elementos numéricos."""
         if not values:
             return {"result": 0, "count": 0, "error": "empty_list"}
@@ -267,19 +267,19 @@ class WorkflowVariables:
         return {"result": total / len(values), "count": len(values)}
 
     @staticmethod
-    def aggregate_count(values: list) -> dict:
+    def aggregate_count(values: list[Any]) -> dict[str, Any]:
         """Cuenta los elementos de una lista."""
         return {"result": len(values)}
 
     @staticmethod
-    def aggregate_min(values: list) -> dict:
+    def aggregate_min(values: list[Any]) -> dict[str, Any]:
         """Retorna el mínimo de una lista numérica."""
         if not values:
             return {"result": None, "error": "empty_list"}
         return {"result": min(float(v) for v in values)}
 
     @staticmethod
-    def aggregate_max(values: list) -> dict:
+    def aggregate_max(values: list[Any]) -> dict[str, Any]:
         """Retorna el máximo de una lista numérica."""
         if not values:
             return {"result": None, "error": "empty_list"}
@@ -288,7 +288,7 @@ class WorkflowVariables:
     # ── Context helpers ────────────────────────────────────
 
     @staticmethod
-    def get_context_snapshot(context: dict) -> dict:
+    def get_context_snapshot(context: dict[str, Any]) -> dict[str, Any]:
         """
         Retorna un snapshot del contexto del workflow.
 
@@ -320,7 +320,7 @@ class WorkflowVariables:
     # ── Dispatch ───────────────────────────────────────────
 
     @classmethod
-    def execute(cls, params: dict, context: dict) -> dict:
+    def execute(cls, params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         """
         Dispatcher principal para el system action 'variable'.
 

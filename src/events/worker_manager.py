@@ -27,6 +27,7 @@ import time
 from src.core.logging import setup_logging
 from src.events.work_queue import WorkQueue
 from src.workflow.engine import WorkflowEngine
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -86,7 +87,7 @@ class Worker:
         """Verifica si el thread del worker está vivo."""
         return self._thread is not None and self._thread.is_alive()
 
-    def get_health(self) -> dict:
+    def get_health(self) -> dict[str, Any]:
         """Retorna estado de salud del worker."""
         return {
             "worker_id": self.worker_id,
@@ -311,7 +312,7 @@ class WorkerManager:
 
     # ── Métricas ──────────────────────────────────────────
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Retorna métricas agregadas de todos los workers + cola.
 

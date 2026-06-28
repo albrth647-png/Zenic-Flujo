@@ -1,0 +1,260 @@
+{
+  "total_occurrences": 626,
+  "justified": 626,
+  "unjustified": 0,
+  "created_at": "2026-06-28T00:03:30.238181+00:00",
+  "by_module": {
+    "src/connectors": {
+      "total": 212,
+      "justified": 212,
+      "legitimate_import_any": 64,
+      "param_annotation": 80,
+      "return_annotation": 66,
+      "var_annotation": 2
+    },
+    "src/sdk/decorators": {
+      "total": 56,
+      "justified": 56,
+      "legitimate_import_any": 14,
+      "return_annotation": 14,
+      "param_annotation": 28
+    },
+    "src/hat/level5_tools": {
+      "total": 46,
+      "justified": 46,
+      "legitimate_import_any": 44,
+      "return_annotation": 1,
+      "param_annotation": 1
+    },
+    "src/tools": {
+      "total": 35,
+      "justified": 35,
+      "legitimate_import_any": 32,
+      "return_annotation": 2,
+      "param_annotation": 1
+    },
+    "src/workflow": {
+      "total": 27,
+      "justified": 27,
+      "legitimate_import_any": 21,
+      "return_annotation": 2,
+      "param_annotation": 4
+    },
+    "src/agents": {
+      "total": 22,
+      "justified": 22,
+      "legitimate_import_any": 6,
+      "return_annotation": 4,
+      "param_annotation": 12
+    },
+    "src/data": {
+      "total": 21,
+      "justified": 21,
+      "legitimate_import_any": 9,
+      "return_annotation": 6,
+      "param_annotation": 6
+    },
+    "src/hat/level1_orchestrator": {
+      "total": 18,
+      "justified": 18,
+      "legitimate_import_any": 8,
+      "var_annotation": 2,
+      "param_annotation": 7,
+      "return_annotation": 1
+    },
+    "src/api_v2/routers": {
+      "total": 18,
+      "justified": 18,
+      "legitimate_import_any": 14,
+      "return_annotation": 2,
+      "param_annotation": 2
+    },
+    "src/sdk": {
+      "total": 14,
+      "justified": 14,
+      "legitimate_import_any": 4,
+      "param_annotation": 9,
+      "return_annotation": 1
+    },
+    "src/orbital": {
+      "total": 14,
+      "justified": 14,
+      "legitimate_import_any": 13,
+      "return_annotation": 1
+    },
+    "src/tenant": {
+      "total": 13,
+      "justified": 13,
+      "legitimate_import_any": 7,
+      "param_annotation": 5,
+      "return_annotation": 1
+    },
+    "src/security": {
+      "total": 13,
+      "justified": 13,
+      "legitimate_import_any": 12,
+      "param_annotation": 1
+    },
+    "src/hat/level3_specialists": {
+      "total": 11,
+      "justified": 11,
+      "legitimate_import_any": 10,
+      "var_annotation": 1
+    },
+    "src/compliance": {
+      "total": 10,
+      "justified": 10,
+      "legitimate_import_any": 6,
+      "param_annotation": 4
+    },
+    "src/events": {
+      "total": 10,
+      "justified": 10,
+      "legitimate_import_any": 8,
+      "param_annotation": 2
+    },
+    "src/hat/agents_legacy": {
+      "total": 9,
+      "justified": 9,
+      "legitimate_import_any": 3,
+      "return_annotation": 3,
+      "param_annotation": 3
+    },
+    "src/nlu": {
+      "total": 8,
+      "justified": 8,
+      "legitimate_import_any": 8
+    },
+    "src/sdk/crypto": {
+      "total": 7,
+      "justified": 7,
+      "legitimate_import_any": 2,
+      "param_annotation": 5
+    },
+    "src/sdk/auth": {
+      "total": 7,
+      "justified": 7,
+      "legitimate_import_any": 7
+    },
+    "src/observability": {
+      "total": 6,
+      "justified": 6,
+      "legitimate_import_any": 3,
+      "param_annotation": 2,
+      "return_annotation": 1
+    },
+    "src/mobile": {
+      "total": 5,
+      "justified": 5,
+      "legitimate_import_any": 3,
+      "param_annotation": 2
+    },
+    "src/api_v2": {
+      "total": 5,
+      "justified": 5,
+      "legitimate_import_any": 4,
+      "param_annotation": 1
+    },
+    "src/nlu/guardrails": {
+      "total": 5,
+      "justified": 5,
+      "legitimate_import_any": 4,
+      "var_annotation": 1
+    },
+    "src/marketplace": {
+      "total": 4,
+      "justified": 4,
+      "legitimate_import_any": 4
+    },
+    "src/web": {
+      "total": 3,
+      "justified": 3,
+      "legitimate_import_any": 2,
+      "return_annotation": 1
+    },
+    "src/partnership": {
+      "total": 3,
+      "justified": 3,
+      "legitimate_import_any": 2,
+      "param_annotation": 1
+    },
+    "src/i18n": {
+      "total": 3,
+      "justified": 3,
+      "legitimate_import_any": 1,
+      "param_annotation": 2
+    },
+    "src/sync": {
+      "total": 3,
+      "justified": 3,
+      "legitimate_import_any": 2,
+      "param_annotation": 1
+    },
+    "src/sdk/base": {
+      "total": 3,
+      "justified": 3,
+      "legitimate_import_any": 1,
+      "return_annotation": 1,
+      "param_annotation": 1
+    },
+    "src": {
+      "total": 2,
+      "justified": 2,
+      "legitimate_import_any": 2
+    },
+    "src/bpmn": {
+      "total": 2,
+      "justified": 2,
+      "legitimate_import_any": 2
+    },
+    "src/cli": {
+      "total": 2,
+      "justified": 2,
+      "legitimate_import_any": 1,
+      "return_annotation": 1
+    },
+    "src/hat/level2_supervisors": {
+      "total": 2,
+      "justified": 2,
+      "legitimate_import_any": 1,
+      "var_annotation": 1
+    },
+    "src/hat/level4_workers": {
+      "total": 2,
+      "justified": 2,
+      "legitimate_import_any": 1,
+      "var_annotation": 1
+    },
+    "src/utils": {
+      "total": 1,
+      "justified": 1,
+      "legitimate_import_any": 1
+    },
+    "src/license": {
+      "total": 1,
+      "justified": 1,
+      "legitimate_import_any": 1
+    },
+    "src/nlu/entities": {
+      "total": 1,
+      "justified": 1,
+      "legitimate_import_any": 1
+    },
+    "src/cli/templates": {
+      "total": 1,
+      "justified": 1,
+      "legitimate_import_any": 1
+    },
+    "src/cli/commands": {
+      "total": 1,
+      "justified": 1,
+      "legitimate_import_any": 1
+    }
+  },
+  "by_antipattern": {
+    "legitimate_import_any": 330,
+    "param_annotation": 180,
+    "return_annotation": 108,
+    "var_annotation": 8
+  }
+}

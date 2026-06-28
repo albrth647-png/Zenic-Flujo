@@ -23,6 +23,7 @@ import threading
 from collections.abc import Callable
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -94,7 +95,7 @@ class EventBus:
 
     # ── Publicación ─────────────────────────────────────────
 
-    def publish(self, event_type: str, data: dict) -> None:
+    def publish(self, event_type: str, data: dict[str, Any]) -> None:
         """
         Publica un evento. Todos los handlers suscritos son llamados.
         Si hay un global_handler registrado, también se llama con (event_type, data).

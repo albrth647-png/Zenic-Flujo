@@ -6,7 +6,7 @@ import re
 import secrets
 import uuid
 from datetime import UTC, datetime
-from typing import TypeVar
+from typing import TypeVar, Any
 
 T = TypeVar("T")
 
@@ -33,7 +33,7 @@ def truncate(text: str, max_length: int = 100) -> str:
     return text[: max_length - 3] + "..."
 
 
-def safe_get[T](data: dict, path: str, default: T | None = None) -> T | None:
+def safe_get[T](data: dict[str, Any], path: str, default: T | None = None) -> T | None:
     """
     Obtiene un valor de un dict anidado usando notación de puntos.
     Ejemplo: safe_get({"a": {"b": 1}}, "a.b") → 1
@@ -51,7 +51,7 @@ def safe_get[T](data: dict, path: str, default: T | None = None) -> T | None:
     return current
 
 
-def resolve_variables(template: str, context: dict) -> str | int | float | list | dict | None:
+def resolve_variables(template: str, context: dict[str, Any]) -> str | int | float | list | dict | None:
     """
     Resuelve variables en formato $input.nombre, $output.step1.email, etc.
     Busca en context usando notación de puntos.

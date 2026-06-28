@@ -19,6 +19,7 @@ import hashlib
 from src.core.logging import setup_logging
 from src.orbital.context import OrbitalContext
 from src.orbital.models import DEFAULT_THRESHOLD, TWO_PI
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -46,7 +47,7 @@ class LoopHandler:
     def __init__(self):
         self._ctx = OrbitalContext()
 
-    def execute(self, step: dict, context: dict, step_executor) -> LoopResult:
+    def execute(self, step: dict[str, Any], context: dict[str, Any], step_executor) -> LoopResult:
         """Ejecuta un bucle segun su tipo."""
         loop_type = step.get("type", "foreach")
 
@@ -59,7 +60,7 @@ class LoopHandler:
         else:
             raise ValueError(f"Tipo de bucle no soportado: {loop_type}")
 
-    def _execute_foreach(self, step: dict, context: dict, step_executor) -> LoopResult:
+    def _execute_foreach(self, step: dict[str, Any], context: dict[str, Any], step_executor) -> LoopResult:
         """Ejecuta un bucle foreach con enriquecimiento orbital."""
         collection_ref = step.get("collection", "")
         item_var = step.get("item_var", "item")
@@ -119,7 +120,7 @@ class LoopHandler:
         logger.info(f"OrbitalConvergence: Foreach completado — {len(outputs)} iteraciones")
         return LoopResult(iterations=len(outputs), outputs=outputs)
 
-    def _execute_for(self, step: dict, context: dict, step_executor) -> LoopResult:
+    def _execute_for(self, step: dict[str, Any], context: dict[str, Any], step_executor) -> LoopResult:
         """Ejecuta un bucle for con enriquecimiento orbital."""
         start = step.get("start", 0)
         end = step.get("end", 10)
@@ -164,7 +165,7 @@ class LoopHandler:
         logger.info(f"OrbitalConvergence: For completado — {count} iteraciones")
         return LoopResult(iterations=count, outputs=outputs)
 
-    def _execute_while_orbital(self, step: dict, context: dict, step_executor) -> LoopResult:
+    def _execute_while_orbital(self, step: dict[str, Any], context: dict[str, Any], step_executor) -> LoopResult:
         """Ejecuta un bucle while usando convergencia orbital (COD compartido)."""
         condition = step.get("condition", "True")
         inner_steps = step.get("steps", [])
@@ -270,7 +271,7 @@ class LoopHandler:
             convergence_delta=convergence_delta,
         )
 
-    def _execute_inner_steps(self, steps: list[dict], context: dict, step_executor) -> list[dict]:
+    def _execute_inner_steps(self, steps: list[dict], context: dict[str, Any], step_executor) -> list[dict]:
         """Ejecuta los pasos internos de una iteracion."""
         results = []
         for inner_step in steps:
@@ -289,7 +290,7 @@ class LoopHandler:
 
     # ── Helpers orbitales (OVC compartido) ───────────────────
 
-    def _ensure_loop_variable(self, var_name: str, step: dict) -> None:
+    def _ensure_loop_variable(self, var_name: str, step: dict[str, Any]) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
             # Hash no criptográfico: deriva theta determinista del var_name (B324 mitigado).
             hash_val = int(hashlib.md5(var_name.encode(), usedforsecurity=False).hexdigest()[:8], 16)

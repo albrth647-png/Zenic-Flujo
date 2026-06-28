@@ -29,6 +29,7 @@ from src.core.logging import setup_logging
 from src.core.utils import resolve_variables
 from src.orbital.context import OrbitalContext
 from src.orbital.models import TWO_PI
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -39,7 +40,7 @@ class StepResult:
     def __init__(
         self,
         status: str,
-        output_data: dict | None = None,
+        output_data: dict[str, Any] | None = None,
         duration_ms: int = 0,
         error_message: str | None = None,
         orbital_theta: float = 0.0,
@@ -95,7 +96,7 @@ class StepExecutor:
 
     # ── Ejecucion ORBITAL ───────────────────────────────────
 
-    def execute(self, step: dict, context: dict) -> StepResult:
+    def execute(self, step: dict[str, Any], context: dict[str, Any]) -> StepResult:
         """
         Ejecuta un paso con tension orbital (OVC compartido).
 
@@ -278,7 +279,7 @@ class StepExecutor:
 
     # ── Helpers ─────────────────────────────────────────────
 
-    def _resolve_params(self, params: dict, context: dict) -> dict:
+    def _resolve_params(self, params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         """Resuelve variables en los parametros del paso y convierte tipos."""
         resolved = {}
         for key, value in params.items():
@@ -323,7 +324,7 @@ class StepExecutor:
             return int(result)
         return result
 
-    def _execute_system_action(self, action: str, params: dict, context: dict | None = None) -> dict:
+    def _execute_system_action(self, action: str, params: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
         """Ejecuta acciones del sistema (backup, wait, schedule)."""
         from src.core.db import DatabaseManager
 
@@ -396,7 +397,7 @@ class StepExecutor:
         else:
             raise ValueError(f"Accion de sistema desconocida: {action}")
 
-    def _ensure_step_variable(self, var_name: str, step: dict) -> None:
+    def _ensure_step_variable(self, var_name: str, step: dict[str, Any]) -> None:
         """Crea una variable orbital para un paso si no existe (en OVC compartido)."""
         if self._ctx.ovc.get_variable(var_name) is None:
             # Hash no criptográfico: deriva theta determinista del var_name (B324 mitigado).
@@ -422,7 +423,7 @@ class StepExecutor:
                 return var.theta
         return None
 
-    def get_orbital_snapshot(self) -> dict:
+    def get_orbital_snapshot(self) -> dict[str, Any]:
         """Retorna snapshot del estado orbital de los pasos."""
         return {
             "variables": self._ctx.ovc.get_value_snapshot(),

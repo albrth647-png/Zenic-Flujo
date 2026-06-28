@@ -11,9 +11,11 @@
 #   - mypy (Python types): gate types_clean (modo gradual)
 #   - eslint (TS lint): gate lint_clean TS
 #   - madge (TS circular): gate no_circular_imports TS
+#   - any-ratchet (Python types): bloquea Any nuevos sin justificación (anti-deuda)
 #
 # Nota: Los hooks de ruff/mypy/eslint requieren las herramientas instaladas.
 # Ver forge/docs/fase1-rollout.md y fase2-rollout.md para instalación.
+# Ver docs/plans/any-ratchet-setup.md para el detalle del hook any-ratchet.
 
 repos:
   # ── Forge Ledger Verify ────────────────────────────────────────────
@@ -65,6 +67,23 @@ repos:
         language: system
         files: ^frontend/src/.*\.(ts|tsx)$
         pass_filenames: false
+
+  # ── Any Ratchet (anti-deuda Any) ───────────────────────────────────
+  # Bloquea commits que introduzcan NUEVOS `Any` sin justificación en
+  # archivos .py de src/ (excluye src/core/ y src/tests/). La deuda
+  # existente se audita globalmente en CI (ver .github/workflows/any-audit.yml).
+  # Bypass local: ANY_RATCHET_ALLOW=1 git commit ...
+  # Bypass CI:    label `any-bypass` en el PR.
+  # Doc: docs/plans/any-ratchet-setup.md
+  - repo: local
+    hooks:
+      - id: any-ratchet
+        name: Any Ratchet (bloquea Any nuevos sin justificación)
+        entry: python3 scripts/hooks/pre_commit_any_ratchet.py
+        language: system
+        files: ^src/.*\.py$
+        exclude: ^src/(core|tests)/.*
+        pass_filenames: true
 
 # Configuración global
 default_language_version:

@@ -41,6 +41,7 @@ class GcsConnector(BaseConnector):
     _GCS_API_BASE = "https://storage.googleapis.com/storage/v1"
     _GCS_UPLOAD_BASE = "https://storage.googleapis.com/upload/storage/v1"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = self._GCS_API_BASE
@@ -99,6 +100,7 @@ class GcsConnector(BaseConnector):
             logger.error(f"GcsConnector: GCS API fallo: {exc}")
             return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector GCS."""
         action_map: dict[str, Any] = {

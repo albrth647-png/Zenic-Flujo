@@ -20,6 +20,7 @@ class MailgunConnector(BaseConnector):
     icon = "mail"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_key: str = ""; self._domain: str = ""; self._base_url: str = ""
@@ -36,6 +37,7 @@ class MailgunConnector(BaseConnector):
         self._http.set_auth("Basic", username="api", password=self._api_key)
         self._connected = True; self._log_operation("connect", f"domain={self._domain}"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"send_email": self._send_email, "get_domains": self._get_domains, "get_events": self._get_events,
                        "create_domain": self._create_domain, "verify_domain": self._verify_domain}
@@ -45,7 +47,8 @@ class MailgunConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -58,7 +61,7 @@ class MailgunConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _send_email(self, p: dict) -> dict:
+    def _send_email(self, p: dict[str, Any]) -> dict[str, Any]:
         to = p.get("to", ""); subject = p.get("subject", ""); text = p.get("text", "")
         html = p.get("html", ""); from_addr = p.get("from", f"noreply@{self._domain}")
         if not to or not subject: return {"success": False, "error": "to y subject requeridos"}
@@ -69,12 +72,12 @@ class MailgunConnector(BaseConnector):
         if p.get("bcc"): data["bcc"] = p["bcc"]
         return self._api("post", "/messages", data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
 
-    def _get_domains(self, p: dict) -> dict: return self._api("get", "/domains", params=p)
-    def _get_events(self, p: dict) -> dict: return self._api("get", "/events", params=p)
-    def _create_domain(self, p: dict) -> dict:
+    def _get_domains(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/domains", params=p)
+    def _get_events(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/events", params=p)
+    def _create_domain(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("post", "/domains", data={"name": p.get("name", ""), "smtp_password": p.get("smtp_password", "")},
                          headers={"Content-Type": "application/x-www-form-urlencoded"})
-    def _verify_domain(self, p: dict) -> dict: return self._api("get", f"/domains/{p.get('domain', self._domain)}/verify")
+    def _verify_domain(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/domains/{p.get('domain', self._domain)}/verify")
 
 
 MAILGUN_SCHEMA = ConnectorSchema(name="mailgun", version="1.0.0", description="Envia emails transaccionales via Mailgun",

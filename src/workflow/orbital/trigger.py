@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from src.core.logging import setup_logging
 from src.orbital.models import TWO_PI
+from typing import Any
 
 logger = setup_logging(__name__)
 
 
-def inject_trigger_as_orbital(trigger_data: dict, ovc, var_prefix: str = "") -> None:
+def inject_trigger_as_orbital(trigger_data: dict[str, Any], ovc, var_prefix: str = "") -> None:
     """Convierte los datos del trigger en variables orbitales (OVC compartido).
 
     Args:

@@ -180,6 +180,7 @@ class PushNotificationService:
         self._init_db()
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> PushNotificationService:
         """Get or create the singleton service."""
         if cls._instance is None:

@@ -39,6 +39,11 @@ from src.api_v2.models import (
 )
 from src.core.logging import setup_logging
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager
+    from src.tenant.service import TenantService
+
 logger = setup_logging(__name__)
 
 router = APIRouter(prefix="/api/v2/tenants", tags=["Tenants"])
@@ -55,7 +60,7 @@ router = APIRouter(prefix="/api/v2/tenants", tags=["Tenants"])
 async def create_tenant(
     tenant_data: TenantCreate,
     user: dict[str, Any] = Depends(require_permission("settings", "create")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> TenantResponse:
     """Crea un nuevo tenant."""
     result = tenant_service.create_tenant(
@@ -86,7 +91,7 @@ async def create_tenant(
 async def get_tenant(
     tenant_id: str,
     user: dict[str, Any] = Depends(require_permission("settings", "read")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> TenantResponse:
     """Obtiene un tenant por su ID."""
     tenant = tenant_service.get_tenant(tenant_id)
@@ -107,7 +112,7 @@ async def update_tenant(
     tenant_id: str,
     tenant_data: TenantUpdate,
     user: dict[str, Any] = Depends(require_permission("settings", "update")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> TenantResponse:
     """Actualiza un tenant existente."""
     # Verificar que existe
@@ -138,7 +143,7 @@ async def update_tenant(
 async def delete_tenant(
     tenant_id: str,
     user: dict[str, Any] = Depends(require_permission("settings", "delete")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> None:
     """Elimina un tenant y todos sus datos."""
     existing = tenant_service.get_tenant(tenant_id)
@@ -159,7 +164,7 @@ async def delete_tenant(
 async def suspend_tenant(
     tenant_id: str,
     user: dict[str, Any] = Depends(require_permission("settings", "update")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> dict[str, Any]:
     """Suspende un tenant activo."""
     existing = tenant_service.get_tenant(tenant_id)
@@ -182,7 +187,7 @@ async def suspend_tenant(
 async def activate_tenant(
     tenant_id: str,
     user: dict[str, Any] = Depends(require_permission("settings", "update")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> dict[str, Any]:
     """Reactiva un tenant suspendido."""
     existing = tenant_service.get_tenant(tenant_id)
@@ -206,8 +211,8 @@ async def activate_tenant(
 async def list_tenant_users(
     tenant_id: str,
     user: dict[str, Any] = Depends(require_permission("user", "read")),
-    tenant_service: Any = Depends(get_tenant_service),
-    db: Any = Depends(get_db),
+    tenant_service: TenantService = Depends(get_tenant_service),
+    db: DatabaseManager = Depends(get_db),
 ) -> list[TenantUserResponse]:
     """Lista los usuarios de un tenant."""
     existing = tenant_service.get_tenant(tenant_id)
@@ -244,8 +249,8 @@ async def add_tenant_user(
     tenant_id: str,
     user_data: TenantUserCreate,
     user: dict[str, Any] = Depends(require_permission("user", "create")),
-    tenant_service: Any = Depends(get_tenant_service),
-    db: Any = Depends(get_db),
+    tenant_service: TenantService = Depends(get_tenant_service),
+    db: DatabaseManager = Depends(get_db),
 ) -> TenantUserResponse:
     """Crea un nuevo usuario y lo asocia al tenant."""
     existing = tenant_service.get_tenant(tenant_id)
@@ -284,7 +289,7 @@ async def add_tenant_user(
 async def list_tenant_features(
     tenant_id: str,
     user: dict[str, Any] = Depends(require_permission("settings", "read")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> dict[str, Any]:
     """Lista las features de un tenant."""
     existing = tenant_service.get_tenant(tenant_id)
@@ -311,7 +316,7 @@ async def toggle_tenant_feature(
     feature: str,
     toggle_data: TenantFeatureToggle,
     user: dict[str, Any] = Depends(require_permission("settings", "update")),
-    tenant_service: Any = Depends(get_tenant_service),
+    tenant_service: TenantService = Depends(get_tenant_service),
 ) -> dict[str, Any]:
     """Habilita o deshabilita una feature de un tenant."""
     existing = tenant_service.get_tenant(tenant_id)

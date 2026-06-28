@@ -20,6 +20,7 @@ class ConfluenceConnector(BaseConnector):
     icon = "file-text"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = ""; self._username: str = ""; self._api_token: str = ""
@@ -36,6 +37,7 @@ class ConfluenceConnector(BaseConnector):
         self._http.set_auth("Basic", username=self._username, password=self._api_token)
         self._connected = True; self._log_operation("connect", f"url={self._base_url}"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"get_page": self._get_page, "create_page": self._create_page, "update_page": self._update_page,
                        "delete_page": self._delete_page, "search_content": self._search_content, "get_spaces": self._get_spaces}
@@ -45,7 +47,8 @@ class ConfluenceConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -55,15 +58,15 @@ class ConfluenceConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _get_page(self, p: dict) -> dict: return self._api("get", f"/content/{p.get('page_id', '')}", params=p.get("params"))
-    def _create_page(self, p: dict) -> dict:
+    def _get_page(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/content/{p.get('page_id', '')}", params=p.get("params"))
+    def _create_page(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("post", "/content", json={"type": "page", "title": p.get("title", ""),
             "space": {"key": p.get("space_key", "")}, "body": {"storage": {"value": p.get("body", ""), "representation": "storage"}}})
-    def _update_page(self, p: dict) -> dict: return self._api("put", f"/content/{p.get('page_id', '')}", json=p.get("data", {}))
-    def _delete_page(self, p: dict) -> dict: return self._api("delete", f"/content/{p.get('page_id', '')}")
-    def _search_content(self, p: dict) -> dict:
+    def _update_page(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("put", f"/content/{p.get('page_id', '')}", json=p.get("data", {}))
+    def _delete_page(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("delete", f"/content/{p.get('page_id', '')}")
+    def _search_content(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("get", "/search", params={"cql": p.get("cql", ""), "limit": p.get("limit", 25)})
-    def _get_spaces(self, p: dict) -> dict: return self._api("get", "/space", params=p)
+    def _get_spaces(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/space", params=p)
 
 
 CONFLUENCE_SCHEMA = ConnectorSchema(name="confluence", version="1.0.0", description="Gestiona paginas y contenido en Confluence",

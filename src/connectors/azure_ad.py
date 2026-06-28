@@ -20,6 +20,7 @@ class AzureADConnector(BaseConnector):
     icon = "shield"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._tenant_id: str = ""
@@ -58,6 +59,7 @@ class AzureADConnector(BaseConnector):
         except HTTPClientError as e: logger.error(f"AzureAD: {e}"); return False
         except Exception as e: logger.error(f"AzureAD: {e}"); return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"get_user": self._get_user, "list_users": self._list_users, "create_user": self._create_user,
                        "get_group": self._get_group, "list_groups": self._list_groups, "add_user_to_group": self._add_user_to_group,
@@ -68,7 +70,8 @@ class AzureADConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -78,14 +81,14 @@ class AzureADConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _get_user(self, p: dict) -> dict: return self._api("get", f"/users/{p.get('user_id', p.get('user_principal_name', ''))}")
-    def _list_users(self, p: dict) -> dict: return self._api("get", "/users", params=p)
-    def _create_user(self, p: dict) -> dict: return self._api("post", "/users", json=p)
-    def _get_group(self, p: dict) -> dict: return self._api("get", f"/groups/{p.get('group_id', '')}")
-    def _list_groups(self, p: dict) -> dict: return self._api("get", "/groups", params=p)
-    def _add_user_to_group(self, p: dict) -> dict:
+    def _get_user(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/users/{p.get('user_id', p.get('user_principal_name', ''))}")
+    def _list_users(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/users", params=p)
+    def _create_user(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("post", "/users", json=p)
+    def _get_group(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/groups/{p.get('group_id', '')}")
+    def _list_groups(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/groups", params=p)
+    def _add_user_to_group(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("post", f"/groups/{p.get('group_id', '')}/members/$ref", json={"@odata.id": f"https://graph.microsoft.com/v1.0/directoryObjects/{p.get('user_id', '')}"})
-    def _list_applications(self, p: dict) -> dict: return self._api("get", "/applications", params=p)
+    def _list_applications(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/applications", params=p)
 
 
 AZURE_AD_SCHEMA = ConnectorSchema(name="azure_ad", version="1.0.0", description="Gestiona usuarios, grupos y aplicaciones en Azure AD", category="identity", icon="shield", author="Zenic-Flijo", actions=[

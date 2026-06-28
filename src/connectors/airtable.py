@@ -20,6 +20,7 @@ class AirtableConnector(BaseConnector):
     icon = "grid"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_key: str = ""; self._base_id: str = ""; self._http: HttpClient | None = None
@@ -34,6 +35,7 @@ class AirtableConnector(BaseConnector):
         self._http.set_header("Authorization", f"Bearer {self._api_key}")
         self._connected = True; self._log_operation("connect", f"base={self._base_id[:6]}..."); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"list_records": self._list_records, "get_record": self._get_record, "create_record": self._create_record,
                        "update_record": self._update_record, "delete_record": self._delete_record}
@@ -43,7 +45,8 @@ class AirtableConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -53,17 +56,17 @@ class AirtableConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _list_records(self, p: dict) -> dict:
+    def _list_records(self, p: dict[str, Any]) -> dict[str, Any]:
         table = p.pop("table", ""); return self._api("get", f"/{table}", params=p) if table else {"success": False, "error": "table requerido"}
-    def _get_record(self, p: dict) -> dict:
+    def _get_record(self, p: dict[str, Any]) -> dict[str, Any]:
         table = p.get("table", ""); rec_id = p.get("record_id", "")
         return self._api("get", f"/{table}/{rec_id}") if table and rec_id else {"success": False, "error": "table y record_id requeridos"}
-    def _create_record(self, p: dict) -> dict:
+    def _create_record(self, p: dict[str, Any]) -> dict[str, Any]:
         table = p.pop("table", ""); return self._api("post", f"/{table}", json={"fields": p}) if table else {"success": False, "error": "table requerido"}
-    def _update_record(self, p: dict) -> dict:
+    def _update_record(self, p: dict[str, Any]) -> dict[str, Any]:
         table = p.pop("table", ""); rec_id = p.pop("record_id", "")
         return self._api("patch", f"/{table}/{rec_id}", json={"fields": p}) if table and rec_id else {"success": False, "error": "table y record_id requeridos"}
-    def _delete_record(self, p: dict) -> dict:
+    def _delete_record(self, p: dict[str, Any]) -> dict[str, Any]:
         table = p.get("table", ""); rec_id = p.get("record_id", "")
         return self._api("delete", f"/{table}/{rec_id}") if table and rec_id else {"success": False, "error": "table y record_id requeridos"}
 

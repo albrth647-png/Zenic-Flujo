@@ -295,7 +295,7 @@ class AgentMemory:
             results.append(entry)
         return results
 
-    def _row_to_entry(self, row: tuple) -> MemoryEntry:
+    def _row_to_entry(self, row: tuple[Any, ...]) -> MemoryEntry:
         """Convert a database row to a MemoryEntry."""
         embedding_str = row[5] if len(row) > 5 else ""
         embedding = [float(v) for v in embedding_str.split(",") if v] if embedding_str else []

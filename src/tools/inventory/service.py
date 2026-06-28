@@ -5,6 +5,7 @@ Workflow Determinista — Inventory Service
 from src.events.bus import EventBus
 from src.tools.inventory.repository import InventoryRepository
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -24,14 +25,14 @@ class InventoryService:
         min_stock: int = 10,
         price: float = 0.0,
         user_id: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         product = self._repo.create_product(sku, name, description, category, stock, min_stock, price, user_id)
         logger.info(f"Producto creado: {name} (SKU: {sku})")
         return product
 
     def update_stock(
         self, product_id: int, quantity: int, movement_type: str = "adjustment", reason: str = ""
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         product = self._repo.get_product(product_id)
         if not product:
             return None
@@ -53,7 +54,7 @@ class InventoryService:
 
         return result
 
-    def get_product(self, product_id: int) -> dict | None:
+    def get_product(self, product_id: int) -> dict[str, Any] | None:
         return self._repo.get_product(product_id)
 
     def list_products(
@@ -61,7 +62,7 @@ class InventoryService:
     ) -> list[dict]:
         return self._repo.list_products(category, low_stock_only, user_id)
 
-    def update_product(self, product_id: int, **fields) -> dict | None:
+    def update_product(self, product_id: int, **fields) -> dict[str, Any] | None:
         """Actualiza campos de un producto (nombre, precio, descripción, etc.)."""
         return self._repo.update_product(product_id, **fields)
 
@@ -71,5 +72,5 @@ class InventoryService:
     def get_low_stock_products(self) -> list[dict]:
         return self._repo.get_low_stock()
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         return self._repo.get_stats()

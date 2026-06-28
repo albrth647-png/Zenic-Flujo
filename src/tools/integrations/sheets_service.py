@@ -15,6 +15,7 @@ import json
 
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -31,7 +32,7 @@ class SheetsService:
         self,
         spreadsheet_id: str,
         range: str = "A1:Z1000",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Lee datos de una hoja de cálculo.
 
@@ -63,7 +64,7 @@ class SheetsService:
         spreadsheet_id: str,
         range: str,
         values: list[list],
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Escribe datos en una hoja de cálculo.
 
@@ -97,8 +98,8 @@ class SheetsService:
         self,
         spreadsheet_id: str,
         sheet_name: str,
-        values: list,
-    ) -> dict:
+        values: list[Any],
+    ) -> dict[str, Any]:
         """
         Agrega una fila al final de los datos existentes.
 
@@ -128,7 +129,7 @@ class SheetsService:
         spreadsheet_id: str,
         range: str,
         value: str | int | float,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Actualiza una celda específica.
 
@@ -153,7 +154,7 @@ class SheetsService:
             "mode": "demo",
         }
 
-    def create_spreadsheet(self, title: str) -> dict:
+    def create_spreadsheet(self, title: str) -> dict[str, Any]:
         """
         Crea una nueva hoja de cálculo.
 
@@ -196,7 +197,7 @@ class SheetsService:
         logger.info("Google Sheets: Service account guardado")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         """Verifica que las credenciales de Sheets estén configuradas."""
         credentials = self._get_credentials()
         if not credentials:
@@ -208,7 +209,7 @@ class SheetsService:
             "has_credentials": True,
         }
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Estado de la integración Sheets."""
         credentials = self._get_credentials()
         return {
@@ -216,7 +217,7 @@ class SheetsService:
             "has_service_account": bool(credentials),
         }
 
-    def _get_credentials(self) -> dict | None:
+    def _get_credentials(self) -> dict[str, Any] | None:
         """Obtiene las credenciales de Service Account desde la DB."""
         creds_json = self._db.get_setting("sheets_service_account")
         if not creds_json:
@@ -229,7 +230,7 @@ class SheetsService:
     # ── Tool Definition ───────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "sheets",

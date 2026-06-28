@@ -25,7 +25,7 @@ class ForkHandler:
     def __init__(self, step_executor):
         self._step_executor = step_executor
 
-    def execute_parallel(self, step: dict, context: dict) -> ForkResult:
+    def execute_parallel(self, step: dict[str, Any], context: dict[str, Any]) -> ForkResult:
         """Ejecuta ramas en paralelo y espera según merge strategy."""
         branches = step.get("branches", [])
         if not branches:
@@ -49,7 +49,7 @@ class ForkHandler:
         failed_count = 0
         early_exit = threading.Event()
 
-        def _run_branch(branch: dict, idx: int):
+        def _run_branch(branch: dict[str, Any], idx: int):
             nonlocal completed_count, failed_count
             branch_context = dict(context)
             branch_name = branch.get("name", f"branch_{idx}")
@@ -160,7 +160,7 @@ class ForkHandler:
             error_message=error_msg,
         )
 
-    def execute_fork(self, step: dict, context: dict) -> ForkResult:
+    def execute_fork(self, step: dict[str, Any], context: dict[str, Any]) -> ForkResult:
         """Fork simple: crea N contextos y ejecuta mismos pasos en cada uno."""
         collection_ref = step.get("collection", "")
         item_var = step.get("item_var", "item")
@@ -206,6 +206,7 @@ class ForkHandler:
         lock = threading.Lock()
         early_exit = threading.Event()
 
+        # legítimo: item de fork, tipo dinámico según branch del workflow
         def _run_fork_item(item: Any, idx: int):
             if early_exit.is_set():
                 return
@@ -279,7 +280,7 @@ class ForkHandler:
 class JoinHandler:
     """JoinHandler — Une ramas paralelas con estrategias de merge."""
 
-    def join(self, fork_result: ForkResult, step: dict, context: dict) -> JoinResult:
+    def join(self, fork_result: ForkResult, step: dict[str, Any], context: dict[str, Any]) -> JoinResult:
         """Une los resultados de un fork/parallel según la merge strategy."""
         strategy = fork_result.merge_strategy
         branches = fork_result.branches
@@ -307,7 +308,7 @@ class JoinHandler:
             duration_ms=duration,
         )
 
-    def _merge_all(self, branches: list[dict], step: dict) -> dict:
+    def _merge_all(self, branches: list[dict], step: dict[str, Any]) -> dict[str, Any]:
         merged = {"branches": {}, "branch_order": [], "total_branches": len(branches)}
         for branch in branches:
             name = branch.get("name", "unnamed")
@@ -336,7 +337,7 @@ class JoinHandler:
                     }
         return merged
 
-    def _merge_any(self, branches: list[dict], step: dict) -> dict:
+    def _merge_any(self, branches: list[dict], step: dict[str, Any]) -> dict[str, Any]:
         for branch in branches:
             name = branch.get("name", "unnamed")
             if branch.get("status") == "completed":
@@ -358,10 +359,10 @@ class JoinHandler:
             }
         return {"merge_strategy": "any", "output": {}, "total_branches": 0}
 
-    def _merge_race(self, branches: list[dict], step: dict) -> dict:
+    def _merge_race(self, branches: list[dict], step: dict[str, Any]) -> dict[str, Any]:
         return self._merge_any(branches, step)
 
-    def get_tool_definition(self) -> dict:
+    def get_tool_definition(self) -> dict[str, Any]:
         return {
             "tool": "fork_join",
             "name": "Fork/Join Paralelo",

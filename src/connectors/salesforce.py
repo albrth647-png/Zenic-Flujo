@@ -28,6 +28,7 @@ class SalesforceConnector(BaseConnector):
     icon = "database"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._instance_url: str = ""
@@ -69,6 +70,7 @@ class SalesforceConnector(BaseConnector):
         self._log_operation("connect", "OAuth2 configurado para Salesforce")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Salesforce.
 

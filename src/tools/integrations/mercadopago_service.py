@@ -13,6 +13,7 @@ from __future__ import annotations
 import time
 
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -48,15 +49,15 @@ class MercadoPagoService:
         access_token: str = "",
         items: list[dict] | None = None,
         external_reference: str = "",
-        back_urls: dict | None = None,
+        back_urls: dict[str, Any] | None = None,
         auto_return: str = "approved",
         notification_url: str = "",
-        payer: dict | None = None,
+        payer: dict[str, Any] | None = None,
         expires: bool = False,
         expiration_date_from: str = "",
         expiration_date_to: str = "",
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea una preferencia de pago (Checkout Pro).
 
@@ -83,7 +84,7 @@ class MercadoPagoService:
 
         start_time = time.time()
 
-        payload: dict = {"items": items, "auto_return": auto_return}
+        payload: dict[str, Any] = {"items": items, "auto_return": auto_return}
 
         if external_reference:
             payload["external_reference"] = external_reference
@@ -137,7 +138,7 @@ class MercadoPagoService:
             logger.error(f"MercadoPago preference error: {e}")
             return self._error(str(e))
 
-    def get_payment(self, access_token: str = "", payment_id: int = 0, timeout: int = 15) -> dict:
+    def get_payment(self, access_token: str = "", payment_id: int = 0, timeout: int = 15) -> dict[str, Any]:
         """
         Consulta el estado de un pago.
 
@@ -198,7 +199,7 @@ class MercadoPagoService:
         limit: int = 20,
         offset: int = 0,
         timeout: int = 15,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Busca pagos en MercadoPago.
 
@@ -215,7 +216,7 @@ class MercadoPagoService:
         if not access_token:
             return self._error("Access token requerido")
 
-        params: dict = {"limit": min(limit, 50), "offset": offset}
+        params: dict[str, Any] = {"limit": min(limit, 50), "offset": offset}
         if status:
             params["status"] = status
         if external_reference:
@@ -268,9 +269,9 @@ class MercadoPagoService:
         access_token: str = "",
         email: str = "",
         name: str = "",
-        identification: dict | None = None,
+        identification: dict[str, Any] | None = None,
         timeout: int = 15,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea un customer en MercadoPago (para guardar tarjetas).
 
@@ -288,7 +289,7 @@ class MercadoPagoService:
         if not email:
             return self._error("Email requerido")
 
-        payload: dict = {"email": email}
+        payload: dict[str, Any] = {"email": email}
         if name:
             payload["first_name"] = name
         if identification:
@@ -326,7 +327,7 @@ class MercadoPagoService:
             logger.error(f"MercadoPago customer error: {e}")
             return self._error(str(e))
 
-    def process_webhook(self, access_token: str = "", notification_data: dict | None = None) -> dict:
+    def process_webhook(self, access_token: str = "", notification_data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Procesa una notificación webhook de MercadoPago.
 
@@ -372,7 +373,7 @@ class MercadoPagoService:
         }
 
     @staticmethod
-    def _error(message: str) -> dict:
+    def _error(message: str) -> dict[str, Any]:
         return {"error": message, "status": "failed"}
 
     @staticmethod
@@ -380,7 +381,7 @@ class MercadoPagoService:
         return int((time.time() - start_time) * 1000)
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         return {
             "tool": "mercadopago",
             "name": "MercadoPago",

@@ -13,6 +13,7 @@ from src.security.sso.saml import SAMLHandler
 from src.security.sso.session import create_sso_session
 
 
+# legítimo: Flask app no tipado por compatibilidad
 def register_sso_routes(app: Any, db: DatabaseManager | None = None) -> None:
     if db is None:
         db = DatabaseManager()

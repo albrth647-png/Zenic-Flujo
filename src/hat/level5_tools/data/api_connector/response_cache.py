@@ -11,6 +11,7 @@ import threading
 import time
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -32,7 +33,7 @@ class ResponseCache:
         self._cache: dict[str, dict] = {}
         self._lock = threading.RLock()
 
-    def _make_key(self, method: str, url: str, body: dict | None = None) -> str:
+    def _make_key(self, method: str, url: str, body: dict[str, Any] | None = None) -> str:
         # Hash no criptográfico: cache key para responses de API (B324 mitigado).
         # No es para fines de seguridad — solo para detectar colisiones en cache.
         raw = f"{method.upper()}:{url}"
@@ -40,7 +41,7 @@ class ResponseCache:
             raw += f":{hashlib.md5(json.dumps(body, sort_keys=True).encode(), usedforsecurity=False).hexdigest()}"
         return hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()
 
-    def get(self, method: str, url: str, body: dict | None = None) -> dict | None:
+    def get(self, method: str, url: str, body: dict[str, Any] | None = None) -> dict[str, Any] | None:
         key = self._make_key(method, url, body)
         with self._lock:
             entry = self._cache.get(key)
@@ -53,7 +54,7 @@ class ResponseCache:
             logger.debug(f"Cache HIT: {method} {url}")
             return entry["response"]
 
-    def set(self, method: str, url: str, response: dict, body: dict | None = None,
+    def set(self, method: str, url: str, response: dict[str, Any], body: dict[str, Any] | None = None,
             ttl_seconds: int | None = None) -> None:
         if response.get("status_code", 0) >= 400:
             return
@@ -91,7 +92,7 @@ class ResponseCache:
         for key, _ in sorted_entries[:to_remove]:
             del self._cache[key]
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         with self._lock:
             total = len(self._cache)
             active = sum(1 for e in self._cache.values() if time.time() <= e["expires_at"])

@@ -26,6 +26,7 @@ class XeroConnector(BaseConnector):
     icon = "dollar-sign"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://api.xero.com/api.xro/2.0"
@@ -63,6 +64,7 @@ class XeroConnector(BaseConnector):
             self._log_operation("connect", f"Xero configurado (status fallo: {e})")
             return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {
             "list_invoices": self._list_invoices,

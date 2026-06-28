@@ -34,7 +34,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 
 
-def canonical_json(obj: Any) -> bytes:
+def canonical_json(obj: object) -> bytes:
     """Serializa a JSON determinista: claves ordenadas, sin espacios, UTF-8.
 
     Garantiza que el mismo dict (en cualquier orden) produzca los mismos bytes.
@@ -59,7 +59,8 @@ def canonical_json(obj: Any) -> bytes:
     ).encode("utf-8")
 
 
-def _default_serializer(obj: Any) -> Any:
+# legítimo: retorna valor serializable, tipo dinámico
+def _default_serializer(obj: object) -> Any:
     """Fallback para tipos no-JSON estándar. Debe ser determinista."""
     if is_dataclass(obj):
         return asdict(obj)

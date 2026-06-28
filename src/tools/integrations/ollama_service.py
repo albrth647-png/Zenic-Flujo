@@ -13,6 +13,7 @@ import time
 
 from src.config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -52,7 +53,7 @@ class OllamaService:
         temperature: float = 0.7,
         stream: bool = False,
         timeout: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Chat con modelo local vía Ollama.
 
@@ -122,7 +123,7 @@ class OllamaService:
         system: str | None = None,
         temperature: float = 0.7,
         timeout: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Generación de texto simple (sin historial de chat).
 
@@ -178,7 +179,7 @@ class OllamaService:
             logger.error(f"Ollama generate error: {e}")
             return self._error(str(e))
 
-    def embeddings(self, input_text: str | list[str], model: str | None = None, timeout: int | None = None) -> dict:
+    def embeddings(self, input_text: str | list[str], model: str | None = None, timeout: int | None = None) -> dict[str, Any]:
         """
         Genera embeddings usando Ollama.
 
@@ -226,7 +227,7 @@ class OllamaService:
             logger.error(f"Ollama embeddings error: {e}")
             return self._error(str(e))
 
-    def list_models(self, timeout: int = 15) -> dict:
+    def list_models(self, timeout: int = 15) -> dict[str, Any]:
         """
         Lista modelos instalados en Ollama.
 
@@ -257,7 +258,7 @@ class OllamaService:
         except Exception as e:
             return self._error(str(e))
 
-    def pull_model(self, model: str, timeout: int = 300) -> dict:
+    def pull_model(self, model: str, timeout: int = 300) -> dict[str, Any]:
         """
         Descarga un modelo en Ollama.
 
@@ -289,7 +290,7 @@ class OllamaService:
             return self._error(str(e))
 
     @staticmethod
-    def _error(message: str) -> dict:
+    def _error(message: str) -> dict[str, Any]:
         return {"error": message, "status": "failed"}
 
     @staticmethod
@@ -297,7 +298,7 @@ class OllamaService:
         return int((time.time() - start_time) * 1000)
 
     @staticmethod
-    def get_health(base_url: str | None = None) -> dict:
+    def get_health(base_url: str | None = None) -> dict[str, Any]:
         """Verifica si Ollama está corriendo."""
         url = (base_url or OLLAMA_BASE_URL).rstrip("/")
         try:
@@ -311,7 +312,7 @@ class OllamaService:
             return {"status": "error", "message": str(e), "base_url": url}
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         return {
             "tool": "ollama",
             "name": "Ollama (LLM Local)",

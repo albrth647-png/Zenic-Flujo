@@ -73,8 +73,8 @@ _MARKETPLACE_CATEGORIES: list[dict[str, Any]] = [
 async def search_connectors(
     search_params: ConnectorSearchRequest = Depends(),
     user: dict[str, Any] = Depends(get_current_user),
-    registry: Any = Depends(get_connector_registry),
-    db: Any = Depends(get_db),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
+    db: DatabaseManager = Depends(get_db),
 ) -> ConnectorSearchResponse:
     """Busca conectores en el marketplace."""
     # Obtener todos los conectores registrados
@@ -150,7 +150,7 @@ async def search_connectors(
 async def get_marketplace_connector(
     name: str,
     user: dict[str, Any] = Depends(get_current_user),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> dict[str, Any]:
     """Obtiene los detalles de un conector del marketplace."""
     if not registry.exists(name):
@@ -183,8 +183,8 @@ async def get_marketplace_connector(
 async def install_connector(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "create")),
-    registry: Any = Depends(get_connector_registry),
-    db: Any = Depends(get_db),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Instala un conector del marketplace."""
     if not registry.exists(name):
@@ -214,8 +214,8 @@ async def install_connector(
 async def uninstall_connector(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "delete")),
-    db: Any = Depends(get_db),
-    registry: Any = Depends(get_connector_registry),
+    db: DatabaseManager = Depends(get_db),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> dict[str, Any]:
     """Desinstala un conector del marketplace."""
     existing = db.fetchone("SELECT id FROM connector_configs WHERE connector_name = ?", (name,))
@@ -244,8 +244,8 @@ async def uninstall_connector(
 async def publish_connector(
     publish_data: ConnectorPublishRequest,
     user: dict[str, Any] = Depends(require_permission("connector", "create")),
-    registry: Any = Depends(get_connector_registry),
-    db: Any = Depends(get_db),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Publica un conector al marketplace."""
     if not registry.exists(publish_data.connector_name):
@@ -258,6 +258,11 @@ async def publish_connector(
 
     # Registrar publicacion en BD
     import json
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager
+    from src.sdk.registry import ConnectorRegistry
 
     db.execute(
         """INSERT OR REPLACE INTO marketplace_published
@@ -291,7 +296,7 @@ async def publish_connector(
 )
 async def list_categories(
     user: dict[str, Any] = Depends(get_current_user),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> list[MarketplaceCategory]:
     """Lista las categorias del marketplace."""
     # Contar conectores por categoria
@@ -324,7 +329,7 @@ async def list_categories(
 )
 async def marketplace_stats(
     user: dict[str, Any] = Depends(get_current_user),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> MarketplaceStats:
     """Obtiene estadisticas del marketplace."""
     all_connectors = registry.list_all()
@@ -413,7 +418,7 @@ async def get_workflow_template(
 async def install_workflow_template(
     name: str,
     user: dict[str, Any] = Depends(require_permission("workflow", "create")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> dict[str, Any]:
     """Instala un template como workflow usando WorkflowRepository."""
     template = get_template(name)

@@ -26,6 +26,7 @@ from datetime import datetime
 
 from src.core.db import DatabaseManager
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -42,7 +43,7 @@ class WorkQueueItem:
         self,
         id: int | None = None,
         workflow_id: int = 0,
-        trigger_data: dict | None = None,
+        trigger_data: dict[str, Any] | None = None,
         priority: int = 0,
         status: str = "queued",
         retry_count: int = 0,
@@ -64,7 +65,7 @@ class WorkQueueItem:
         self.scheduled_at = scheduled_at
         self.error_message = error_message
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -167,7 +168,7 @@ class WorkQueue:
     def enqueue(
         self,
         workflow_id: int,
-        trigger_data: dict | None = None,
+        trigger_data: dict[str, Any] | None = None,
         priority: int = 0,
         max_retries: int = DEFAULT_MAX_RETRIES,
         scheduled_at: str | None = None,
@@ -199,7 +200,7 @@ class WorkQueue:
             return self._sqlite_enqueue(workflow_id, trigger_data, priority, max_retries, scheduled_at)
 
     def _sqlite_enqueue(
-        self, workflow_id: int, trigger_data: dict | None, priority: int, max_retries: int, scheduled_at: str | None
+        self, workflow_id: int, trigger_data: dict[str, Any] | None, priority: int, max_retries: int, scheduled_at: str | None
     ) -> WorkQueueItem:
         """Enqueue usando SQLite."""
         cursor = self._db.execute(
@@ -228,7 +229,7 @@ class WorkQueue:
         )
 
     def _redis_enqueue(
-        self, workflow_id: int, trigger_data: dict | None, priority: int, max_retries: int, scheduled_at: str | None
+        self, workflow_id: int, trigger_data: dict[str, Any] | None, priority: int, max_retries: int, scheduled_at: str | None
     ) -> WorkQueueItem:
         """Enqueue usando Redis."""
         item = {
@@ -441,7 +442,7 @@ class WorkQueue:
 
     # ── Métricas ──────────────────────────────────────────
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Retorna métricas de la cola.
 
@@ -553,7 +554,7 @@ class WorkQueue:
         return row["c"] if row else 0
 
     @staticmethod
-    def _row_to_item(row: dict) -> WorkQueueItem:
+    def _row_to_item(row: dict[str, Any]) -> WorkQueueItem:
         """Convierte una fila SQL a WorkQueueItem."""
         return WorkQueueItem(
             id=row["id"],

@@ -13,6 +13,7 @@ from src.core.config import WEBHOOK_API_KEY_ENABLED, WEBHOOK_PORT
 from src.core.db import DatabaseManager
 from src.core.logging import setup_logging
 from src.events.bus import EventBus
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -108,7 +109,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "Usa POST /webhook/<id> o GET /webhook/health"})
 
-    def _send_json(self, status_code: int, data: dict) -> None:
+    def _send_json(self, status_code: int, data: dict[str, Any]) -> None:
         """Envía respuesta JSON."""
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")

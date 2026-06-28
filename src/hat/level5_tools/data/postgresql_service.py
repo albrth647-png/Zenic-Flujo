@@ -14,6 +14,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -62,7 +63,7 @@ class PostgreSQLService:
         except self._psycopg2.OperationalError as e:
             raise ConnectionError(f"Error conectando a PostgreSQL: {e}") from e
 
-    def query(self, sql: str, params: list | None = None, connection_string: str = "", limit: int = 100) -> dict:
+    def query(self, sql: str, params: list[Any] | None = None, connection_string: str = "", limit: int = 100) -> dict[str, Any]:
         """
         Ejecuta una consulta SELECT.
 
@@ -118,7 +119,7 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL query error: {e}")
             return self._error(f"Error en consulta: {e}")
 
-    def insert(self, table: str, data: dict, connection_string: str = "") -> dict:
+    def insert(self, table: str, data: dict[str, Any], connection_string: str = "") -> dict[str, Any]:
         """
         Inserta un registro en una tabla.
 
@@ -179,8 +180,8 @@ class PostgreSQLService:
             return self._error(f"Error insertando: {e}")
 
     def update(
-        self, table: str, data: dict, where: str, where_params: list | None = None, connection_string: str = ""
-    ) -> dict:
+        self, table: str, data: dict[str, Any], where: str, where_params: list[Any] | None = None, connection_string: str = ""
+    ) -> dict[str, Any]:
         """
         Actualiza registros en una tabla.
 
@@ -255,7 +256,7 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL update error: {e}")
             return self._error(f"Error actualizando: {e}")
 
-    def execute(self, sql: str, params: list | None = None, connection_string: str = "") -> dict:
+    def execute(self, sql: str, params: list[Any] | None = None, connection_string: str = "") -> dict[str, Any]:
         """
         Ejecuta SQL arbitrario (INSERT, UPDATE, DELETE, CREATE, etc.).
 
@@ -293,7 +294,7 @@ class PostgreSQLService:
             logger.error(f"PostgreSQL execute error: {e}")
             return self._error(f"Error ejecutando SQL: {e}")
 
-    def list_tables(self, connection_string: str = "", schema: str = "public") -> dict:
+    def list_tables(self, connection_string: str = "", schema: str = "public") -> dict[str, Any]:
         """
         Lista tablas en un schema.
 
@@ -311,7 +312,7 @@ class PostgreSQLService:
             limit=500,
         )
 
-    def get_schema(self, table: str, connection_string: str = "", schema: str = "public") -> dict:
+    def get_schema(self, table: str, connection_string: str = "", schema: str = "public") -> dict[str, Any]:
         """
         Obtiene schema de una tabla.
 
@@ -348,7 +349,7 @@ class PostgreSQLService:
         return value
 
     @staticmethod
-    def _error(message: str) -> dict:
+    def _error(message: str) -> dict[str, Any]:
         return {"error": message, "status": "failed"}
 
     @staticmethod
@@ -356,7 +357,7 @@ class PostgreSQLService:
         return int((time.time() - start_time) * 1000)
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         return {
             "tool": "postgresql",
             "name": "PostgreSQL",

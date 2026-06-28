@@ -97,7 +97,7 @@ class Container:
         """Alias para register con factory function."""
         self.register(name, factory, singleton=True)
 
-    def register_instance(self, name: str, instance: Any) -> None:
+    def register_instance(self, name: str, instance: object) -> None:
         """Registra una instancia ya construida (singleton inmediato)."""
         with self._lock:
             self._instances[name] = instance
@@ -106,7 +106,7 @@ class Container:
 
     # ── Resolución ────────────────────────────────────────────
 
-    def resolve(self, name: str) -> Any:
+    def resolve(self, name: str) -> object:
         """
         Resuelve una dependencia por nombre.
         Lanza ContainerError si no está registrada.
@@ -149,7 +149,7 @@ class Container:
 
     # ── Overrides para tests ──────────────────────────────────
 
-    def override(self, name: str, instance: Any) -> None:
+    def override(self, name: str, instance: object) -> None:
         """
         Reemplaza una dependencia con un mock/stub para tests.
         El override tiene prioridad sobre la instancia cacheada.

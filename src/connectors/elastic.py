@@ -29,6 +29,7 @@ class ElasticConnector(BaseConnector):
     icon = "search"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "http://localhost:9200"
@@ -82,6 +83,7 @@ class ElasticConnector(BaseConnector):
         self._log_operation("connect", "Conexion Elasticsearch establecida")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Elasticsearch.
 

@@ -41,11 +41,13 @@ class TenantMiddleware:
     Retorna 404 para dominios de tenant desconocidos en rutas API.
     """
 
+    # legítimo: Flask app no tipado por compatibilidad con versiones
     def __init__(self, app: Any = None) -> None:
         self._tenant_service = TenantService()
         if app is not None:
             self.init_app(app)
 
+    # legítimo: Flask app no tipado por compatibilidad con versiones
     def init_app(self, app: Any) -> None:
         """Registra el middleware en la aplicacion Flask."""
         app.before_request(self._before_request)
@@ -93,6 +95,7 @@ class TenantMiddleware:
 
         return None
 
+    # legítimo: Flask Response no tipado por compatibilidad
     def _after_request(self, response: Any) -> Any:
         """Limpia el contexto de tenant despues de cada request."""
         clear_tenant_context()

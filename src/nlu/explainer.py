@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from src.nlu.entities.base import CompileResult
 from src.nlu.templates import TEMPLATES
+from typing import Any
 
 
 def explain_intent(intent_name: str, lang: str = "es") -> str:
@@ -94,7 +95,7 @@ class Explainer:
 
         return self._explain_workflow(workflow, lang)
 
-    def _explain_workflow(self, workflow: dict, lang: str) -> str:
+    def _explain_workflow(self, workflow: dict[str, Any], lang: str) -> str:
         """Genera explicación detallada de un workflow."""
         parts: list[str] = []
 

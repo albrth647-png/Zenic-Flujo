@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
     pkcs12,
 )
+from typing import Any
 
 
 @dataclass
@@ -141,7 +142,7 @@ def _build_bundle(
     )
 
 
-def get_cert_info(bundle: CertBundle) -> dict:
+def get_cert_info(bundle: CertBundle) -> dict[str, Any]:
     """Devuelve información del certificado como dict."""
     return {
         "subject": bundle.subject,

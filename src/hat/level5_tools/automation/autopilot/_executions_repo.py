@@ -14,6 +14,7 @@ import json
 from src.core.db import DatabaseManager
 from src.core.logging import setup_logging
 from src.core.utils import now_iso
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -26,7 +27,7 @@ class WorkflowExecution:
         id: int | None = None,
         workflow_id: int = 0,
         status: str = "pending",
-        trigger_data: dict | None = None,
+        trigger_data: dict[str, Any] | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
         duration_ms: int | None = None,
@@ -41,7 +42,7 @@ class WorkflowExecution:
         self.duration_ms = duration_ms
         self.error_message = error_message
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -66,7 +67,7 @@ class WorkflowExecutionRepository:
     def create_execution(
         self,
         workflow_id: int,
-        trigger_data: dict | None = None,
+        trigger_data: dict[str, Any] | None = None,
     ) -> WorkflowExecution:
         """Crea un nuevo registro de ejecución."""
         cursor = self._db.execute(
@@ -147,8 +148,8 @@ class WorkflowExecutionRepository:
         step_id: int,
         tool: str,
         action: str,
-        input_data: dict,
-        output_data: dict | None,
+        input_data: dict[str, Any],
+        output_data: dict[str, Any] | None,
         status: str,
         duration_ms: int,
         error_message: str | None = None,

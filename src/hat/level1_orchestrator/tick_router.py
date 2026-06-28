@@ -60,6 +60,7 @@ class SupervisorResult(TypedDict, total=False):
     - ``'clarify'``: tiene ``result.clarify_message``
     """
     status: str
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
     result: Any
     error: str
     domain: str

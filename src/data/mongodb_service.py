@@ -61,8 +61,8 @@ class MongoDBService:
             self._max_pool_size: int = int(os.environ.get("WFD_MONGODB_MAX_POOL_SIZE", "100"))
             self._min_pool_size: int = int(os.environ.get("WFD_MONGODB_MIN_POOL_SIZE", "10"))
             self._timeout_ms: int = int(os.environ.get("WFD_MONGODB_TIMEOUT_MS", "5000"))
-            self._client: Any = None  # AsyncIOMotorClient
-            self._db: Any = None  # AsyncIOMotorDatabase
+            self._client: Any | None = None  # AsyncIOMotorClient
+            self._db: Any | None = None  # AsyncIOMotorDatabase
             self._migration_collection: str = "_schema_migrations"
 
     # ── Conexion ─────────────────────────────────────────────
@@ -105,6 +105,7 @@ class MongoDBService:
 
     # ── Colecciones ──────────────────────────────────────────
 
+    # legítimo: pymongo.collection.Collection, no tipado por compatibilidad
     async def get_collection(self, name: str) -> Any:
         """
         Obtiene una coleccion Motor por nombre.
@@ -137,7 +138,7 @@ class MongoDBService:
 
     # ── CRUD — Insert ────────────────────────────────────────
 
-    async def insert_one(self, collection: str, document: dict) -> str:
+    async def insert_one(self, collection: str, document: dict[str, Any]) -> str:
         """
         Inserta un documento en una coleccion.
 
@@ -190,7 +191,7 @@ class MongoDBService:
 
     # ── CRUD — Find ──────────────────────────────────────────
 
-    async def find_one(self, collection: str, query: dict) -> dict | None:
+    async def find_one(self, collection: str, query: dict[str, Any]) -> dict[str, Any] | None:
         """
         Busca un unico documento en una coleccion.
 
@@ -209,7 +210,7 @@ class MongoDBService:
     async def find_many(
         self,
         collection: str,
-        query: dict,
+        query: dict[str, Any],
         skip: int = 0,
         limit: int = 100,
         sort: list[tuple[str, int]] | None = None,
@@ -240,7 +241,7 @@ class MongoDBService:
 
     # ── CRUD — Update ────────────────────────────────────────
 
-    async def update_one(self, collection: str, query: dict, update: dict, upsert: bool = False) -> dict:
+    async def update_one(self, collection: str, query: dict[str, Any], update: dict[str, Any], upsert: bool = False) -> dict[str, Any]:
         """
         Actualiza un unico documento.
 
@@ -270,7 +271,7 @@ class MongoDBService:
         logger.debug(f"update_one en {collection}: matched={result.matched_count}, modified={result.modified_count}")
         return response
 
-    async def update_many(self, collection: str, query: dict, update: dict) -> dict:
+    async def update_many(self, collection: str, query: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
         """
         Actualiza multiples documentos.
 
@@ -297,7 +298,7 @@ class MongoDBService:
 
     # ── CRUD — Delete ────────────────────────────────────────
 
-    async def delete_one(self, collection: str, query: dict) -> int:
+    async def delete_one(self, collection: str, query: dict[str, Any]) -> int:
         """
         Elimina un unico documento.
 
@@ -314,7 +315,7 @@ class MongoDBService:
         logger.debug(f"delete_one en {collection}: deleted={result.deleted_count}")
         return result.deleted_count
 
-    async def delete_many(self, collection: str, query: dict) -> int:
+    async def delete_many(self, collection: str, query: dict[str, Any]) -> int:
         """
         Elimina multiples documentos.
 
@@ -333,7 +334,7 @@ class MongoDBService:
 
     # ── CRUD — Count ─────────────────────────────────────────
 
-    async def count_documents(self, collection: str, query: dict | None = None) -> int:
+    async def count_documents(self, collection: str, query: dict[str, Any] | None = None) -> int:
         """
         Cuenta documentos en una coleccion.
 
@@ -370,6 +371,7 @@ class MongoDBService:
 
     # ── Indices ──────────────────────────────────────────────
 
+    # legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
     async def create_index(self, collection: str, keys: str | list[tuple[str, int]], **kwargs: Any) -> str:
         """
         Crea un indice en una coleccion.
@@ -486,7 +488,7 @@ class MongoDBService:
             logger.error(f"MongoDB ping fallido: {e}")
             return False
 
-    async def get_stats(self) -> dict:
+    async def get_stats(self) -> dict[str, Any]:
         """
         Retorna estadisticas de la base de datos.
 
@@ -519,7 +521,7 @@ class MongoDBService:
     # ── Utilidades internas ──────────────────────────────────
 
     @staticmethod
-    def _serialize_doc(doc: dict) -> dict:
+    def _serialize_doc(doc: dict[str, Any]) -> dict[str, Any]:
         """Serializa un documento MongoDB convirtiendo ObjectId y datetime a string."""
         if doc is None:
             return {}

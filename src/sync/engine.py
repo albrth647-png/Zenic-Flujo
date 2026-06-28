@@ -67,6 +67,7 @@ class SyncEngine:
         self._init_db()
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> SyncEngine:
         if cls._instance is None:
             with cls._lock:
@@ -595,7 +596,7 @@ class SyncEngine:
         )
         self._conn.commit()
 
-    def _strip_credentials(self, wf_dict: dict) -> None:
+    def _strip_credentials(self, wf_dict: dict[str, Any]) -> None:
         """Remove sensitive credentials from workflow data before export."""
         steps = wf_dict.get("steps", [])
         for step in steps:

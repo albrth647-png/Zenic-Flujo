@@ -34,6 +34,7 @@ from src.security.sso.session import (
     validate_sso_session,
 )
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -78,16 +79,16 @@ class SSOService:
 
     # ── Gestion de proveedores ────────────────────────────
 
-    def configure_provider(self, name: str, provider_type: str, config: dict) -> dict:
+    def configure_provider(self, name: str, provider_type: str, config: dict[str, Any]) -> dict[str, Any]:
         return configure_provider(self._db, name, provider_type, config)
 
     def get_providers(self) -> list[dict]:
         return get_providers(self._db)
 
-    def get_provider(self, name: str) -> dict | None:
+    def get_provider(self, name: str) -> dict[str, Any] | None:
         return get_provider(self._db, name)
 
-    def remove_provider(self, name: str) -> dict:
+    def remove_provider(self, name: str) -> dict[str, Any]:
         return remove_provider(self._db, self._redis, name)
 
     # ── SAML 2.0 ─────────────────────────────────────────
@@ -99,14 +100,14 @@ class SSOService:
         config = json.loads(provider["config"]) if isinstance(provider["config"], str) else provider["config"]
         return self._saml.generate_sp_metadata(config, provider_name)
 
-    def initiate_saml_login(self, provider_name: str) -> dict:
+    def initiate_saml_login(self, provider_name: str) -> dict[str, Any]:
         provider = self.get_provider(provider_name)
         if not provider or not provider["enabled"]:
             return {"status": "error", "message": f"Proveedor '{provider_name}' no disponible"}
         config = json.loads(provider["config"]) if isinstance(provider["config"], str) else provider["config"]
         return self._saml.initiate_login(config, provider_name)
 
-    def handle_saml_callback(self, provider_name: str, saml_response: str) -> dict:
+    def handle_saml_callback(self, provider_name: str, saml_response: str) -> dict[str, Any]:
         provider = self.get_provider(provider_name)
         if not provider:
             return {"status": "error", "message": f"Proveedor '{provider_name}' no encontrado"}
@@ -130,14 +131,14 @@ class SSOService:
 
     # ── OIDC ──────────────────────────────────────────────
 
-    def initiate_oidc_login(self, provider_name: str) -> dict:
+    def initiate_oidc_login(self, provider_name: str) -> dict[str, Any]:
         provider = self.get_provider(provider_name)
         if not provider or not provider["enabled"]:
             return {"status": "error", "message": f"Proveedor '{provider_name}' no disponible"}
         config = json.loads(provider["config"]) if isinstance(provider["config"], str) else provider["config"]
         return self._oidc.initiate_login(config, provider_name)
 
-    def handle_oidc_callback(self, provider_name: str, code: str, state: str) -> dict:
+    def handle_oidc_callback(self, provider_name: str, code: str, state: str) -> dict[str, Any]:
         provider = self.get_provider(provider_name)
         if not provider:
             return {"status": "error", "message": f"Proveedor '{provider_name}' no encontrado"}
@@ -164,23 +165,23 @@ class SSOService:
 
     # ── Keycloak Embebido ─────────────────────────────────
 
-    def auto_configure_keycloak(self) -> dict:
+    def auto_configure_keycloak(self) -> dict[str, Any]:
         return auto_configure_keycloak(self._db)
 
     # ── Mapeo de usuarios ─────────────────────────────────
 
-    def create_or_link_user(self, provider_name: str, external_id: str, user_info: dict) -> dict:
+    def create_or_link_user(self, provider_name: str, external_id: str, user_info: dict[str, Any]) -> dict[str, Any]:
         return create_or_link_user(self._db, provider_name, external_id, user_info)
 
-    def link_existing_user(self, user_id: int, provider_name: str, external_id: str) -> dict:
+    def link_existing_user(self, user_id: int, provider_name: str, external_id: str) -> dict[str, Any]:
         return link_existing_user(self._db, user_id, provider_name, external_id)
 
     # ── Sesiones SSO ──────────────────────────────────────
 
-    def validate_sso_session(self, session_id: str) -> dict | None:
+    def validate_sso_session(self, session_id: str) -> dict[str, Any] | None:
         return validate_sso_session(self._db, self._redis, session_id)
 
-    def logout(self, session_id: str) -> dict:
+    def logout(self, session_id: str) -> dict[str, Any]:
         return logout_session(self._db, self._redis, session_id)
 
     def cleanup_expired_sessions(self) -> int:

@@ -28,6 +28,7 @@ class ZohoCrmConnector(BaseConnector):
     icon = "briefcase"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://www.zohoapis.com/crm/v3"
@@ -64,6 +65,7 @@ class ZohoCrmConnector(BaseConnector):
         self._log_operation("connect", "OAuth2 configurado para Zoho CRM")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Zoho CRM.
 

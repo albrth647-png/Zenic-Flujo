@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from src.hat.level5_tools.business.crm.service import CRMService
+from typing import Any
 
 router = APIRouter(prefix="/api/v2/crm", tags=["crm"])
 
@@ -59,7 +60,7 @@ async def list_leads(
 
 
 @router.post("/leads", status_code=201)
-async def create_lead(lead: LeadCreate) -> dict:
+async def create_lead(lead: LeadCreate) -> dict[str, Any]:
     return _svc.create_lead(
         name=lead.name, email=lead.email, phone=lead.phone,
         company=lead.company, source=lead.source, notes=lead.notes,
@@ -67,7 +68,7 @@ async def create_lead(lead: LeadCreate) -> dict:
 
 
 @router.get("/leads/{lead_id}")
-async def get_lead(lead_id: int) -> dict:
+async def get_lead(lead_id: int) -> dict[str, Any]:
     lead = _svc.get_lead(lead_id)
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
@@ -75,7 +76,7 @@ async def get_lead(lead_id: int) -> dict:
 
 
 @router.put("/leads/{lead_id}")
-async def update_lead(lead_id: int, updates: LeadUpdate) -> dict:
+async def update_lead(lead_id: int, updates: LeadUpdate) -> dict[str, Any]:
     lead = _svc.update_lead(lead_id, **updates.model_dump(exclude_none=True))
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
@@ -89,7 +90,7 @@ async def delete_lead(lead_id: int) -> None:
 
 
 @router.post("/leads/{lead_id}/advance")
-async def advance_stage(lead_id: int) -> dict:
+async def advance_stage(lead_id: int) -> dict[str, Any]:
     lead = _svc.advance_stage(lead_id)
     if not lead:
         raise HTTPException(404, "Lead no encontrado")
@@ -97,7 +98,7 @@ async def advance_stage(lead_id: int) -> dict:
 
 
 @router.post("/leads/{lead_id}/convert-to-invoice")
-async def convert_lead_to_invoice(lead_id: int, items: list[dict]) -> dict:
+async def convert_lead_to_invoice(lead_id: int, items: list[dict]) -> dict[str, Any]:
     """Convierte un Lead closed_won en Invoice con items."""
     lead = _svc.get_lead(lead_id)
     if not lead:
@@ -120,12 +121,12 @@ async def list_clients(limit: int = Query(50, le=200), offset: int = Query(0, ge
 
 
 @router.post("/clients", status_code=201)
-async def create_client(client: ClientCreate) -> dict:
+async def create_client(client: ClientCreate) -> dict[str, Any]:
     return _svc.create_client(**client.model_dump())
 
 
 @router.get("/clients/{client_id}")
-async def get_client(client_id: int) -> dict:
+async def get_client(client_id: int) -> dict[str, Any]:
     client = _svc.get_client(client_id)
     if not client:
         raise HTTPException(404, "Cliente no encontrado")
@@ -133,5 +134,5 @@ async def get_client(client_id: int) -> dict:
 
 
 @router.get("/stats")
-async def get_crm_stats() -> dict:
+async def get_crm_stats() -> dict[str, Any]:
     return _svc.get_stats()

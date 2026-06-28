@@ -12,6 +12,7 @@ from src.nlu.guardrails.content import ContentGuardrails
 from src.nlu.guardrails.execution import ExecutionGuardrails
 from src.nlu.guardrails.pii import PIIGuardrails
 from src.nlu.guardrails.result import CompositeGuardrailResult, GuardrailAction, GuardrailResult, RiskLevel
+from typing import Any
 
 
 class GuardrailManager:
@@ -39,7 +40,7 @@ class GuardrailManager:
         }
         return self._aggregate(checks)
 
-    def check_prompt_pii(self, text: str) -> dict:
+    def check_prompt_pii(self, text: str) -> dict[str, Any]:
         """Evalua un prompt del usuario contra la capa PII y retorna un dict simple.
 
         Fix B-07: conveniencia para callers que no necesitan el CompositeGuardrailResult
@@ -76,7 +77,7 @@ class GuardrailManager:
             }
         return {"blocked": False}
 
-    def check_workflow(self, workflow: dict) -> CompositeGuardrailResult:
+    def check_workflow(self, workflow: dict[str, Any]) -> CompositeGuardrailResult:
         """Evalua un workflow completo contra todas las capas."""
         checks: dict[str, GuardrailResult] = {
             "execution": self.execution.check_workflow_definition(workflow),
@@ -84,7 +85,7 @@ class GuardrailManager:
         }
         return self._aggregate(checks)
 
-    def check_all(self, prompt: str, workflow: dict) -> CompositeGuardrailResult:
+    def check_all(self, prompt: str, workflow: dict[str, Any]) -> CompositeGuardrailResult:
         """Evalua prompt + workflow contra todas las capas."""
         checks: dict[str, GuardrailResult] = {
             "content": self.content.check_prompt(prompt),

@@ -74,12 +74,13 @@ class RedisService:
             self._password: str | None = os.environ.get("WFD_REDIS_PASSWORD", None)
             self._socket_timeout: int = int(os.environ.get("WFD_REDIS_SOCKET_TIMEOUT", "5"))
             self._socket_connect_timeout: int = int(os.environ.get("WFD_REDIS_SOCKET_CONNECT_TIMEOUT", "5"))
-            self._client: Any = None  # redis.Redis
-            self._pubsub: Any = None  # redis.client.PubSub
+            self._client: Any | None = None  # redis.Redis
+            self._pubsub: Any | None = None  # redis.client.PubSub
             self._subscriptions: dict[str, Any] = {}  # channel -> callback
 
     # ── Conexion ─────────────────────────────────────────────
 
+    # legítimo: redis.Redis client, no tipado por compatibilidad de versión
     def _get_client(self) -> Any:
         """Obtiene el cliente Redis, creandolo si es necesario."""
         if self._client is not None:
@@ -234,6 +235,7 @@ class RedisService:
 
     # ── Cache — JSON ─────────────────────────────────────────
 
+    # legítimo: JSON decoded de Redis, tipo dinámico (skill §9.1)
     def get_json(self, key: str) -> Any:
         """
         Obtiene un valor del cache deserializando JSON.
@@ -253,6 +255,7 @@ class RedisService:
             logger.warning(f"Redis get_json: error deserializando key={key}: {e}")
             return None
 
+    # legítimo: value a serializar como JSON, tipo dinámico
     def set_json(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Establece un valor en el cache serializando a JSON.
@@ -294,6 +297,7 @@ class RedisService:
             logger.error(f"Redis publish error en canal={channel}: {e}")
             return 0
 
+    # legítimo: callback dinámico para mensajes Redis (skill §1.2)
     def subscribe(self, channel: str, callback: Any = None) -> bool:
         """
         Se suscribe a un canal.
@@ -338,7 +342,7 @@ class RedisService:
             logger.error(f"Redis unsubscribe error en canal={channel}: {e}")
             return False
 
-    def get_message(self, timeout: float = 0.1) -> dict | None:
+    def get_message(self, timeout: float = 0.1) -> dict[str, Any] | None:
         """
         Obtiene un mensaje del PubSub (no bloqueante por defecto).
 
@@ -363,7 +367,7 @@ class RedisService:
 
     # ── Sesiones ─────────────────────────────────────────────
 
-    def set_session(self, session_id: str, data: dict, ttl: int = 86400) -> bool:
+    def set_session(self, session_id: str, data: dict[str, Any], ttl: int = 86400) -> bool:
         """
         Almacena datos de sesion.
 
@@ -378,7 +382,7 @@ class RedisService:
         key = f"{_SESSION_PREFIX}{session_id}"
         return self.set_json(key, data, ttl=ttl)
 
-    def get_session(self, session_id: str) -> dict | None:
+    def get_session(self, session_id: str) -> dict[str, Any] | None:
         """
         Obtiene datos de sesion.
 
@@ -406,7 +410,7 @@ class RedisService:
 
     # ── Rate Limiting ────────────────────────────────────────
 
-    def check_rate_limit(self, key: str, max_requests: int, window_seconds: int) -> dict:
+    def check_rate_limit(self, key: str, max_requests: int, window_seconds: int) -> dict[str, Any]:
         """
         Verifica si una accion esta dentro del limite de frecuencia.
 
@@ -549,6 +553,7 @@ class RedisService:
 
     # ── Pipeline ─────────────────────────────────────────────
 
+    # legítimo: redis.Redis pipeline object, no tipado por compatibilidad
     def pipeline(self) -> Any:
         """
         Crea un pipeline Redis para operaciones batch.
@@ -566,6 +571,7 @@ class RedisService:
         client = self._get_client()
         return client.pipeline(True)
 
+    # legítimo: redis.Redis pipeline object, no tipado por compatibilidad
     def execute_pipeline(self, pipe: Any) -> list[Any]:
         """
         Ejecuta un pipeline y retorna los resultados.
@@ -598,7 +604,7 @@ class RedisService:
             logger.error(f"Redis ping fallido: {e}")
             return False
 
-    def get_info(self) -> dict:
+    def get_info(self) -> dict[str, Any]:
         """
         Retorna informacion del servidor Redis.
 

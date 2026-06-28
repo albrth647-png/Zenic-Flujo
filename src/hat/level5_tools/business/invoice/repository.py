@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta
 
 from src.core.db.sqlite_manager import DatabaseManager
+from typing import Any
 
 
 class InvoiceRepository:
@@ -17,7 +18,7 @@ class InvoiceRepository:
         number: str,
         client_name: str,
         client_email: str | None,
-        items: list,
+        items: list[Any],
         subtotal: float,
         tax_rate: float,
         tax_amount: float,
@@ -30,7 +31,7 @@ class InvoiceRepository:
         lead_id: int | None = None,
         client_id: int | None = None,
         currency: str = "MXN",
-    ) -> dict:
+    ) -> dict[str, Any]:
         if not due_date:
             due_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
         cursor = self._db.execute(
@@ -59,7 +60,7 @@ class InvoiceRepository:
         self._db.commit()
         return self.get(cursor.lastrowid)
 
-    def get(self, invoice_id: int) -> dict | None:
+    def get(self, invoice_id: int) -> dict[str, Any] | None:
         row = self._db.fetchone("SELECT * FROM invoices WHERE id = ?", (invoice_id,))
         if row and isinstance(row.get("items"), str):
             row["items"] = json.loads(row["items"])
@@ -88,12 +89,12 @@ class InvoiceRepository:
                 row["items"] = json.loads(row["items"])
         return rows
 
-    def update_status(self, invoice_id: int, status: str) -> dict | None:
+    def update_status(self, invoice_id: int, status: str) -> dict[str, Any] | None:
         self._db.execute("UPDATE invoices SET status = ? WHERE id = ?", (status, invoice_id))
         self._db.commit()
         return self.get(invoice_id)
 
-    def mark_paid(self, invoice_id: int) -> dict | None:
+    def mark_paid(self, invoice_id: int) -> dict[str, Any] | None:
         self._db.execute(
             "UPDATE invoices SET status = 'paid', paid_at = ? WHERE id = ?",
             (datetime.now().isoformat(), invoice_id),
@@ -104,7 +105,7 @@ class InvoiceRepository:
     def get_overdue(self) -> list[dict]:
         return self._db.fetchall("SELECT * FROM invoices WHERE status = 'pending' AND due_date < date('now')")
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         stats = self._db.fetchone(
             """SELECT COUNT(*) as total,
                SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,

@@ -13,6 +13,7 @@ import base64
 import time
 
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -45,7 +46,7 @@ class StripeService:
     API_BASE = "https://api.stripe.com/v1"
 
     @staticmethod
-    def _auth_header(secret_key: str) -> dict:
+    def _auth_header(secret_key: str) -> dict[str, Any]:
         """Genera header de autenticación Basic con la secret key."""
         encoded = base64.b64encode(f"{secret_key}:".encode()).decode()
         return {"Authorization": f"Basic {encoded}"}
@@ -57,9 +58,9 @@ class StripeService:
         currency: str = "usd",
         customer_id: str | None = None,
         description: str = "",
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea una intención de pago.
 
@@ -126,7 +127,7 @@ class StripeService:
             logger.error(f"Stripe PI error: {e}")
             return self._error(str(e))
 
-    def retrieve_payment_intent(self, secret_key: str = "", payment_intent_id: str = "", timeout: int = 15) -> dict:
+    def retrieve_payment_intent(self, secret_key: str = "", payment_intent_id: str = "", timeout: int = 15) -> dict[str, Any]:
         """
         Consulta el estado de una intención de pago.
 
@@ -177,9 +178,9 @@ class StripeService:
         email: str = "",
         name: str = "",
         description: str = "",
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         timeout: int = 15,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea un cliente en Stripe.
 
@@ -239,7 +240,7 @@ class StripeService:
 
     def list_customers(
         self, secret_key: str = "", limit: int = 10, email: str | None = None, timeout: int = 15
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Lista clientes en Stripe.
 
@@ -295,9 +296,9 @@ class StripeService:
         customer_id: str = "",
         price_id: str = "",
         trial_days: int = 0,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea una suscripción para un cliente.
 
@@ -361,7 +362,7 @@ class StripeService:
 
     def list_invoices(
         self, secret_key: str = "", customer_id: str | None = None, limit: int = 10, timeout: int = 15
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Lista facturas de Stripe.
 
@@ -423,9 +424,9 @@ class StripeService:
         currency: str = "usd",
         description: str = "",
         quantity: int = 1,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea un link de pago (vía price + payment link).
 
@@ -516,7 +517,7 @@ class StripeService:
             return self._error(str(e))
 
     @staticmethod
-    def _error(message: str) -> dict:
+    def _error(message: str) -> dict[str, Any]:
         return {"error": message, "status": "failed"}
 
     @staticmethod
@@ -524,7 +525,7 @@ class StripeService:
         return int((time.time() - start_time) * 1000)
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         return {
             "tool": "stripe",
             "name": "Stripe",

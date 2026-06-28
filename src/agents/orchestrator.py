@@ -48,7 +48,7 @@ class OrchestrationPlan:
     pattern: OrchestrationPattern = OrchestrationPattern.SEQUENTIAL
     agent_configs: list[AgentConfig] = field(default_factory=list)
     agent_classes: list[type[BaseAgent]] = field(default_factory=list)
-    input_data: Any = None
+    input_data: Any | None = None
     max_rounds: int = 5
     timeout_seconds: float = 600.0
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -64,7 +64,7 @@ class OrchestrationResult:
 
     plan_id: str = ""
     pattern: OrchestrationPattern = OrchestrationPattern.SEQUENTIAL
-    final_result: Any = None
+    final_result: Any | None = None
     agent_results: list[dict[str, Any]] = field(default_factory=list)
     total_duration_ms: float = 0.0
     rounds_completed: int = 0
@@ -520,6 +520,7 @@ class MultiAgentOrchestrator:
         self._max_history = 100
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> MultiAgentOrchestrator:
         """Get or create the singleton orchestrator."""
         if cls._instance is None:

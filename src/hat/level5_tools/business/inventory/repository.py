@@ -4,6 +4,7 @@ Workflow Determinista — Inventory Repository
 
 from src.core.db.sql_builder import build_update_query
 from src.core.db.sqlite_manager import DatabaseManager
+from typing import Any
 
 
 class InventoryRepository:
@@ -20,7 +21,7 @@ class InventoryRepository:
         min_stock: int = 10,
         price: float = 0.0,
         user_id: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         cursor = self._db.execute(
             """INSERT INTO products (sku, name, description, category, stock, min_stock, price, user_id)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -29,10 +30,10 @@ class InventoryRepository:
         self._db.commit()
         return self.get_product(cursor.lastrowid)
 
-    def get_product(self, product_id: int) -> dict | None:
+    def get_product(self, product_id: int) -> dict[str, Any] | None:
         return self._db.fetchone("SELECT * FROM products WHERE id = ?", (product_id,))
 
-    def get_product_by_sku(self, sku: str) -> dict | None:
+    def get_product_by_sku(self, sku: str) -> dict[str, Any] | None:
         return self._db.fetchone("SELECT * FROM products WHERE sku = ?", (sku,))
 
     def list_products(
@@ -51,7 +52,7 @@ class InventoryRepository:
             return self._db.fetchall("SELECT * FROM products WHERE user_id = ? ORDER BY name", (user_id,))
         return self._db.fetchall("SELECT * FROM products ORDER BY name")
 
-    def update_product(self, product_id: int, **fields) -> dict | None:
+    def update_product(self, product_id: int, **fields) -> dict[str, Any] | None:
         allowed = {"sku", "name", "description", "category", "stock", "min_stock", "price"}
         result = build_update_query("products", allowed, fields)
         if result is None:
@@ -68,7 +69,7 @@ class InventoryRepository:
         self._db.commit()
         return True
 
-    def add_movement(self, product_id: int, movement_type: str, quantity: int, reason: str = "") -> dict:
+    def add_movement(self, product_id: int, movement_type: str, quantity: int, reason: str = "") -> dict[str, Any]:
         cursor = self._db.execute(
             "INSERT INTO stock_movements (product_id, type, quantity, reason) VALUES (?, ?, ?, ?)",
             (product_id, movement_type, quantity, reason),
@@ -85,7 +86,7 @@ class InventoryRepository:
     def get_low_stock(self) -> list[dict]:
         return self._db.fetchall("SELECT * FROM products WHERE stock <= min_stock ORDER BY stock ASC")
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         stats = self._db.fetchone(
             """SELECT COUNT(*) as total_products,
                SUM(CASE WHEN stock <= min_stock THEN 1 ELSE 0 END) as low_stock,

@@ -47,7 +47,7 @@ class ExecutionGuardrails:
     def __init__(self, lang: str = "es"):
         self.lang = lang
 
-    def check_workflow_definition(self, workflow: dict) -> GuardrailResult:
+    def check_workflow_definition(self, workflow: dict[str, Any]) -> GuardrailResult:
         """Valida la definicion del workflow contra limites de ejecucion.
 
         Args:
@@ -139,6 +139,7 @@ class ExecutionGuardrails:
             if step_id:
                 visited.add(step_id)
 
+            # legítimo: steps dinámicos del guardrail, tipo depende del AST
             sub_steps: Any = step.get("params", {}).get("steps", [])
             if isinstance(sub_steps, list) and sub_steps:
                 depth = self._compute_max_depth(sub_steps, current_depth + 1, visited)

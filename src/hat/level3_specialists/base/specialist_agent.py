@@ -51,6 +51,7 @@ class SpecialistResult(TypedDict, total=False):
     """
     status: str
     action: str
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
     result: Any
     error: str
     specialist: str

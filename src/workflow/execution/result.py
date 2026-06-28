@@ -4,6 +4,7 @@ Contains ExecutionResult (engine), ForkResult, and JoinResult (fork_handler).
 """
 
 from __future__ import annotations
+from typing import Any
 
 
 class ExecutionResult:
@@ -17,7 +18,7 @@ class ExecutionResult:
         duration_ms: int,
         step_results: list[dict] | None = None,
         error_message: str | None = None,
-        orbital_espectro: dict | None = None,
+        orbital_espectro: dict[str, Any] | None = None,
         orbital_variables: int = 0,
         orbital_resonance: float = 0.0,
     ):
@@ -31,7 +32,7 @@ class ExecutionResult:
         self.orbital_variables = orbital_variables
         self.orbital_resonance = orbital_resonance
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = {
             "execution_id": self.execution_id,
             "workflow_id": self.workflow_id,
@@ -73,7 +74,7 @@ class JoinResult:
     def __init__(
         self,
         status: str,
-        merged_output: dict,
+        merged_output: dict[str, Any],
         branch_count: int,
         duration_ms: int = 0,
         error_message: str | None = None,

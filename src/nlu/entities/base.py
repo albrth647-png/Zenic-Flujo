@@ -8,6 +8,7 @@ Misma entrada → siempre misma salida.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,7 @@ class Entity:
     type: str  # 'email' | 'phone' | 'date' | 'time' | 'number' | 'money' | 'cron' | 'qty' | 'product' | 'condition'
     value: object  # valor normalizado (ej: email string, cron "0 9 * * 1")
     raw: str  # texto original ("juan@x.com")
-    span: tuple  # (inicio, fin) en el texto original
+    span: tuple[Any, ...]  # (inicio, fin) en el texto original
     score: float  # confianza 0.0-1.0
 
 
@@ -36,7 +37,7 @@ class IntentMatch:
 
     intent: str  # 'registro_cliente'
     score: float  # 0.0-1.0 normalizado
-    evidence: list  # keywords/lemas que la activaron
+    evidence: list[Any]  # keywords/lemas que la activaron
 
 
 @dataclass(frozen=True)
@@ -70,7 +71,7 @@ class StepFragment:
 
     kind: str  # 'trigger' | 'step' | 'condition' | 'loop'
     intent_tags: tuple[str, ...]
-    produces: dict  # trigger o step a inyectar
+    produces: dict[str, Any]  # trigger o step a inyectar
     requires_slots: tuple[str, ...]
 
 
@@ -78,7 +79,7 @@ class StepFragment:
 class CompileResult:
     """Resultado del compilador de workflows."""
 
-    workflow: dict  # WorkflowDefinition listo
+    workflow: dict[str, Any]  # WorkflowDefinition listo
     explanation: str  # en lenguaje natural
     missing_slots: tuple[str, ...]  # si hay → clarificación necesaria
     status: str  # 'ready' | 'needs_clarification' | 'ambiguous' | 'unknown'

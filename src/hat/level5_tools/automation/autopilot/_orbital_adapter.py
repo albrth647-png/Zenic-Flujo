@@ -7,6 +7,7 @@ workflows lineales al motor ORBITAL.
 """
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -17,7 +18,7 @@ class WorkflowOrbitalAdapter:
     def __init__(self, db=None):
         self._db = db
 
-    def to_orbital(self, workflow_id: int, definition_getter=None) -> dict | None:
+    def to_orbital(self, workflow_id: int, definition_getter=None) -> dict[str, Any] | None:
         """Convierte una definición de workflow lineal a orbital.
 
         Args:
@@ -44,7 +45,7 @@ class WorkflowOrbitalAdapter:
 
         return orbital_def.to_dict()
 
-    def get_orbital_stats(self) -> dict:
+    def get_orbital_stats(self) -> dict[str, Any]:
         """Retorna estadísticas de las tablas orbitales."""
         from src.orbital.db import OrbitalDB
 
@@ -54,7 +55,7 @@ class WorkflowOrbitalAdapter:
         return stats
 
     @staticmethod
-    def _get_definition(workflow_id: int) -> dict | None:
+    def _get_definition(workflow_id: int) -> dict[str, Any] | None:
         """Obtiene una definición usando WorkflowDefinitionRepository (lazy import)."""
         from src.hat.level5_tools.automation.autopilot._definitions_repo import WorkflowDefinitionRepository
 

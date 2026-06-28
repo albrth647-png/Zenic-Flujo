@@ -22,6 +22,7 @@ from src.core.db import DatabaseManager
 from src.core.logging import setup_logging
 from src.events.bus import EventBus
 from src.events.queue_service import EventQueueService
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -146,7 +147,7 @@ class WorkflowSubscriber:
 
     # ── Ejecución de workflows ──────────────────────────────
 
-    def _execute_workflow(self, workflow_id: int, data: dict) -> dict:
+    def _execute_workflow(self, workflow_id: int, data: dict[str, Any]) -> dict[str, Any]:
         """
         Ejecuta un workflow por su ID.
 
@@ -182,7 +183,7 @@ class WorkflowSubscriber:
 
     # ── Manejo de eventos ───────────────────────────────────
 
-    def handle_event(self, event_type: str, data: dict, event_id: int | None = None) -> list[dict]:
+    def handle_event(self, event_type: str, data: dict[str, Any], event_id: int | None = None) -> list[dict]:
         """
         Procesa un evento: busca suscriptores y ejecuta workflows.
 
@@ -232,7 +233,7 @@ class WorkflowSubscriber:
 
     # ── Handler registrado en EventBus ────────────────────
 
-    def _on_event(self, event_type: str, data: dict) -> None:
+    def _on_event(self, event_type: str, data: dict[str, Any]) -> None:
         """
         Handler registrado como global en EventBus.
         Recibe TODOS los eventos publicados y los procesa.

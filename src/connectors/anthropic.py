@@ -31,6 +31,7 @@ class AnthropicConnector(BaseConnector):
     icon = "brain"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://api.anthropic.com/v1"
@@ -76,6 +77,7 @@ class AnthropicConnector(BaseConnector):
         self._log_operation("connect", "API Key configurada, HttpClient inicializado")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Anthropic.
 

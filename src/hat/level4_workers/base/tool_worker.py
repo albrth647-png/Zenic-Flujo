@@ -40,6 +40,7 @@ class WorkerResult(TypedDict, total=False):
     status: str
     action: str
     tool: str
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
     result: Any
     error: str
     params_hash: str
@@ -60,9 +61,12 @@ class ToolWorker:
     tool_name: str = ""
     action_name: str = ""
 
-    def __init__(self, tool_instance: Any) -> None:
+    # legítimo: tool_instance es dinámico (cualquier tool con métodos callable).
+    # Se valida con hasattr+callable en runtime. No hay Protocol común para todos los tools.
+    def __init__(self, tool_instance: object) -> None:
         self.tool = tool_instance
-        self.method: Any = getattr(tool_instance, self.action_name, None)
+        # object: getattr retorna Any, se valida con callable() abajo.
+        self.method: object = getattr(tool_instance, self.action_name, None)
 
         if self.method is None:
             raise AttributeError(

@@ -72,8 +72,9 @@ class AgentStatus(TypedDict):
 class ExecutionRecord(TypedDict, total=False):
     """Registro de una iteración del think-act loop."""
     iteration: int
-    decision: Any
-    result: Any
+    # object: decision/result son dinámicos (dependen de la implementación del agente).
+    decision: object
+    result: object
     error: str
     timestamp: float
 
@@ -84,7 +85,8 @@ class AgentMessage:
 
     sender_id: str
     recipient_id: str
-    content: Any
+    # object: el contenido puede ser str/dict/list según el use case. Fuerza isinstance al consumir.
+    content: object
     message_type: str = "inform"
     correlation_id: str = ""
     timestamp: float = field(default_factory=time.time)
@@ -200,6 +202,7 @@ class BaseAgent(ABC):
 
     # ── Lifecycle ───────────────────────────────────────────
 
+    # legítimo: método plantilla genérico. El retorno es dinámico (resultado de act()).
     def run(self, input_data: dict | list | str | None = None) -> Any:
         """Execute the agent's think-act loop until completion or max iterations."""
         self.transition_to(AgentState.THINKING)
@@ -262,10 +265,12 @@ class BaseAgent(ABC):
 
     # ── Abstract Methods ────────────────────────────────────
 
+    # legítimo: agente genérico abstracto. observation/decision son dinámicos por diseño.
     @abstractmethod
     def think(self, observation: Any) -> Any:
         """Reasoning phase — analyze input and produce a decision."""
 
+    # legítimo: agente genérico abstracto. decision/result son dinámicos por diseño.
     @abstractmethod
     def act(self, decision: Any) -> Any:
         """Action phase — execute based on the decision."""

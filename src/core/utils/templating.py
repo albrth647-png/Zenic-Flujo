@@ -21,7 +21,9 @@ def safe_get[T](data: dict[str, Any], path: str, default: T | None = None) -> T 
     keys = path.split(".")
     current = data
     for key in keys:
-        if isinstance(current, dict[str, Any]):
+        # Fix: isinstance no acepta generics parametrizados (dict[str, Any])
+        # en Python 3.12. Usar dict plano + verificar tipos en runtime.
+        if isinstance(current, dict):
             current = current.get(key)
             if current is None:
                 return default

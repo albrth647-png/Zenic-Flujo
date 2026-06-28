@@ -240,10 +240,10 @@ class APIConnectorService:
 
     # ── XML público ───────────────────────────────────────
 
-    def xml_parse(self, xml_string: str) -> dict:
+    def xml_parse(self, xml_string: str) -> dict[str, Any]:
         return self._xml.parse(xml_string)
 
-    def xml_generate(self, data: dict, root_name: str = "root") -> str:
+    def xml_generate(self, data: dict[str, Any], root_name: str = "root") -> str:
         return self._xml.generate(data, root_name)
 
     # ── Validación de URL ────────────────────────────────
@@ -253,14 +253,14 @@ class APIConnectorService:
         return validate_url(url)
 
     @staticmethod
-    def _extract_items(body: Any) -> list:
+    def _extract_items(body: object) -> list[Any]:
         """Extrae items de un body paginado. Backward compat."""
         return extract_items(body)
 
     # ── Tool definition ────────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "api_connector",

@@ -62,6 +62,7 @@ class AgentRuntime:
         self._heartbeat_thread: threading.Thread | None = None
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> AgentRuntime:
         """Get or create the singleton AgentRuntime."""
         if cls._instance is None:
@@ -208,6 +209,7 @@ class AgentRuntime:
 
     # ── Messaging ───────────────────────────────────────────
 
+    # legítimo: mensaje dinámico, formato depende del protocolo
     def route_message(self, message: Any) -> bool:
         """Route a message to the target agent.
 
@@ -230,6 +232,7 @@ class AgentRuntime:
         agent.receive_message(message)
         return True
 
+    # legítimo: contenido del mensaje dinámico (str/dict/list)
     def broadcast(self, sender_id: str, content: Any, message_type: str = "broadcast") -> int:
         """Broadcast a message to all active agents except the sender.
 
@@ -291,6 +294,7 @@ class AgentRuntime:
 
     # ── Hooks ───────────────────────────────────────────────
 
+    # legítimo: callback dinámico, signature depende del evento (skill §1.2)
     def register_hook(self, event: str, callback: Any) -> None:
         """Register a lifecycle hook callback.
 

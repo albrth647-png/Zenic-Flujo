@@ -63,10 +63,11 @@ class FallbackAttempt:
     level: FallbackLevel
     success: bool
     confidence: float
-    result: Any = None
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
+    result: Any | None = None
     reason: str = ""
     processing_time_ms: float = 0.0
-    details: dict = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -76,7 +77,8 @@ class FallbackResult:
     success: bool
     final_level: FallbackLevel
     attempts: list[FallbackAttempt]
-    result: Any = None
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
+    result: Any | None = None
     explanation: str = ""
     total_time_ms: float = 0.0
 
@@ -486,7 +488,7 @@ class FallbackOrchestrator:
             total_time_ms=round((time.monotonic() - start_total) * 1000, 2),
         )
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Retorna estadísticas de uso de la jerarquía de fallback."""
         total = self._stats["total_processed"]
         return {

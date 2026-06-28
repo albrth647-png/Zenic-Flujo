@@ -31,12 +31,13 @@ class MongoConnectorConnector(BaseConnector):
     icon = "database"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._connection_uri: str = "mongodb://localhost:27017"
         self._database: str = ""
         self._http: HttpClient | None = None
-        self._client: Any = None
+        self._client: Any | None = None
         self._use_http: bool = False
         self._data_api_url: str = ""
         self._data_source: str = ""
@@ -96,6 +97,7 @@ class MongoConnectorConnector(BaseConnector):
         self._log_operation("connect", "Conexion MongoDB establecida")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector MongoDB.
 

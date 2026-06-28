@@ -56,7 +56,12 @@ class VariableOrbital:
 
     def __post_init__(self):
         # Normalizar theta a [0, 2pi)
+        # Fix bug: para thetas muy pequeños y negativos (subnormales),
+        # `theta % TWO_PI` puede dar exactamente TWO_PI por redondeo de FP.
+        # Doble modulo garantiza [0, 2π) en todos los casos.
         self.theta = self.theta % TWO_PI
+        if self.theta >= TWO_PI:
+            self.theta = self.theta % TWO_PI
         # Amplitud siempre positiva
         if self.amplitude <= 0:
             self.amplitude = abs(self.amplitude) or DEFAULT_AMPLITUDE
@@ -72,8 +77,15 @@ class VariableOrbital:
         return math.degrees(self.theta) % 360
 
     def advance(self, dt: float = 1.0) -> None:
-        """Avanza la fase orbital: theta += omega * dt."""
+        """Avanza la fase orbital: theta += omega * dt.
+
+        Fix bug: doble modulo para garantizar theta ∈ [0, 2π).
+        Con velocidades muy pequeñas y negativas (subnormales),
+        `(theta + velocity*dt) % TWO_PI` puede dar exactamente TWO_PI.
+        """
         self.theta = (self.theta + self.velocity * dt) % TWO_PI
+        if self.theta >= TWO_PI:
+            self.theta = self.theta % TWO_PI
 
     def apply_tension(self, tension: float, dt: float = 1.0) -> None:
         """
@@ -84,6 +96,8 @@ class VariableOrbital:
         """
         modulation = math.tanh(tension)
         self.theta = (self.theta + modulation * self.velocity * dt) % TWO_PI
+        if self.theta >= TWO_PI:
+            self.theta = self.theta % TWO_PI
 
     def retrofeed(self, output_value: float, damping: float = RETROFEEDBACK_DAMPING) -> None:
         """
@@ -92,6 +106,9 @@ class VariableOrbital:
         """
         delta = damping * output_value
         self.theta = (self.theta + delta) % TWO_PI
+        # Fix bug: doble modulo para garantizar theta ∈ [0, 2π)
+        if self.theta >= TWO_PI:
+            self.theta = self.theta % TWO_PI
 
     def distance_to(self, other: VariableOrbital) -> float:
         """

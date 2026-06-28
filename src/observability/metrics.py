@@ -87,6 +87,8 @@ Infraestructura:
 
 from __future__ import annotations
 
+import types
+
 import os
 import threading
 import time
@@ -378,6 +380,7 @@ class MetricsRegistry:
 
     # ── Integracion OTel ─────────────────────────────────────
 
+    # legítimo: opentelemetry.metrics.Meter no tipado por compatibilidad
     def set_otel_meter(self, meter: Any) -> None:
         """Establece el meter de OpenTelemetry para delegar metricas."""
         self._otel_meter = meter
@@ -465,7 +468,7 @@ class MetricsRegistry:
             self._start = time.monotonic()
             return self
 
-        def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None) -> None:
             duration = time.monotonic() - self._start
             self._registry.observe_histogram(self._name, duration, self._labels)
 

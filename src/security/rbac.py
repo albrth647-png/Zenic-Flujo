@@ -7,7 +7,7 @@ Compatibilidad retroactiva con el sistema de 3 roles (admin/editor/viewer).
 import contextlib
 import json
 import threading
-from typing import ClassVar
+from typing import ClassVar, Any
 
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
@@ -303,7 +303,7 @@ class RBACManager:
 
     # ── Gestion de roles ──────────────────────────────────
 
-    def create_role(self, name: str, description: str = "", permissions: list[str] | None = None) -> dict:
+    def create_role(self, name: str, description: str = "", permissions: list[str] | None = None) -> dict[str, Any]:
         """Crea un rol personalizado.
 
         Args:
@@ -342,7 +342,7 @@ class RBACManager:
         logger.info(f"RBAC: Rol '{name}' creado con {len(permissions or [])} permisos")
         return {"status": "ok", "role_id": role_id, "name": name}
 
-    def assign_role(self, user_id: int, role_name: str) -> dict:
+    def assign_role(self, user_id: int, role_name: str) -> dict[str, Any]:
         """Asigna un rol a un usuario."""
         role = self._db.fetchone("SELECT id FROM rbac_roles WHERE name = ?", (role_name,))
         if not role:
@@ -356,7 +356,7 @@ class RBACManager:
         logger.info(f"RBAC: Rol '{role_name}' asignado a usuario {user_id}")
         return {"status": "ok", "user_id": user_id, "role": role_name}
 
-    def revoke_role(self, user_id: int, role_name: str) -> dict:
+    def revoke_role(self, user_id: int, role_name: str) -> dict[str, Any]:
         """Revoca un rol de un usuario."""
         role = self._db.fetchone("SELECT id FROM rbac_roles WHERE name = ?", (role_name,))
         if not role:
@@ -370,7 +370,7 @@ class RBACManager:
         logger.info(f"RBAC: Rol '{role_name}' revocado de usuario {user_id}")
         return {"status": "ok"}
 
-    def delete_role(self, role_name: str) -> dict:
+    def delete_role(self, role_name: str) -> dict[str, Any]:
         """Elimina un rol personalizado (no los por defecto)."""
         role = self._db.fetchone("SELECT id, is_default FROM rbac_roles WHERE name = ?", (role_name,))
         if not role:
@@ -389,7 +389,7 @@ class RBACManager:
 
     # ── Permisos a nivel de recurso ───────────────────────
 
-    def grant_resource_access(self, user_id: int, resource: str, resource_id: str, actions: list[str]) -> dict:
+    def grant_resource_access(self, user_id: int, resource: str, resource_id: str, actions: list[str]) -> dict[str, Any]:
         """Otorga acceso a un recurso especifico para un usuario.
 
         Args:
@@ -432,7 +432,7 @@ class RBACManager:
 
     def revoke_resource_access(
         self, user_id: int, resource: str, resource_id: str, actions: list[str] | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Revoca acceso a un recurso especifico.
 
         Si actions es None, revoca todo el acceso al recurso.

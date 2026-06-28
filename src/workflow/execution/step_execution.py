@@ -9,6 +9,7 @@ from __future__ import annotations
 from src.core.logging import setup_logging
 from src.workflow.execution.subworkflow import SubworkflowExecutionService
 from src.workflow.step_executor import StepResult
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -33,7 +34,7 @@ class StepExecutionService:
         self._orbital_engine = orbital_engine
         self._ctx = ctx
 
-    def execute_step(self, step: dict, context: dict) -> StepResult:
+    def execute_step(self, step: dict[str, Any], context: dict[str, Any]) -> StepResult:
         """Ejecuta un paso individual, manejando branches, loops y errores orbitalmente."""
         step_type = step.get("type", "action")
 
@@ -130,7 +131,7 @@ class StepExecutionService:
                 return StepResult(status="completed", output_data=error_result.output_data or {}, duration_ms=0)
             return StepResult(status="failed", error_message=error_result.error_message)
 
-    def _execute_subworkflow(self, step: dict, context: dict) -> StepResult:
+    def _execute_subworkflow(self, step: dict[str, Any], context: dict[str, Any]) -> StepResult:
         """Delega la ejecución de subworkflow a SubworkflowExecutionService."""
         subworkflow_service = SubworkflowExecutionService(self._repository)
         return subworkflow_service.execute(step, context)

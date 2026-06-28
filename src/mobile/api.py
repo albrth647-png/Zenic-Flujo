@@ -48,7 +48,7 @@ _AUTH_CREATE = Depends(require_permission("auth", "create"))
 @router.post("/register", summary="Register a mobile device")
 async def register_device(
     device_info: dict[str, Any],
-    _: Any = _MOBILE_CREATE,
+    _: dict[str, Any] = _MOBILE_CREATE,
 ) -> dict[str, Any]:
     """Register a mobile device for push notifications and sync.
 
@@ -83,7 +83,7 @@ async def register_device(
 @router.get("/dashboard", summary="Mobile dashboard data")
 async def get_mobile_dashboard(
     tenant_id: str = Query("default"),
-    _: Any = _MOBILE_READ,
+    _: dict[str, Any] = _MOBILE_READ,
 ) -> dict[str, Any]:
     """Get compact dashboard data optimized for mobile screens.
 
@@ -131,7 +131,7 @@ async def list_workflows_mobile(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     status: str | None = Query(None),
-    _: Any = _WORKFLOWS_READ,
+    _: dict[str, Any] = _WORKFLOWS_READ,
 ) -> dict[str, Any]:
     """List workflows with mobile-friendly pagination.
 
@@ -155,7 +155,7 @@ async def list_workflows_mobile(
 async def trigger_workflow_mobile(
     workflow_id: str,
     trigger_data: dict[str, Any] | None = None,
-    _: Any = _WORKFLOWS_EXECUTE,
+    _: dict[str, Any] = _WORKFLOWS_EXECUTE,
 ) -> dict[str, Any]:
     """Trigger a workflow execution from a mobile device.
 
@@ -185,7 +185,7 @@ async def trigger_workflow_mobile(
 @router.post("/nlu/process", summary="Process voice or text command")
 async def process_nlu_mobile(
     input_data: dict[str, Any],
-    _: Any = _NLU_EXECUTE,
+    _: dict[str, Any] = _NLU_EXECUTE,
 ) -> dict[str, Any]:
     """Process natural language input from mobile.
 
@@ -220,7 +220,7 @@ async def process_nlu_mobile(
 @router.post("/files/upload-uri", summary="Get upload URI for SAF file")
 async def get_saf_upload_uri(
     file_info: dict[str, Any],
-    _: Any = _FILES_CREATE,
+    _: dict[str, Any] = _FILES_CREATE,
 ) -> dict[str, Any]:
     """Get a server-side upload URI for a file selected via Android SAF.
 
@@ -253,7 +253,7 @@ async def get_saf_upload_uri(
 @router.post("/files/upload", summary="Upload file from SAF")
 async def upload_file_saf(
     file_info: dict[str, Any],
-    _: Any = _FILES_CREATE,
+    _: dict[str, Any] = _FILES_CREATE,
 ) -> dict[str, Any]:
     """Receive a file uploaded from Android SAF.
 
@@ -277,7 +277,7 @@ async def upload_file_saf(
 @router.get("/files/{file_id}", summary="Get processed file result")
 async def get_file_result(
     file_id: str,
-    _: Any = _FILES_READ,
+    _: dict[str, Any] = _FILES_READ,
 ) -> dict[str, Any]:
     """Get the processing result for a previously uploaded file.
 
@@ -300,7 +300,7 @@ async def get_file_result(
 @router.get("/sync/status", summary="Get sync status")
 async def get_sync_status(
     device_id: str = Query(...),
-    _: Any = _MOBILE_READ,
+    _: dict[str, Any] = _MOBILE_READ,
 ) -> dict[str, Any]:
     """Get synchronization status for offline-capable data.
 
@@ -326,7 +326,7 @@ async def get_sync_status(
 @router.post("/sync/push", summary="Push local changes to server")
 async def sync_push(
     device_id: str,
-    _: Any = _MOBILE_UPDATE,
+    _: dict[str, Any] = _MOBILE_UPDATE,
 ) -> dict[str, Any]:
     """Push locally-made changes from device to server.
 
@@ -382,7 +382,7 @@ async def sync_push(
 async def sync_pull(
     device_id: str,
     since_timestamp: float = Query(0),
-    _: Any = _MOBILE_READ,
+    _: dict[str, Any] = _MOBILE_READ,
 ) -> dict[str, Any]:
     """Pull changes from server to device.
 
@@ -445,7 +445,7 @@ async def sync_pull(
 @router.get("/notifications/preferences", summary="Get notification preferences")
 async def get_notification_preferences(
     device_id: str = Query(...),
-    _: Any = _MOBILE_READ,
+    _: dict[str, Any] = _MOBILE_READ,
 ) -> dict[str, Any]:
     """Get push notification preferences for the device.
 
@@ -513,7 +513,7 @@ async def update_notification_preferences(
     device_id: str,
     preferences: dict[str, Any] | None = None,
     quiet_hours: dict[str, Any] | None = None,
-    _: Any = _MOBILE_UPDATE,
+    _: dict[str, Any] = _MOBILE_UPDATE,
 ) -> dict[str, Any]:
     """Update push notification preferences for the device.
 
@@ -572,7 +572,7 @@ async def update_notification_preferences(
 @router.post("/auth/biometric-challenge", summary="Generate biometric auth challenge")
 async def generate_biometric_challenge(
     user_id: str,
-    _: Any = _AUTH_CREATE,
+    _: dict[str, Any] = _AUTH_CREATE,
 ) -> dict[str, Any]:
     """Generate a challenge for biometric authentication.
 
@@ -596,7 +596,7 @@ async def generate_biometric_challenge(
 
 @router.get("/config", summary="Get mobile app configuration")
 async def get_app_config(
-    _: Any = _MOBILE_READ,
+    _: dict[str, Any] = _MOBILE_READ,
 ) -> dict[str, Any]:
     """Get runtime configuration for the mobile app.
 

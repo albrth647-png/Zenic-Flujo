@@ -66,6 +66,7 @@ class FactsManager:
         user_id: str,
         session_id: str,
         fact_key: str,
+        # legítimo: valor JSON del fact/hypothesis, dinámico por diseño
         fact_value: Any,
         confidence: float = 1.0,
         orbital_theta: float = FACT_THETA,
@@ -135,6 +136,7 @@ class FactsManager:
         user_id: str,
         session_id: str,
         hypothesis_key: str,
+        # legítimo: valor JSON del fact/hypothesis, dinámico por diseño
         hypothesis_value: Any,
         confidence: float = 0.5,
         orbital_theta: float = HYPOTHESIS_THETA,

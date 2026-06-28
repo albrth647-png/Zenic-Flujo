@@ -39,6 +39,7 @@ _error_rng = random.Random(_ERROR_RANDOM_SEED if _ERROR_RANDOM_SEED else None)
 from src.core.logging import setup_logging  # noqa: E402
 from src.orbital.context import OrbitalContext  # noqa: E402
 from src.orbital.models import TWO_PI  # noqa: E402
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -49,7 +50,7 @@ class ErrorHandlerResult:
     def __init__(
         self,
         status: str,
-        output_data: dict | None = None,
+        output_data: dict[str, Any] | None = None,
         error_message: str | None = None,
         retries: int = 0,
         orbital_theta: float = 0.0,
@@ -84,7 +85,7 @@ class ErrorHandler:
         # ── ORBITAL COMPARTIDO ───────────────────────────
         self._ctx = OrbitalContext()
 
-    def handle(self, step: dict, error: Exception, context: dict, step_executor) -> ErrorHandlerResult:
+    def handle(self, step: dict[str, Any], error: Exception, context: dict[str, Any], step_executor) -> ErrorHandlerResult:
         """
         Maneja un error durante la ejecucion de un paso (OVC compartido).
 
@@ -246,7 +247,7 @@ class ErrorHandler:
             orbital_alignment=orbital_alignment,
         )
 
-    def _handle_continue_on_error(self, step: dict) -> ErrorHandlerResult:
+    def _handle_continue_on_error(self, step: dict[str, Any]) -> ErrorHandlerResult:
         """
         Maneja continue_on_error: retorna resultado vacío 'skipped'.
 
@@ -264,7 +265,7 @@ class ErrorHandler:
         )
 
     @staticmethod
-    def _get_context_snapshot(context: dict) -> dict:
+    def _get_context_snapshot(context: dict[str, Any]) -> dict[str, Any]:
         """Toma un snapshot seguro del contexto (sin import circular)."""
         safe_keys = {"input", "output", "steps_output", "workflow", "settings", "_last_step_id", "_last_step_var"}
         snapshot = {}
@@ -275,7 +276,7 @@ class ErrorHandler:
                     snapshot[key] = val
         return snapshot
 
-    def _send_to_dead_letter(self, step: dict, error: Exception, retries: int, step_executor, context: dict) -> None:
+    def _send_to_dead_letter(self, step: dict[str, Any], error: Exception, retries: int, step_executor, context: dict[str, Any]) -> None:
         """
         Envia el paso fallido a la Dead Letter Queue persistente.
 
@@ -314,7 +315,7 @@ class ErrorHandler:
     def register_fallback(self, action_name: str, func: Callable) -> None:
         self._fallback_actions[action_name] = func
 
-    def _has_fallback(self, step: dict) -> bool:
+    def _has_fallback(self, step: dict[str, Any]) -> bool:
         fallback = step.get("fallback")
         if fallback is None:
             return False
@@ -322,7 +323,7 @@ class ErrorHandler:
             return fallback in self._fallback_actions or fallback == "skip"
         return bool(isinstance(fallback, dict))
 
-    def _execute_fallback(self, step: dict, context: dict) -> dict:
+    def _execute_fallback(self, step: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         fallback = step.get("fallback", {})
 
         if isinstance(fallback, str):
@@ -363,7 +364,7 @@ class ErrorHandler:
                 metadata={"source": "error_handler", "step_id": step_id, "error_type": error_type},
             )
 
-    def _ensure_context_variable(self, var_name: str, context: dict) -> None:
+    def _ensure_context_variable(self, var_name: str, context: dict[str, Any]) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
             # Hash no criptográfico: deriva theta determinista del contexto (B324 mitigado).
             hash_val = int(hashlib.md5(str(context).encode(), usedforsecurity=False).hexdigest()[:8], 16)

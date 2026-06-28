@@ -28,6 +28,7 @@ from src.workflow.orbital.steps import inject_steps_as_orbital
 from src.workflow.orbital.trigger import inject_trigger_as_orbital
 from src.workflow.repository import WorkflowDefinition, WorkflowRepository
 from src.workflow.step_executor import StepExecutor
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -72,7 +73,7 @@ class WorkflowEngine:
             self._tools: dict[str, object] = {}
             # ── ORBITAL COMPARTIDO ───────────────────
             self._ctx = OrbitalContext()
-            self._orbital_results: list = []
+            self._orbital_results: list[Any] = []
 
             # ── LOCKS POR EXECUTION_ID (fix Sprint 1 bug #2) ─────────
             # Cada ejecución de workflow tiene su propio lock, evitando race
@@ -128,7 +129,7 @@ class WorkflowEngine:
 
     # ── Ejecucion ORBITAL ───────────────────────────────────
 
-    def execute(self, workflow_id: int, trigger_data: dict | None = None) -> ExecutionResult:
+    def execute(self, workflow_id: int, trigger_data: dict[str, Any] | None = None) -> ExecutionResult:
         """Ejecuta un workflow completo en modo orbital (OVC compartido).
 
         Fix Sprint 1:
@@ -314,7 +315,7 @@ class WorkflowEngine:
             orbital_resonance=orbital_resonance,
         )
 
-    def _execute_step(self, step: dict, context: dict, orbital_engine=None) -> object:
+    def _execute_step(self, step: dict[str, Any], context: dict[str, Any], orbital_engine=None) -> object:
         """Wrapper backward-compatible que delega al StepExecutionService."""
         return self._step_execution_service.execute_step(step, context)
 
@@ -347,7 +348,7 @@ class WorkflowEngine:
         logger.info(f"Workflow {workflow_id} archivado")
         return True
 
-    def get_status(self, workflow_id: int) -> dict:
+    def get_status(self, workflow_id: int) -> dict[str, Any]:
         definition = self._repository.get(workflow_id)
         if not definition:
             return {"error": "Workflow no encontrado"}
@@ -364,7 +365,7 @@ class WorkflowEngine:
 
     # ── Helpers ─────────────────────────────────────────────
 
-    def _load_settings(self) -> dict:
+    def _load_settings(self) -> dict[str, Any]:
         """Carga settings de la DB con cache (TTL 60s).
 
         Fix Sprint 4 bug #53: antes creaba DatabaseManager() y ejecutaba
@@ -377,7 +378,7 @@ class WorkflowEngine:
 
         # Inicializar cache si no existe (lazy)
         if not hasattr(self, "_settings_cache"):
-            self._settings_cache: dict = {}
+            self._settings_cache: dict[str, Any] = {}
             self._settings_cache_ts: float = 0.0
 
         now = _time_mod.time()
@@ -419,7 +420,7 @@ class WorkflowEngine:
     def get_orbital_results(self, limit: int = 10) -> list[dict]:
         return [r.to_dict() for r in self._orbital_results[-limit:]]
 
-    def get_orbital_snapshot(self) -> dict:
+    def get_orbital_snapshot(self) -> dict[str, Any]:
         return {
             "orbital_mode": True, "shared_context": True,
             "ovc_variables": self._ctx.ovc.variable_count,
@@ -446,7 +447,7 @@ class WorkflowEngine:
 
     # ── Ejecucion Asincrona ─────────────────────────────────
 
-    def execute_async(self, workflow_id: int, trigger_data: dict | None = None, priority: int = 0) -> dict:
+    def execute_async(self, workflow_id: int, trigger_data: dict[str, Any] | None = None, priority: int = 0) -> dict[str, Any]:
         """Encola un workflow para ejecucion asincrona via WorkQueue."""
         return self._async_service.execute(workflow_id, trigger_data, priority)
 

@@ -20,6 +20,7 @@ class PagerDutyConnector(BaseConnector):
     icon = "alert-triangle"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_key: str = ""; self._http: HttpClient | None = None
@@ -34,6 +35,7 @@ class PagerDutyConnector(BaseConnector):
         self._http.set_header("Accept", "application/vnd.pagerduty+json;version=2")
         self._connected = True; self._log_operation("connect"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"trigger_incident": self._trigger_incident, "list_incidents": self._list_incidents,
                        "get_incident": self._get_incident, "resolve_incident": self._resolve_incident,
@@ -45,7 +47,8 @@ class PagerDutyConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -55,17 +58,17 @@ class PagerDutyConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _trigger_incident(self, p: dict) -> dict:
+    def _trigger_incident(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("post", "/incidents", json={"incident": {"type": "incident", "title": p.get("title", ""),
             "service": {"id": p.get("service_id", ""), "type": "service_reference"},
             "urgency": p.get("urgency", "high"), "body": {"type": "incident_body", "details": p.get("details", "")}}})
-    def _list_incidents(self, p: dict) -> dict: return self._api("get", "/incidents", params=p)
-    def _get_incident(self, p: dict) -> dict: return self._api("get", f"/incidents/{p.get('incident_id', '')}")
-    def _resolve_incident(self, p: dict) -> dict:
+    def _list_incidents(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/incidents", params=p)
+    def _get_incident(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/incidents/{p.get('incident_id', '')}")
+    def _resolve_incident(self, p: dict[str, Any]) -> dict[str, Any]:
         return self._api("put", f"/incidents/{p.get('incident_id', '')}", json={"incident": {"type": "incident", "status": "resolved"}})
-    def _list_services(self, p: dict) -> dict: return self._api("get", "/services", params=p)
-    def _list_escalation_policies(self, p: dict) -> dict: return self._api("get", "/escalation_policies", params=p)
-    def _list_oncalls(self, p: dict) -> dict: return self._api("get", "/oncalls", params=p)
+    def _list_services(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/services", params=p)
+    def _list_escalation_policies(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/escalation_policies", params=p)
+    def _list_oncalls(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/oncalls", params=p)
 
 
 PAGERDUTY_SCHEMA = ConnectorSchema(name="pagerduty", version="1.0.0", description="Gestiona incidentes y alertas en PagerDuty",

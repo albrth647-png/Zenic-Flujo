@@ -84,6 +84,7 @@ class {class_name}(BaseConnector):
         """Establece la conexion con el servicio externo."""
 {connect_body}
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector.
 

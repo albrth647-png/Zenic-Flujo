@@ -24,6 +24,8 @@ Configuracion via variables de entorno:
 
 from __future__ import annotations
 
+import types
+
 import json
 import os
 import time
@@ -58,6 +60,7 @@ class HTTPResponse:
         self,
         status_code: int,
         headers: dict[str, str],
+        # legítimo: body de HTTP request, puede ser dict/bytes/str
         body: Any,
         raw: bytes | None = None,
         elapsed: float = 0.0,
@@ -87,6 +90,7 @@ class HTTPResponse:
         """True si el status code esta en el rango 5xx."""
         return 500 <= self.status_code < 600
 
+    # legítimo: retorna JSON parsed de response HTTP (skill §9.1)
     def json(self) -> Any:
         """Retorna el body como JSON si es string, o el body directamente si ya es dict."""
         if isinstance(self.body, (dict, list)):
@@ -185,7 +189,7 @@ class HttpClient:
         if default_headers:
             self._default_headers.update(default_headers)
         self._auth_header: dict[str, str] = {}
-        self._session: Any = None
+        self._session: Any | None = None
         self._connector_name = connector_name
 
     def set_auth(self, auth_type: str, token: str = "", username: str = "", password: str = "") -> None:
@@ -370,7 +374,7 @@ class HttpClient:
                 elapsed = time.monotonic() - start_time
 
                 # Parsear respuesta
-                body: Any = None
+                body: Any | None = None
                 try:
                     body = resp.json()
                 except (json.JSONDecodeError, ValueError):
@@ -490,7 +494,7 @@ class HttpClient:
             pass
         return self
 
-    def __exit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: Any) -> bool:
+    def __exit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: types.TracebackType | None) -> bool:
         """Sale del context manager, cerrando la sesion."""
         if self._session is not None:
             self._session.close()

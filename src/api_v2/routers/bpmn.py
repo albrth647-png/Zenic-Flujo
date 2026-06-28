@@ -31,7 +31,7 @@ _processes: dict[str, BPMNProcess] = {}
 async def import_bpmn(
     xml_content: str,
     validate: bool = Query(True, description="Validate after import"),
-    _: Any = Depends(require_permission("bpmn", "create")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "create")),
 ) -> dict[str, Any]:
     """Import a BPMN 2.0 XML process definition."""
     parser = BPMNParser()
@@ -62,7 +62,7 @@ async def import_bpmn(
 @router.post("/export/{process_id}", summary="Export a BPMN process as XML")
 async def export_bpmn(
     process_id: str,
-    _: Any = Depends(require_permission("bpmn", "read")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "read")),
 ) -> dict[str, Any]:
     """Export a BPMN process as BPMN 2.0 XML."""
     process = _processes.get(process_id)
@@ -77,7 +77,7 @@ async def export_bpmn(
 @router.post("/convert/{process_id}", summary="Convert BPMN to workflow")
 async def convert_bpmn_to_workflow(
     process_id: str,
-    _: Any = Depends(require_permission("bpmn", "read")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "read")),
 ) -> dict[str, Any]:
     """Convert a BPMN process to a Zenic-Flijo workflow definition."""
     process = _processes.get(process_id)
@@ -92,7 +92,7 @@ async def convert_bpmn_to_workflow(
 @router.post("/validate", summary="Validate a BPMN XML")
 async def validate_bpmn(
     xml_content: str,
-    _: Any = Depends(require_permission("bpmn", "read")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "read")),
 ) -> dict[str, Any]:
     """Validate a BPMN 2.0 XML without importing."""
     parser = BPMNParser()
@@ -107,7 +107,7 @@ async def validate_bpmn(
 
 @router.get("/processes", summary="List BPMN processes")
 async def list_processes(
-    _: Any = Depends(require_permission("bpmn", "read")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "read")),
 ) -> dict[str, Any]:
     """List all imported BPMN processes."""
     processes = []
@@ -128,7 +128,7 @@ async def list_processes(
 @router.get("/processes/{process_id}", summary="Get BPMN process details")
 async def get_process(
     process_id: str,
-    _: Any = Depends(require_permission("bpmn", "read")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "read")),
 ) -> dict[str, Any]:
     """Get details of a specific BPMN process."""
     process = _processes.get(process_id)
@@ -166,7 +166,7 @@ async def get_process(
 @router.delete("/processes/{process_id}", summary="Delete a BPMN process")
 async def delete_process(
     process_id: str,
-    _: Any = Depends(require_permission("bpmn", "delete")),
+    _: dict[str, Any] = Depends(require_permission("bpmn", "delete")),
 ) -> dict[str, Any]:
     """Delete an imported BPMN process."""
     if process_id not in _processes:

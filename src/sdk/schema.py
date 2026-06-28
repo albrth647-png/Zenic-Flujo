@@ -744,6 +744,7 @@ class SchemaVersion:
         self,
         from_version: str,
         to_version: str,
+        # legítimo: función de migración dinámica, signature variable
         migration_func: Any,
     ) -> None:
         """

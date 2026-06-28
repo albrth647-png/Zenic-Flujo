@@ -24,6 +24,7 @@ def rate_limit(max_calls: int = 60, period: int = 60) -> Callable[[F], F]:
         local_lock = threading.Lock()
 
         @functools.wraps(func)
+        # legítimo: wrapper transparente (skill §1.2)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             connector_name = _get_connector_name(args)
             action_name = getattr(func, "_connector_action_name", func.__name__)

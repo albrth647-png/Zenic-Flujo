@@ -10,6 +10,7 @@ import threading
 import time
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -27,7 +28,7 @@ class WebhookCallbackRegistry:
         self._callbacks: dict[str, dict] = {}
         self._lock = threading.RLock()
 
-    def register(self, callback_url: str, original_request: dict, timeout_seconds: int = 3600) -> str:
+    def register(self, callback_url: str, original_request: dict[str, Any], timeout_seconds: int = 3600) -> str:
         callback_id = secrets.token_hex(16)
         with self._lock:
             self._callbacks[callback_id] = {
@@ -43,7 +44,7 @@ class WebhookCallbackRegistry:
         logger.info(f"WebhookCallback registrado: {callback_id} → {callback_url}")
         return callback_id
 
-    def complete(self, callback_id: str, response: dict) -> bool:
+    def complete(self, callback_id: str, response: dict[str, Any]) -> bool:
         with self._lock:
             if callback_id not in self._callbacks:
                 return False
@@ -67,7 +68,7 @@ class WebhookCallbackRegistry:
         logger.warning(f"WebhookCallback fallido: {callback_id}: {error}")
         return True
 
-    def get(self, callback_id: str) -> dict | None:
+    def get(self, callback_id: str) -> dict[str, Any] | None:
         with self._lock:
             entry = self._callbacks.get(callback_id)
             if entry and time.time() > entry["expires_at"]:

@@ -10,7 +10,7 @@ Usa openai Python SDK si está disponible, fallback a requests.
 from __future__ import annotations
 
 import time
-from typing import ClassVar
+from typing import ClassVar, Any
 
 from src.utils.logger import setup_logging
 
@@ -58,7 +58,7 @@ class OpenAIService:
         max_tokens: int | None = None,
         top_p: float = 1.0,
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Chat completion con modelos OpenAI.
 
@@ -130,7 +130,7 @@ class OpenAIService:
             logger.error(f"OpenAI chat error: {e}")
             return self._error(str(e))
 
-    def embeddings(self, input_text: str | list[str], model: str = EMBEDDING_MODEL, timeout: int = 30) -> dict:
+    def embeddings(self, input_text: str | list[str], model: str = EMBEDDING_MODEL, timeout: int = 30) -> dict[str, Any]:
         """
         Genera embeddings de texto.
 
@@ -185,7 +185,7 @@ class OpenAIService:
             logger.error(f"OpenAI embeddings error: {e}")
             return self._error(str(e))
 
-    def list_models(self, timeout: int = 15) -> dict:
+    def list_models(self, timeout: int = 15) -> dict[str, Any]:
         """
         Lista modelos disponibles.
 
@@ -222,7 +222,7 @@ class OpenAIService:
         except Exception as e:
             return self._error(str(e))
 
-    def moderate(self, input_text: str, timeout: int = 15) -> dict:
+    def moderate(self, input_text: str, timeout: int = 15) -> dict[str, Any]:
         """
         Moderación de contenido.
 
@@ -266,7 +266,7 @@ class OpenAIService:
             return self._error(str(e))
 
     @staticmethod
-    def _error(message: str) -> dict:
+    def _error(message: str) -> dict[str, Any]:
         return {"error": message, "status": "failed"}
 
     @staticmethod
@@ -274,7 +274,7 @@ class OpenAIService:
         return int((time.time() - start_time) * 1000)
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         return {
             "tool": "openai",
             "name": "OpenAI",

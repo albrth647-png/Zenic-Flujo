@@ -18,7 +18,7 @@ Compatibilidad: mantiene la misma API que ConditionEvaluator.
 from __future__ import annotations
 
 import hashlib
-from typing import ClassVar
+from typing import ClassVar, Any
 
 from src.core.logging import setup_logging
 from src.core.utils import safe_get
@@ -93,7 +93,7 @@ class ConditionEvaluator:
 
         raise ValueError(f"Error evaluando condicion: '{condition}' — ni textual ni orbital")
 
-    def validate_expression(self, expression: str) -> dict:
+    def validate_expression(self, expression: str) -> dict[str, Any]:
         """Valida que una expresion sea sintacticamente correcta."""
         try:
             tokens = self._tokenize(expression)
@@ -104,7 +104,7 @@ class ConditionEvaluator:
 
     # ── Evaluacion Orbital (OVC compartido) ──────────────────
 
-    def _orbital_retrofeed(self, condition: str, context: dict, result: bool) -> None:
+    def _orbital_retrofeed(self, condition: str, context: dict[str, Any], result: bool) -> None:
         """Retroalimenta el resultado al OVC compartido."""
         # Fix BUG-W8: usar prefijo de execution_id para aislar workflows
         orbital_prefix = context.get("_orbital_var_prefix", "")
@@ -130,7 +130,7 @@ class ConditionEvaluator:
             else:
                 cond_var.retrofeed(-0.1, damping=0.3)
 
-    def _evaluate_orbital(self, condition: str, context: dict) -> bool | None:
+    def _evaluate_orbital(self, condition: str, context: dict[str, Any]) -> bool | None:
         """Evalua una condicion usando resonancia orbital (OVC compartido)."""
         # Fix BUG-W8: usar prefijo de execution_id para aislar workflows
         orbital_prefix = context.get("_orbital_var_prefix", "")
@@ -284,11 +284,11 @@ class ConditionEvaluator:
 
         return tokens
 
-    def _parse(self, tokens: list[dict]) -> dict:
+    def _parse(self, tokens: list[dict]) -> dict[str, Any]:
         """Parsea tokens a AST usando índice local (thread-safe)."""
         pos = 0
 
-        def parse_boolean_expr() -> dict:
+        def parse_boolean_expr() -> dict[str, Any]:
             nonlocal pos
             left = parse_comparison_expr()
             while pos < len(tokens) and tokens[pos]["type"] == "boolean_op":
@@ -298,7 +298,7 @@ class ConditionEvaluator:
                 left = {"type": "boolean", "op": op, "left": left, "right": right}
             return left
 
-        def parse_comparison_expr() -> dict:
+        def parse_comparison_expr() -> dict[str, Any]:
             nonlocal pos
             if pos < len(tokens) and tokens[pos]["type"] == "paren" and tokens[pos]["value"] == "(":
                 pos += 1
@@ -317,7 +317,7 @@ class ConditionEvaluator:
 
             return left
 
-        def parse_value() -> dict:
+        def parse_value() -> dict[str, Any]:
             nonlocal pos
             if pos >= len(tokens):
                 raise ValueError("Se esperaba un valor")
@@ -332,7 +332,7 @@ class ConditionEvaluator:
             raise ValueError(f"Tokens inesperados: {tokens[pos:]}")
         return ast
 
-    def _eval_ast(self, ast: dict, context: dict) -> bool:
+    def _eval_ast(self, ast: dict[str, Any], context: dict[str, Any]) -> bool:
         if ast["type"] == "boolean":
             left = self._eval_ast(ast["left"], context)
             right = self._eval_ast(ast["right"], context)
@@ -350,7 +350,7 @@ class ConditionEvaluator:
             return bool(self._resolve_value(ast, context))
         raise ValueError(f"Nodo AST desconocido: {ast}")
 
-    def _resolve_value(self, node: dict, context: dict) -> bool | str | int | float | list | None:
+    def _resolve_value(self, node: dict[str, Any], context: dict[str, Any]) -> bool | str | int | float | list | None:
         if node["type"] == "string" or node["type"] == "number" or node["type"] == "value":
             return node["value"]
         elif node["type"] == "variable":

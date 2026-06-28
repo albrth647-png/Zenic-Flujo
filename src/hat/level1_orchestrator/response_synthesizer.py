@@ -117,6 +117,7 @@ class ResponseSynthesizer:
 
     @staticmethod
     def anti_dup_response_text(
+        # legítimo: cache dinámico del dispatch HAT, tipo depende del especialista
         action: str, layer: str, cached: Any,
     ) -> str:
         """Genera texto de respuesta para cada acción anti-dup.
@@ -187,6 +188,7 @@ class ResponseSynthesizer:
 
     @staticmethod
     def _extract_response_text(
+        # legítimo: resultado dinámico del dispatch HAT
         status: str, result: Any, domain: str,
     ) -> str:
         """Extrae texto legible para el usuario desde el resultado del supervisor.
@@ -206,6 +208,7 @@ class ResponseSynthesizer:
         return ResponseSynthesizer._extract_completed_text(result, domain)
 
     @staticmethod
+    # legítimo: resultado dinámico de dispatch HAT
     def _extract_clarify_text(result: Any) -> str:
         """Extrae texto para status='clarify'."""
         if isinstance(result, dict):
@@ -214,6 +217,7 @@ class ResponseSynthesizer:
         return "Necesito más información."
 
     @staticmethod
+    # legítimo: resultado dinámico de dispatch HAT
     def _extract_failed_text(result: Any) -> str:
         """Extrae texto para status='failed'."""
         error = ""
@@ -222,6 +226,7 @@ class ResponseSynthesizer:
         return f"Error procesando solicitud: {error}"
 
     @staticmethod
+    # legítimo: resultado dinámico de dispatch HAT
     def _extract_completed_text(result: Any, domain: str) -> str:
         """Extrae texto para status='completed'."""
         if domain == "operaciones" and isinstance(result, dict):

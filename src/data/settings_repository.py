@@ -14,6 +14,7 @@ import json
 
 from src.data.interfaces import DatabaseInterface
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -79,7 +80,7 @@ class SettingsRepository:
         )
         self._db.commit()
 
-    def get_all(self) -> dict:
+    def get_all(self) -> dict[str, Any]:
         """
         Obtiene todos los settings.
 

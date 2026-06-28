@@ -45,12 +45,16 @@ class APIAgent(BaseAgent):
     Accepts think/act functions via config for maximum flexibility.
     """
 
+    # legítimo: agente genérico, observation puede ser str/dict/list según el use case.
+    # El retorno es dict[str, Any] por defecto, pero think_fn puede retornar cualquier cosa.
     def think(self, observation: Any) -> Any:
         think_fn = self.config.custom_config.get("think_fn")
         if think_fn:
             return think_fn(observation)
         return {"observation": observation, "decision": "proceed"}
 
+    # legítimo: agente genérico, decision es dinámico (output de think).
+    # El retorno es dict[str, Any] por defecto, pero act_fn puede retornar cualquier cosa.
     def act(self, decision: Any) -> Any:
         act_fn = self.config.custom_config.get("act_fn")
         if act_fn:
@@ -64,7 +68,7 @@ class APIAgent(BaseAgent):
 @router.post("/spawn", summary="Spawn a new agent")
 async def spawn_agent(
     config: AgentConfig,
-    _: Any = Depends(require_permission("agents", "create")),
+    _: dict[str, Any] = Depends(require_permission("agents", "create")),
 ) -> dict[str, Any]:
     """Spawn a new agent with the given configuration.
 
@@ -98,7 +102,7 @@ async def spawn_agent(
 async def list_agents(
     state: str | None = Query(None, description="Filter by state"),
     capability: str | None = Query(None, description="Filter by capability"),
-    _: Any = Depends(require_permission("agents", "read")),
+    _: dict[str, Any] = Depends(require_permission("agents", "read")),
 ) -> dict[str, Any]:
     """List active agents with optional filters."""
     runtime = AgentRuntime.get_instance()
@@ -113,7 +117,7 @@ async def list_agents(
 @router.get("/{agent_id}", summary="Get agent status")
 async def get_agent_status(
     agent_id: str,
-    _: Any = Depends(require_permission("agents", "read")),
+    _: dict[str, Any] = Depends(require_permission("agents", "read")),
 ) -> dict[str, Any]:
     """Get detailed status for a specific agent."""
     runtime = AgentRuntime.get_instance()
@@ -127,7 +131,7 @@ async def get_agent_status(
 async def run_agent(
     agent_id: str,
     input_data: dict[str, Any] | None = None,
-    _: Any = Depends(require_permission("agents", "execute")),
+    _: dict[str, Any] = Depends(require_permission("agents", "execute")),
 ) -> dict[str, Any]:
     """Run an agent with the given input data."""
     runtime = AgentRuntime.get_instance()
@@ -144,7 +148,7 @@ async def run_agent(
 @router.post("/{agent_id}/pause", summary="Pause an agent")
 async def pause_agent(
     agent_id: str,
-    _: Any = Depends(require_permission("agents", "update")),
+    _: dict[str, Any] = Depends(require_permission("agents", "update")),
 ) -> dict[str, Any]:
     """Pause a running agent."""
     runtime = AgentRuntime.get_instance()
@@ -157,7 +161,7 @@ async def pause_agent(
 @router.post("/{agent_id}/resume", summary="Resume a paused agent")
 async def resume_agent(
     agent_id: str,
-    _: Any = Depends(require_permission("agents", "update")),
+    _: dict[str, Any] = Depends(require_permission("agents", "update")),
 ) -> dict[str, Any]:
     """Resume a paused agent."""
     runtime = AgentRuntime.get_instance()
@@ -171,7 +175,7 @@ async def resume_agent(
 async def terminate_agent(
     agent_id: str,
     force: bool = Query(False, description="Force termination"),
-    _: Any = Depends(require_permission("agents", "delete")),
+    _: dict[str, Any] = Depends(require_permission("agents", "delete")),
 ) -> dict[str, Any]:
     """Terminate an agent."""
     runtime = AgentRuntime.get_instance()
@@ -187,7 +191,7 @@ async def terminate_agent(
 @router.post("/orchestrate", summary="Orchestrate multi-agent execution")
 async def orchestrate_agents(
     plan: OrchestrationPlan,
-    _: Any = Depends(require_permission("agents", "execute")),
+    _: dict[str, Any] = Depends(require_permission("agents", "execute")),
 ) -> dict[str, Any]:
     """Execute a multi-agent orchestration plan."""
     orchestrator = MultiAgentOrchestrator.get_instance()
@@ -209,7 +213,7 @@ async def orchestrate_agents(
 
 @router.get("/runtime/stats", summary="Get runtime statistics")
 async def get_runtime_stats(
-    _: Any = Depends(require_permission("agents", "read")),
+    _: dict[str, Any] = Depends(require_permission("agents", "read")),
 ) -> dict[str, Any]:
     """Get agent runtime statistics."""
     runtime = AgentRuntime.get_instance()
@@ -222,7 +226,7 @@ async def get_runtime_stats(
 @router.get("/token-usage/summary", summary="Get token usage summary")
 async def get_token_usage_summary(
     tenant_id: str = Query("default"),
-    _: Any = Depends(require_permission("agents", "read")),
+    _: dict[str, Any] = Depends(require_permission("agents", "read")),
 ) -> dict[str, Any]:
     """Get token usage and cost summary for a tenant."""
     tracker = TokenCostTracker.get_instance()
@@ -233,7 +237,7 @@ async def get_token_usage_summary(
 async def get_daily_token_usage(
     tenant_id: str = Query("default"),
     days: int = Query(30, description="Number of days"),
-    _: Any = Depends(require_permission("agents", "read")),
+    _: dict[str, Any] = Depends(require_permission("agents", "read")),
 ) -> list[dict[str, Any]]:
     """Get daily token usage for the last N days."""
     tracker = TokenCostTracker.get_instance()
@@ -246,7 +250,7 @@ async def set_token_budget(
     daily_limit: float | None = None,
     monthly_limit: float | None = None,
     total_limit: float | None = None,
-    _: Any = Depends(require_permission("agents", "manage")),
+    _: dict[str, Any] = Depends(require_permission("agents", "manage")),
 ) -> dict[str, Any]:
     """Set budget limits for a tenant."""
     tracker = TokenCostTracker.get_instance()

@@ -33,6 +33,7 @@ Ejemplo de uso:
 from __future__ import annotations
 
 import time
+from collections import deque
 from typing import Any
 
 from src.core.logging import setup_logging
@@ -51,6 +52,11 @@ from src.orbital.models import (
 from src.orbital.ovc import OVC
 from src.orbital.rcc import RCC
 from src.orbital.tor import TOR
+
+# Límite del historial de ejecución para evitar memory leak.
+# Cada OrbitalResult contiene tor_results, rcc_results, cod_results que pueden
+# ser grandes (O(N²) por tick). Con 1000 entries, el historial se acota.
+MAX_HISTORY_SIZE = 1000
 
 logger = setup_logging(__name__)
 
@@ -102,7 +108,10 @@ class OrbitalEngine:
         )
         self._owns_pillars = ovc is None  # True si creamos nuestras propias instancias
         self._global_tick: int = 0
-        self._execution_history: list[OrbitalResult] = []
+        # Fix memory leak: usar deque(maxlen) para acotar el historial.
+        # Antes era list[] que crecía indefinidamente (236MB tras 1000 ticks con 50 vars).
+        # deque(maxlen=MAX_HISTORY_SIZE) descarta entries viejas automáticamente.
+        self._execution_history: deque[OrbitalResult] = deque(maxlen=MAX_HISTORY_SIZE)
 
     # ── Propiedades ────────────────────────────────────────
 
@@ -387,7 +396,9 @@ class OrbitalEngine:
 
     def get_execution_history(self, limit: int = 10) -> list[OrbitalResult]:
         """Retorna los ultimos N resultados de ejecucion."""
-        return self._execution_history[-limit:]
+        # Fix: deque no soporta slicing, convertir a lista primero.
+        history_list = list(self._execution_history)
+        return history_list[-limit:] if limit > 0 else history_list
 
     # ── Configuracion ──────────────────────────────────────
 

@@ -5,6 +5,7 @@ Workflow Determinista — CRM Repository
 from datetime import datetime
 
 from src.data.database_manager import DatabaseManager
+from typing import Any
 
 
 class CRMRepository:
@@ -22,7 +23,7 @@ class CRMRepository:
         source: str = "manual",
         notes: str | None = None,
         user_id: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         cursor = self._db.execute(
             """INSERT INTO leads (name, email, phone, company, source, notes, stage, user_id)
                VALUES (?, ?, ?, ?, ?, ?, 'new', ?)""",
@@ -31,7 +32,7 @@ class CRMRepository:
         self._db.commit()
         return self.get_lead(cursor.lastrowid)
 
-    def get_lead(self, lead_id: int) -> dict | None:
+    def get_lead(self, lead_id: int) -> dict[str, Any] | None:
         return self._db.fetchone("SELECT * FROM leads WHERE id = ?", (lead_id,))
 
     def list_leads(
@@ -57,7 +58,7 @@ class CRMRepository:
             (limit, offset),
         )
 
-    def update_lead(self, lead_id: int, **fields) -> dict | None:
+    def update_lead(self, lead_id: int, **fields) -> dict[str, Any] | None:
         allowed = {"name", "email", "phone", "company", "stage", "source", "notes"}
         set_parts = []
         params = []
@@ -80,7 +81,7 @@ class CRMRepository:
         self._db.commit()
         return True
 
-    def add_activity(self, lead_id: int, activity_type: str, description: str | None = None) -> dict:
+    def add_activity(self, lead_id: int, activity_type: str, description: str | None = None) -> dict[str, Any]:
         cursor = self._db.execute(
             "INSERT INTO lead_activities (lead_id, activity_type, description) VALUES (?, ?, ?)",
             (lead_id, activity_type, description),
@@ -88,7 +89,7 @@ class CRMRepository:
         self._db.commit()
         return {"id": cursor.lastrowid, "lead_id": lead_id, "activity_type": activity_type}
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         total = self._db.fetchone("SELECT COUNT(*) as count FROM leads")
         by_stage = self._db.fetchall("SELECT stage, COUNT(*) as count FROM leads GROUP BY stage")
         return {

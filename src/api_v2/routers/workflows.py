@@ -23,6 +23,13 @@ Endpoints CRUD + ejecucion + monitoreo de workflows:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager
+    from src.workflow.engine import WorkflowEngine
+    from src.workflow.repository import WorkflowRepository
+
 import json
 import math
 from typing import Any
@@ -67,7 +74,7 @@ async def list_workflows(
     status_filter: str | None = None,
     pagination: PaginationParams = Depends(get_pagination),
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> PaginatedResponse:
     """Lista workflows con paginacion y filtro opcional por estado."""
     all_workflows = repo.list_all(status=status_filter)
@@ -100,7 +107,7 @@ async def list_workflows(
 async def create_workflow(
     workflow_data: WorkflowCreate,
     user: dict[str, Any] = Depends(require_permission("workflow", "create")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowResponse:
     """Crea un nuevo workflow."""
     from src.workflow.repository import WorkflowDefinition
@@ -131,7 +138,7 @@ async def create_workflow(
 async def get_workflow(
     workflow_id: int,
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowResponse:
     """Obtiene un workflow por su ID."""
     definition = repo.get(workflow_id)
@@ -151,7 +158,7 @@ async def update_workflow(
     workflow_id: int,
     workflow_data: WorkflowUpdate,
     user: dict[str, Any] = Depends(require_permission("workflow", "update")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowResponse:
     """Actualiza un workflow existente."""
     updates = workflow_data.model_dump(exclude_none=True)
@@ -177,7 +184,7 @@ async def update_workflow(
 async def delete_workflow(
     workflow_id: int,
     user: dict[str, Any] = Depends(require_permission("workflow", "delete")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> None:
     """Elimina un workflow por su ID."""
     definition = repo.get(workflow_id)
@@ -197,8 +204,8 @@ async def execute_workflow(
     workflow_id: int,
     execution_data: WorkflowExecutionRequest,
     user: dict[str, Any] = Depends(require_permission("workflow", "execute")),
-    engine: Any = Depends(get_workflow_engine),
-    repo: Any = Depends(get_workflow_repository),
+    engine: WorkflowEngine = Depends(get_workflow_engine),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowExecutionResponse:
     """Ejecuta un workflow de forma sincrona o asincrona."""
     definition = repo.get(workflow_id)
@@ -250,8 +257,8 @@ async def execute_workflow(
 async def stop_workflow(
     workflow_id: int,
     user: dict[str, Any] = Depends(require_permission("workflow", "execute")),
-    engine: Any = Depends(get_workflow_engine),
-    repo: Any = Depends(get_workflow_repository),
+    engine: WorkflowEngine = Depends(get_workflow_engine),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> dict[str, Any]:
     """Detiene (pausa) un workflow activo."""
     definition = repo.get(workflow_id)
@@ -279,7 +286,7 @@ async def list_workflow_executions(
     limit: int = 50,
     pagination: PaginationParams = Depends(get_pagination),
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> PaginatedResponse:
     """Lista las ejecuciones de un workflow."""
     definition = repo.get(workflow_id)
@@ -315,7 +322,7 @@ async def get_workflow_execution(
     workflow_id: int,
     exec_id: int,
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowExecutionDetail:
     """Obtiene el detalle de una ejecucion de workflow."""
     execution = repo.get_execution(exec_id)
@@ -347,7 +354,7 @@ async def get_workflow_execution(
 async def export_workflow(
     workflow_id: int,
     user: dict[str, Any] = Depends(require_permission("workflow", "export")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowExportResponse:
     """Exporta un workflow como JSON."""
     exported = repo.export_workflow(workflow_id)
@@ -368,7 +375,7 @@ async def export_workflow(
 async def import_workflow(
     import_data: WorkflowImportRequest,
     user: dict[str, Any] = Depends(require_permission("workflow", "import")),
-    repo: Any = Depends(get_workflow_repository),
+    repo: WorkflowRepository = Depends(get_workflow_repository),
 ) -> WorkflowResponse:
     """Importa un workflow desde JSON."""
     try:
@@ -389,7 +396,7 @@ async def get_workflow_events(
     workflow_id: int,
     limit: int = 50,
     user: dict[str, Any] = Depends(require_permission("workflow", "read")),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Obtiene los eventos de un workflow desde la cola de eventos."""
     definition = db.fetchone("SELECT id FROM workflow_definitions WHERE id = ?", (workflow_id,))

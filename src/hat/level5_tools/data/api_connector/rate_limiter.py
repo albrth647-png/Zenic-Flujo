@@ -10,6 +10,7 @@ import time
 from urllib.parse import urlparse
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -41,7 +42,7 @@ class RateLimiter:
             logger.warning("No se pudo parsear dominio de URL: %s", e)
             return "unknown"
 
-    def _get_bucket(self, domain: str) -> dict:
+    def _get_bucket(self, domain: str) -> dict[str, Any]:
         if domain not in self._buckets:
             self._buckets[domain] = {
                 "tokens": self._max_tokens,
@@ -52,7 +53,7 @@ class RateLimiter:
             }
         return self._buckets[domain]
 
-    def _refill(self, bucket: dict) -> None:
+    def _refill(self, bucket: dict[str, Any]) -> None:
         now = time.time()
         elapsed = now - bucket["last_refill"]
         tokens_to_add = (elapsed / self._window_seconds) * bucket["max_tokens"]
@@ -72,7 +73,7 @@ class RateLimiter:
             logger.warning(f"Rate limit excedido para {domain}: {bucket['tokens']:.1f}/{bucket['max_tokens']} tokens")
             return False
 
-    def get_status(self, url: str | None = None) -> dict:
+    def get_status(self, url: str | None = None) -> dict[str, Any]:
         with self._lock:
             if url:
                 domain = self._get_domain(url)

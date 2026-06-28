@@ -16,7 +16,7 @@ Ed25519) y usar datetimes timezone-aware para evitar skew.
 
 import base64
 from datetime import UTC, datetime, timedelta
-from typing import ClassVar
+from typing import ClassVar, Any
 
 from cryptography.exceptions import InvalidSignature
 
@@ -75,7 +75,7 @@ TIER_FEATURES: dict[str, dict[str, int | bool]] = {
 }
 
 
-def get_tier_features(license_type: str) -> dict:
+def get_tier_features(license_type: str) -> dict[str, Any]:
     """Devuelve las features del tier de licencia."""
     return TIER_FEATURES.get(license_type, TIER_FEATURES["trial"])
 
@@ -110,7 +110,7 @@ class LicenseValidator:
     def __init__(self):
         self._db = DatabaseManager()
 
-    def validate(self, key: str) -> dict:
+    def validate(self, key: str) -> dict[str, Any]:
         """Valida una License Key: formato, firma Ed25519, expiración.
 
         Bug LIC-01: la verificación criptográfica con la clave pública
@@ -212,7 +212,7 @@ class LicenseValidator:
             "expires_at": stored["expires_at"],
         }
 
-    def get_trial_status(self) -> dict:
+    def get_trial_status(self) -> dict[str, Any]:
         trial = self._db.fetchone("SELECT * FROM license WHERE is_trial = 1 ORDER BY trial_started_at DESC LIMIT 1")
         if not trial:
             self._start_trial()
@@ -233,7 +233,7 @@ class LicenseValidator:
         )
         self._db.commit()
 
-    def get_license_info(self) -> dict:
+    def get_license_info(self) -> dict[str, Any]:
         # Primero buscar licencia paga activa (tiene prioridad sobre trial)
         paid = self._db.fetchone("SELECT * FROM license WHERE is_trial = 0 ORDER BY issued_at DESC LIMIT 1")
         if paid:
@@ -271,7 +271,7 @@ class LicenseValidator:
         client_name: str = "",
         days_valid: int = 365,
         signature_b64: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Activa una License Key y almacena la firma Ed25519 completa."""
         expiry = (datetime.now() + timedelta(days=days_valid)).strftime("%Y-%m-%d") if days_valid else None
         # Normalizar a mayúsculas para consistencia con validate() que hace key.upper()

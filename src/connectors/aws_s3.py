@@ -48,11 +48,12 @@ class AwsS3Connector(BaseConnector):
     icon = "hard-drive"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://s3.amazonaws.com"
         self._http: HttpClient | None = None
-        self._boto_client: Any = None
+        self._boto_client: Any | None = None
         # AWS credentials — extraidos del auth_provider o params
         self._access_key_id: str = ""
         self._secret_access_key: str = ""
@@ -117,6 +118,7 @@ class AwsS3Connector(BaseConnector):
             logger.error(f"AwsS3Connector: REST API fallo: {exc}")
             return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector AWS S3."""
         action_map: dict[str, Any] = {
@@ -444,6 +446,7 @@ class AwsS3Connector(BaseConnector):
 
     # ── AWS Signature V4 ───────────────────────────────────────
 
+    # legítimo: retorna respuesta HTTP raw de API externa (skill §9.1)
     def _signed_request(
         self,
         method: str,
@@ -568,6 +571,7 @@ class AwsS3Connector(BaseConnector):
         resp = req_lib.request(**request_kwargs)
         from src.sdk.http_client import HTTPResponse
 
+        # legítimo: JSON decoded de API externa, se valida al consumir (skill §9.1)
         resp_body: Any
         try:
             resp_body = resp.json()

@@ -92,3 +92,8 @@ reports/
 # Mutmut workspace (generado por mutation testing, no commitear)
 mutants/
 .mutmut-cache/
+
+# ── Any audit reports (generated) ─────────────
+scripts/any_audit/reports/
+.benchmarks/
+docs/research/property-based-testing-orbital.md

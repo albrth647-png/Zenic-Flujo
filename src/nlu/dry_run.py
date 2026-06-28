@@ -16,6 +16,7 @@ Determinista: mismo workflow + mismos datos → mismo resultado de simulación.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -25,8 +26,8 @@ class DryRunStep:
     step_id: int
     tool: str
     action: str
-    params: dict
-    simulated_output: dict
+    params: dict[str, Any]
+    simulated_output: dict[str, Any]
     would_succeed: bool
     warnings: tuple[str, ...] = ()
     error: str | None = None
@@ -38,7 +39,7 @@ class DryRunResult:
 
     workflow_name: str
     trigger_type: str
-    trigger_config: dict
+    trigger_config: dict[str, Any]
     steps: tuple[DryRunStep, ...]
     total_steps: int
     steps_that_would_succeed: int
@@ -144,7 +145,7 @@ KNOWN_TOOLS = {
 class DryRunSimulator:
     """Simula ejecución de workflows sin ejecutar tools reales."""
 
-    def simulate(self, workflow: dict, context: dict | None = None) -> DryRunResult:
+    def simulate(self, workflow: dict[str, Any], context: dict[str, Any] | None = None) -> DryRunResult:
         """Simula la ejecución de un workflow.
 
         Args:
@@ -202,7 +203,7 @@ class DryRunSimulator:
         step_id: int,
         tool: str,
         action: str,
-        params: dict,
+        params: dict[str, Any],
     ) -> DryRunStep:
         """Simula un paso individual."""
         warnings: list[str] = []
@@ -244,7 +245,7 @@ class DryRunSimulator:
             error=None,
         )
 
-    def _validate_trigger(self, trigger_type: str, config: dict) -> list[str]:
+    def _validate_trigger(self, trigger_type: str, config: dict[str, Any]) -> list[str]:
         """Valida la configuración del trigger."""
         warnings: list[str] = []
 
@@ -271,7 +272,7 @@ class DryRunSimulator:
         parts = expr.strip().split()
         return len(parts) == 5
 
-    def _check_unresolved_refs(self, params: dict) -> list[str]:
+    def _check_unresolved_refs(self, params: dict[str, Any]) -> list[str]:
         """Detecta variables $xxx sin resolver en params."""
         unresolved: list[str] = []
         for key, value in params.items():

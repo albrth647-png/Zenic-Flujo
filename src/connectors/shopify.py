@@ -26,6 +26,7 @@ class ShopifyConnector(BaseConnector):
     icon = "shopping-cart"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = ""
@@ -62,6 +63,7 @@ class ShopifyConnector(BaseConnector):
             self._log_operation("connect", f"Shopify configurado (status fallo: {e})")
             return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "list_products": self._list_products,

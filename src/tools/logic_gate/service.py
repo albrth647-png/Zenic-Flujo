@@ -10,6 +10,7 @@ from src.data.database_manager import DatabaseManager
 from src.events.bus import EventBus
 from src.utils.logger import setup_logging
 from src.workflow.condition_evaluator import ConditionEvaluator
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -30,7 +31,7 @@ class LogicGateService:
         self._db = DatabaseManager()
         self._event_bus = event_bus or EventBus()
 
-    def evaluate_rule(self, rule: str, context: dict) -> bool:
+    def evaluate_rule(self, rule: str, context: dict[str, Any]) -> bool:
         """
         Evalúa una regla condicional contra un contexto dado.
 
@@ -43,7 +44,7 @@ class LogicGateService:
         """
         return self._evaluator.evaluate(rule, context)
 
-    def validate_expression(self, expression: str) -> dict:
+    def validate_expression(self, expression: str) -> dict[str, Any]:
         """
         Valida que una expresión sea sintácticamente correcta.
 
@@ -52,7 +53,7 @@ class LogicGateService:
         """
         return self._evaluator.validate_expression(expression)
 
-    def save_rule(self, name: str, expression: str, description: str = "") -> dict:
+    def save_rule(self, name: str, expression: str, description: str = "") -> dict[str, Any]:
         """
         Guarda una regla nombrada en la base de datos.
 
@@ -86,7 +87,7 @@ class LogicGateService:
         logger.info(f"Regla lógica guardada: {name}")
         return {"name": name, "expression": expression, "description": description}
 
-    def get_rule(self, name: str) -> dict | None:
+    def get_rule(self, name: str) -> dict[str, Any] | None:
         """Recupera una regla guardada por nombre."""
         row = self._db.fetchone(
             "SELECT value FROM settings WHERE key = ?",
@@ -111,7 +112,7 @@ class LogicGateService:
         logger.info(f"Regla lógica eliminada: {name}")
         return True
 
-    def evaluate_saved_rule(self, name: str, context: dict) -> bool:
+    def evaluate_saved_rule(self, name: str, context: dict[str, Any]) -> bool:
         """Evalúa una regla guardada por nombre contra un contexto."""
         rule = self.get_rule(name)
         if not rule:

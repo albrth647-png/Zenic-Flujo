@@ -16,6 +16,7 @@ from src.core.config import FREE_TIER_MAX_WORKFLOWS
 from src.core.db import DatabaseManager, build_update_query
 from src.core.logging import setup_logging
 from src.core.utils import now_iso
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -29,7 +30,7 @@ class WorkflowDefinition:
         name: str = "",
         description: str = "",
         trigger_type: str = "",
-        trigger_config: dict | None = None,
+        trigger_config: dict[str, Any] | None = None,
         steps: list[dict] | None = None,
         status: str = "active",
         created_at: str | None = None,
@@ -45,7 +46,7 @@ class WorkflowDefinition:
         self.created_at = created_at or now_iso()
         self.updated_at = updated_at or now_iso()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -59,7 +60,7 @@ class WorkflowDefinition:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "WorkflowDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkflowDefinition":
         return cls(
             id=data.get("id"),
             name=data.get("name", ""),
@@ -73,6 +74,7 @@ class WorkflowDefinition:
         )
 
     @staticmethod
+    # legítimo: parsea JSON dinámico, retorno puede ser dict/list/str/etc.
     def _safe_json_loads(value: dict | list | str) -> dict | list | str:
         if isinstance(value, (dict, list)):
             return value
@@ -162,7 +164,7 @@ class WorkflowDefinitionRepository:
     def update(
         self,
         workflow_id: int,
-        updates: dict,
+        updates: dict[str, Any],
         create_version: bool = False,
         change_summary: str = "",
         user_id: int | None = None,
@@ -238,7 +240,7 @@ class WorkflowDefinitionRepository:
             row = self._db.fetchone("SELECT COUNT(*) as count FROM workflow_definitions")
         return row["count"] if row else 0
 
-    def export_workflow(self, workflow_id: int) -> dict | None:
+    def export_workflow(self, workflow_id: int) -> dict[str, Any] | None:
         """Exporta un workflow completo como dict JSON-serializable."""
         wf = self.get(workflow_id)
         if not wf:
@@ -254,7 +256,7 @@ class WorkflowDefinitionRepository:
             "status": wf.status,
         }
 
-    def import_workflow(self, data: dict) -> WorkflowDefinition:
+    def import_workflow(self, data: dict[str, Any]) -> WorkflowDefinition:
         """Importa un workflow desde un dict generado por export_workflow()."""
         name = (data.get("name") or "").strip()
         if not name:
@@ -295,7 +297,7 @@ class WorkflowDefinitionRepository:
         logger.info("Workflow importado: %s (ID: %s)", wf.name, wf.id)
         return wf
 
-    def create_from_dict(self, data: dict) -> WorkflowDefinition:
+    def create_from_dict(self, data: dict[str, Any]) -> WorkflowDefinition:
         """Create a workflow from a dict (used by sync import)."""
         import copy
         wf_data = copy.deepcopy(data)
@@ -324,7 +326,7 @@ class WorkflowDefinitionRepository:
         )
         return [WorkflowDefinition.from_dict(r) for r in rows]
 
-    def get_stats(self, user_id: int | None = None) -> dict:
+    def get_stats(self, user_id: int | None = None) -> dict[str, Any]:
         """Retorna estadísticas para el dashboard."""
         if user_id:
             total = self._db.fetchone(

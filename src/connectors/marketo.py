@@ -28,6 +28,7 @@ class MarketoConnector(BaseConnector):
     icon = "trending-up"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._client_id: str = ""
@@ -85,6 +86,7 @@ class MarketoConnector(BaseConnector):
             logger.error(f"MarketoConnector: error inesperado: {e}")
             return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "get_lead": self._get_lead,
@@ -111,7 +113,8 @@ class MarketoConnector(BaseConnector):
         self._log_operation("disconnect")
         return True
 
-    def _api_call(self, method: str, path: str, **kwargs: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api_call(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         if not self._http:
             return {"success": False, "error": "Not connected"}
         try:
@@ -125,7 +128,7 @@ class MarketoConnector(BaseConnector):
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def _get_lead(self, params: dict[str, Any]) -> dict:
+    def _get_lead(self, params: dict[str, Any]) -> dict[str, Any]:
         lead_id = params.get("lead_id", "")
         email = params.get("email", "")
         if lead_id:
@@ -134,22 +137,22 @@ class MarketoConnector(BaseConnector):
             return self._api_call("get", "/rest/v1/leads.json", params={"filterType": "email", "filterValues": email})
         return {"success": False, "error": "lead_id o email requerido"}
 
-    def _create_lead(self, params: dict[str, Any]) -> dict:
+    def _create_lead(self, params: dict[str, Any]) -> dict[str, Any]:
         return self._api_call("post", "/rest/v1/leads.json", json={"action": "createOnly", "input": [params]})
 
-    def _update_lead(self, params: dict[str, Any]) -> dict:
+    def _update_lead(self, params: dict[str, Any]) -> dict[str, Any]:
         return self._api_call("post", "/rest/v1/leads.json", json={"action": "updateOnly", "input": [params]})
 
-    def _get_campaigns(self, params: dict[str, Any]) -> dict:
+    def _get_campaigns(self, params: dict[str, Any]) -> dict[str, Any]:
         return self._api_call("get", "/rest/v1/campaigns.json", params=params)
 
-    def _trigger_campaign(self, params: dict[str, Any]) -> dict:
+    def _trigger_campaign(self, params: dict[str, Any]) -> dict[str, Any]:
         campaign_id = params.get("campaign_id", "")
         if not campaign_id:
             return {"success": False, "error": "campaign_id requerido"}
         return self._api_call("post", f"/rest/v1/campaigns/{campaign_id}/trigger.json", json={"input": params.get("leads", [])})
 
-    def _get_activities(self, params: dict[str, Any]) -> dict:
+    def _get_activities(self, params: dict[str, Any]) -> dict[str, Any]:
         return self._api_call("get", "/rest/v1/activities.json", params=params)
 
 

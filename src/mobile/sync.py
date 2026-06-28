@@ -160,6 +160,7 @@ class OfflineSyncManager:
         self._init_db()
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> OfflineSyncManager:
         """Get or create the singleton manager."""
         if cls._instance is None:

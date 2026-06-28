@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from src.core.logging import setup_logging
 from src.tenant.service import TenantService
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -29,8 +30,8 @@ class TenantProvisioner:
         name: str,
         slug: str,
         plan: str = "free",
-        config: dict | None = None,
-    ) -> dict:
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Crea un nuevo tenant con su storage aprovisionado.
         Delega en TenantService.create_tenant() que internamente:
@@ -45,14 +46,14 @@ class TenantProvisioner:
         """Obtiene la conexión DB específica del tenant."""
         return self._tenant_service.get_tenant_db(tenant_id)
 
-    def suspend_tenant(self, tenant_id: str) -> dict:
+    def suspend_tenant(self, tenant_id: str) -> dict[str, Any]:
         """Suspende un tenant (no borra datos)."""
         return self._tenant_service.suspend_tenant(tenant_id)
 
-    def activate_tenant(self, tenant_id: str) -> dict:
+    def activate_tenant(self, tenant_id: str) -> dict[str, Any]:
         """Reactiva un tenant suspendido."""
         return self._tenant_service.activate_tenant(tenant_id)
 
-    def delete_tenant(self, tenant_id: str) -> dict:
+    def delete_tenant(self, tenant_id: str) -> dict[str, Any]:
         """Elimina un tenant y limpia recursos asociados."""
         return self._tenant_service.delete_tenant(tenant_id)

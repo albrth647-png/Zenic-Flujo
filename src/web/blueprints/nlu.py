@@ -87,6 +87,7 @@ def api_nlu_understand():
 
 @bp.route("/api/workflows/chat", methods=["POST"])
 @login_required
+# legítimo: retorna JSON dinámico al frontend
 def api_chat() -> Any:
     """Chat endpoint — usa HATRouter (Nivel 1) para procesar mensajes.
 

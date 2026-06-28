@@ -13,6 +13,7 @@ Autenticación: Bot Token (guardado cifrado en DB)
 
 from src.core.db.sqlite_manager import DatabaseManager
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -37,7 +38,7 @@ class TelegramService:
         text: str,
         parse_mode: str = "",
         reply_to_message_id: int = 0,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía un mensaje de texto a un chat de Telegram.
 
@@ -93,7 +94,7 @@ class TelegramService:
         chat_id: str,
         photo: str,
         caption: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía una foto a un chat de Telegram.
 
@@ -137,7 +138,7 @@ class TelegramService:
         offset: int = 0,
         limit: int = 100,
         timeout: int = 0,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Obtiene actualizaciones pendientes del bot.
 
@@ -176,7 +177,7 @@ class TelegramService:
             logger.error(f"Telegram get_updates exception: {e}")
             return {"status": "failed", "error": str(e)}
 
-    def get_chat(self, chat_id: str) -> dict:
+    def get_chat(self, chat_id: str) -> dict[str, Any]:
         """Obtiene información de un chat."""
         token = self._get_token()
         if not token:
@@ -203,7 +204,7 @@ class TelegramService:
         logger.info("Telegram: Bot token guardado")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         """Verifica la conexión con el bot de Telegram."""
         token = self._get_token()
         if not token:
@@ -228,7 +229,7 @@ class TelegramService:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Estado de la integración Telegram."""
         token = self._get_token()
         return {
@@ -243,7 +244,7 @@ class TelegramService:
     # ── Tool Definition ───────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "telegram",

@@ -74,6 +74,7 @@ class AgentRuntime:
         self._heartbeat_thread: threading.Thread | None = None
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> AgentRuntime:  # type: ignore[no-untyped-def]
         """Get or create the singleton AgentRuntime."""
         if cls._instance is None:

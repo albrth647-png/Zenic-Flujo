@@ -27,6 +27,7 @@ from src.hat.level5_tools.automation.autopilot._executions_repo import (
 from src.hat.level5_tools.automation.autopilot._orbital_adapter import (
     WorkflowOrbitalAdapter,
 )
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -63,7 +64,7 @@ class WorkflowRepository:
     def update(
         self,
         workflow_id: int,
-        updates: dict,
+        updates: dict[str, Any],
         create_version: bool = False,
         change_summary: str = "",
         user_id: int | None = None,
@@ -81,13 +82,13 @@ class WorkflowRepository:
     def count(self, user_id: int | None = None) -> int:
         return self._definitions.count(user_id=user_id)
 
-    def export_workflow(self, workflow_id: int) -> dict | None:
+    def export_workflow(self, workflow_id: int) -> dict[str, Any] | None:
         return self._definitions.export_workflow(workflow_id)
 
-    def import_workflow(self, data: dict) -> WorkflowDefinition:
+    def import_workflow(self, data: dict[str, Any]) -> WorkflowDefinition:
         return self._definitions.import_workflow(data)
 
-    def create_from_dict(self, data: dict) -> WorkflowDefinition:
+    def create_from_dict(self, data: dict[str, Any]) -> WorkflowDefinition:
         return self._definitions.create_from_dict(data)
 
     def get_active_scheduled(self) -> list[WorkflowDefinition]:
@@ -96,12 +97,12 @@ class WorkflowRepository:
     def get_active_webhooks(self) -> list[WorkflowDefinition]:
         return self._definitions.get_active_webhooks()
 
-    def get_stats(self, user_id: int | None = None) -> dict:
+    def get_stats(self, user_id: int | None = None) -> dict[str, Any]:
         return self._definitions.get_stats(user_id=user_id)
 
     # ── Workflow Executions ──────────────────────────────────────────
 
-    def create_execution(self, workflow_id: int, trigger_data: dict | None = None) -> WorkflowExecution:
+    def create_execution(self, workflow_id: int, trigger_data: dict[str, Any] | None = None) -> WorkflowExecution:
         return self._executions.create_execution(workflow_id, trigger_data=trigger_data)
 
     def complete_execution(
@@ -126,13 +127,13 @@ class WorkflowRepository:
 
     # ── Orbital Conversion ───────────────────────────────────────────
 
-    def to_orbital(self, workflow_id: int) -> dict | None:
+    def to_orbital(self, workflow_id: int) -> dict[str, Any] | None:
         return self._orbital.to_orbital(workflow_id, definition_getter=self._get_for_orbital)
 
-    def get_orbital_stats(self) -> dict:
+    def get_orbital_stats(self) -> dict[str, Any]:
         return self._orbital.get_orbital_stats()
 
-    def _get_for_orbital(self, workflow_id: int) -> dict | None:
+    def _get_for_orbital(self, workflow_id: int) -> dict[str, Any] | None:
         """Obtiene dict para conversión orbital (compat con WorkflowOrbitalAdapter)."""
         wf = self._definitions.get(workflow_id)
         return wf.to_dict() if wf else None

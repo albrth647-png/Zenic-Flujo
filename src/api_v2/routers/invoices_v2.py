@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from src.hat.level5_tools.business.invoice.service import InvoiceService
+from typing import Any
 
 router = APIRouter(prefix="/api/v2/invoices", tags=["invoices"])
 
@@ -36,12 +37,12 @@ async def list_invoices(status: str | None = None, limit: int = Query(50, le=200
 
 
 @router.post("/", status_code=201)
-async def create_invoice(inv: InvoiceCreate) -> dict:
+async def create_invoice(inv: InvoiceCreate) -> dict[str, Any]:
     return _svc.create_invoice(**inv.model_dump())
 
 
 @router.get("/{invoice_id}")
-async def get_invoice(invoice_id: int) -> dict:
+async def get_invoice(invoice_id: int) -> dict[str, Any]:
     inv = _svc.get_invoice(invoice_id)
     if not inv:
         raise HTTPException(404, "Factura no encontrada")
@@ -49,7 +50,7 @@ async def get_invoice(invoice_id: int) -> dict:
 
 
 @router.post("/{invoice_id}/mark-paid")
-async def mark_paid(invoice_id: int) -> dict:
+async def mark_paid(invoice_id: int) -> dict[str, Any]:
     inv = _svc.mark_paid(invoice_id)
     if not inv:
         raise HTTPException(404, "Factura no encontrada")
@@ -57,7 +58,7 @@ async def mark_paid(invoice_id: int) -> dict:
 
 
 @router.post("/{invoice_id}/cancel")
-async def cancel_invoice(invoice_id: int) -> dict:
+async def cancel_invoice(invoice_id: int) -> dict[str, Any]:
     inv = _svc.cancel(invoice_id)
     if not inv:
         raise HTTPException(404, "Factura no encontrada")
@@ -70,5 +71,5 @@ async def get_overdue() -> list[dict]:
 
 
 @router.get("/stats")
-async def get_invoice_stats() -> dict:
+async def get_invoice_stats() -> dict[str, Any]:
     return _svc.get_stats()

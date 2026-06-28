@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Any
 
 
 class RiskLevel(StrEnum):
@@ -33,10 +34,10 @@ class GuardrailResult:
     risk: RiskLevel
     action: GuardrailAction
     message: str
-    details: dict = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def allow(cls, message: str = "", details: dict | None = None) -> GuardrailResult:
+    def allow(cls, message: str = "", details: dict[str, Any] | None = None) -> GuardrailResult:
         return cls(
             passed=True,
             risk=RiskLevel.LOW,
@@ -46,7 +47,7 @@ class GuardrailResult:
         )
 
     @classmethod
-    def warn(cls, message: str, risk: RiskLevel = RiskLevel.MEDIUM, details: dict | None = None) -> GuardrailResult:
+    def warn(cls, message: str, risk: RiskLevel = RiskLevel.MEDIUM, details: dict[str, Any] | None = None) -> GuardrailResult:
         return cls(
             passed=True,
             risk=risk,
@@ -56,7 +57,7 @@ class GuardrailResult:
         )
 
     @classmethod
-    def block(cls, message: str, risk: RiskLevel = RiskLevel.HIGH, details: dict | None = None) -> GuardrailResult:
+    def block(cls, message: str, risk: RiskLevel = RiskLevel.HIGH, details: dict[str, Any] | None = None) -> GuardrailResult:
         return cls(
             passed=False,
             risk=risk,

@@ -4,6 +4,7 @@ Define las estructuras de datos para colecciones dinámicas.
 """
 
 import re
+from typing import Any
 
 # Tipos de datos soportados para los campos de una colección
 SUPPORTED_TYPES = {"string", "number", "boolean", "text", "date"}
@@ -20,7 +21,7 @@ def validate_name(name: str) -> None:
         raise ValueError(f"Nombre inválido: '{name}'. Solo letras, números y guión bajo. No puede empezar con número.")
 
 
-def validate_schema(schema: dict) -> None:
+def validate_schema(schema: dict[str, Any]) -> None:
     """Valida que un schema de colección sea correcto."""
     if not schema or not isinstance(schema, dict):
         raise ValueError("El schema debe ser un diccionario no vacío")
@@ -34,7 +35,7 @@ def validate_schema(schema: dict) -> None:
             )
 
 
-def validate_record(record: dict, schema: dict) -> None:
+def validate_record(record: dict[str, Any], schema: dict[str, Any]) -> None:
     """Valida que un registro cumpla con el schema de la colección."""
     for field_name in record:
         if field_name in ("id", "created_at", "updated_at"):

@@ -13,6 +13,7 @@ from flask import Blueprint, current_app
 from src.core.logging import setup_logging
 from src.web.helpers import login_required
 from src.workflow.repository import WorkflowRepository
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -22,7 +23,7 @@ _sse_clients: list[queue.Queue] = []
 _sse_lock = threading.Lock()
 
 
-def _broadcast_sse(event_type: str, data: dict):
+def _broadcast_sse(event_type: str, data: dict[str, Any]):
     """Envía un evento SSE a todos los clientes conectados."""
     payload = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
     with _sse_lock:

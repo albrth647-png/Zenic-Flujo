@@ -21,6 +21,7 @@ def validate_input(schema: type[BaseModel]) -> Callable[[F], F]:
     """Valida los parametros de entrada de una accion contra un modelo Pydantic."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
+        # legítimo: wrapper transparente (skill §1.2)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             connector_name = _get_connector_name(args)
             action_name = getattr(func, "_connector_action_name", func.__name__)
@@ -52,6 +53,7 @@ def validate_output(schema: type[BaseModel]) -> Callable[[F], F]:
     """Valida el resultado de una accion contra un modelo Pydantic."""
     def decorator(func: F) -> F:
         @functools.wraps(func)
+        # legítimo: wrapper transparente (skill §1.2)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             connector_name = _get_connector_name(args)
             action_name = getattr(func, "_connector_action_name", func.__name__)

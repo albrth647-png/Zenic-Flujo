@@ -42,6 +42,7 @@ class DispatchTracer:
         except ImportError:
             return _NoOpTracer()
 
+    # legítimo: opentelemetry.trace.Span, no tipado por compatibilidad
     def span(
         self,
         name: str,

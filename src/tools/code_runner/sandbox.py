@@ -16,6 +16,7 @@ import time
 from dataclasses import dataclass
 
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -89,7 +90,7 @@ class SandboxResult:
     """Resultado de la ejecución en sandbox."""
 
     success: bool
-    output: dict  # Variables de salida
+    output: dict[str, Any]  # Variables de salida
     stdout: str  # Salida estándar
     error: str | None  # Error si falló
     execution_time_ms: int
@@ -128,7 +129,7 @@ class CodeSandbox:
     def execute_python(
         self,
         code: str,
-        input_vars: dict | None = None,
+        input_vars: dict[str, Any] | None = None,
         output_var: str = "result",
     ) -> SandboxResult:
         """
@@ -331,7 +332,7 @@ class CodeSandbox:
         return safe_import
 
     @staticmethod
-    def _get_safe_builtins() -> dict:
+    def _get_safe_builtins() -> dict[str, Any]:
         """Retorna builtins seguros (sin eval, exec, open, etc.)."""
         import builtins
 

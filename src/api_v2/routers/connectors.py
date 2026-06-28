@@ -20,6 +20,12 @@ Endpoints de gestion y ejecucion de conectores:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager, RedisService
+    from src.sdk.registry import ConnectorRegistry
+
 import json
 import time
 from typing import Any
@@ -55,7 +61,7 @@ router = APIRouter(prefix="/api/v2/connectors", tags=["Connectors"])
 async def list_connectors(
     category: str | None = None,
     user: dict[str, Any] = Depends(require_permission("connector", "read")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> list[ConnectorInfo]:
     """Lista todos los conectores registrados, opcionalmente filtrados por categoria."""
     raw_list = registry.list_by_category(category) if category else registry.list_all()
@@ -73,7 +79,7 @@ async def list_connectors(
 async def get_connector(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "read")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ConnectorInfo:
     """Obtiene la informacion de un conector por su nombre."""
     if not registry.exists(name):
@@ -99,9 +105,9 @@ async def configure_connector(
     name: str,
     config_data: ConnectorConfigRequest,
     user: dict[str, Any] = Depends(require_permission("connector", "update")),
-    registry: Any = Depends(get_connector_registry),
-    db: Any = Depends(get_db),
-    redis: Any = Depends(get_redis),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
+    db: DatabaseManager = Depends(get_db),
+    redis: RedisService = Depends(get_redis),
 ) -> dict[str, Any]:
     """Configura las credenciales de un conector."""
     if not registry.exists(name):
@@ -154,7 +160,7 @@ async def test_connector(
     name: str,
     test_data: ConnectorTestRequest,
     user: dict[str, Any] = Depends(require_permission("connector", "execute")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ConnectorTestResponse:
     """Prueba la conexion de un conector."""
     if not registry.exists(name):
@@ -200,7 +206,7 @@ async def test_connector(
 async def list_connector_actions(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "read")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> list[ConnectorActionInfo]:
     """Lista las acciones disponibles de un conector."""
     if not registry.exists(name):
@@ -260,7 +266,7 @@ async def execute_connector_action(
     name: str,
     execute_data: ConnectorExecuteRequest,
     user: dict[str, Any] = Depends(require_permission("connector", "execute")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> ConnectorExecuteResponse:
     """Ejecuta una accion de un conector."""
     if not registry.exists(name):
@@ -315,8 +321,8 @@ async def execute_connector_action(
 async def delete_connector_config(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "delete")),
-    db: Any = Depends(get_db),
-    redis: Any = Depends(get_redis),
+    db: DatabaseManager = Depends(get_db),
+    redis: RedisService = Depends(get_redis),
 ) -> dict[str, Any]:
     """Elimina la configuracion almacenada de un conector."""
     existing = db.fetchone("SELECT id FROM connector_configs WHERE connector_name = ?", (name,))
@@ -344,7 +350,7 @@ async def delete_connector_config(
 async def get_connector_schema(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "read")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> dict[str, Any]:
     """Obtiene el esquema de un conector."""
     if not registry.exists(name):
@@ -379,7 +385,7 @@ async def get_connector_schema(
 async def connector_health_check(
     name: str,
     user: dict[str, Any] = Depends(require_permission("connector", "read")),
-    registry: Any = Depends(get_connector_registry),
+    registry: ConnectorRegistry = Depends(get_connector_registry),
 ) -> dict[str, Any]:
     """Verifica el estado de salud de un conector."""
     if not registry.exists(name):

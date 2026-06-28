@@ -72,6 +72,7 @@ class SatMexicoConnector(BaseConnector):
     icon = "file-text"
     author = "Zenic-Flujo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._cert_bundle: CertBundle | None = None
@@ -141,6 +142,7 @@ class SatMexicoConnector(BaseConnector):
             logger.error(f"SatMexicoConnector: erro de conexão - {e}")
             return False
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "issue": self._issue,

@@ -21,6 +21,7 @@ class WooCommerceConnector(BaseConnector):
     icon = "shopping-cart"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._store_url: str = ""
@@ -46,6 +47,7 @@ class WooCommerceConnector(BaseConnector):
         self._log_operation("connect", f"store={self._store_url}")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"get_products": self._get_products, "get_product": self._get_product, "create_product": self._create_product,
                        "get_orders": self._get_orders, "get_order": self._get_order, "create_order": self._create_order,
@@ -59,7 +61,8 @@ class WooCommerceConnector(BaseConnector):
     def disconnect(self) -> bool:
         self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -69,14 +72,14 @@ class WooCommerceConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _get_products(self, p: dict) -> dict: return self._api("get", "/products", params=p)
-    def _get_product(self, p: dict) -> dict: return self._api("get", f"/products/{p.get('product_id', '')}")
-    def _create_product(self, p: dict) -> dict: return self._api("post", "/products", json=p)
-    def _get_orders(self, p: dict) -> dict: return self._api("get", "/orders", params=p)
-    def _get_order(self, p: dict) -> dict: return self._api("get", f"/orders/{p.get('order_id', '')}")
-    def _create_order(self, p: dict) -> dict: return self._api("post", "/orders", json=p)
-    def _get_customers(self, p: dict) -> dict: return self._api("get", "/customers", params=p)
-    def _get_customer(self, p: dict) -> dict: return self._api("get", f"/customers/{p.get('customer_id', '')}")
+    def _get_products(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/products", params=p)
+    def _get_product(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/products/{p.get('product_id', '')}")
+    def _create_product(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("post", "/products", json=p)
+    def _get_orders(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/orders", params=p)
+    def _get_order(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/orders/{p.get('order_id', '')}")
+    def _create_order(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("post", "/orders", json=p)
+    def _get_customers(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/customers", params=p)
+    def _get_customer(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/customers/{p.get('customer_id', '')}")
 
 
 WOOCOMMERCE_SCHEMA = ConnectorSchema(name="woocommerce", version="1.0.0", description="Gestiona productos, ordenes y clientes en WooCommerce", category="ecommerce", icon="shopping-cart", author="Zenic-Flijo", actions=[

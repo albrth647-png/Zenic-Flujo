@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from src.hat.level5_tools.business.inventory.service import InventoryService
+from typing import Any
 
 router = APIRouter(prefix="/api/v2/inventory", tags=["inventory"])
 
@@ -39,12 +40,12 @@ async def list_products(limit: int = Query(50, le=200)) -> list[dict]:
 
 
 @router.post("/products", status_code=201)
-async def add_product(product: ProductCreate) -> dict:
+async def add_product(product: ProductCreate) -> dict[str, Any]:
     return _svc.add_product(**product.model_dump())
 
 
 @router.get("/products/{product_id}")
-async def get_product(product_id: int) -> dict:
+async def get_product(product_id: int) -> dict[str, Any]:
     p = _svc.get_product(product_id)
     if not p:
         raise HTTPException(404, "Producto no encontrado")
@@ -52,7 +53,7 @@ async def get_product(product_id: int) -> dict:
 
 
 @router.put("/products/{product_id}/stock")
-async def update_stock(product_id: int, update: StockUpdate) -> dict:
+async def update_stock(product_id: int, update: StockUpdate) -> dict[str, Any]:
     result = _svc.update_stock(
         product_id, update.quantity,
         movement_type=update.movement_type,
@@ -64,7 +65,7 @@ async def update_stock(product_id: int, update: StockUpdate) -> dict:
 
 
 @router.get("/stats")
-async def get_inventory_stats() -> dict:
+async def get_inventory_stats() -> dict[str, Any]:
     products = _svc.list_products(limit=10000)
     total = len(products)
     low_stock = sum(1 for p in products if p.get("stock", 0) <= p.get("min_stock", 0) and p.get("stock", 0) > 0)

@@ -55,6 +55,7 @@ class PixBrazilConnector(BaseConnector):
     API_BASE_HOMO = "https://api.hm-pix.bcb.gov.br/v2"
     API_BASE_PROD = "https://api-pix.bcb.gov.br/v2"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, environment: str = "homo", **kwargs: Any) -> None:
         super().__init__(**kwargs)
         env = (environment or "homo").lower()
@@ -177,6 +178,7 @@ class PixBrazilConnector(BaseConnector):
             return {"Authorization": f"Bearer {self._access_token}"}
         return {}
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "create_cob": self._create_cob,

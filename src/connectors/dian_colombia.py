@@ -217,6 +217,7 @@ class DIANColombiaConnector(BaseConnector):
     icon = "file-text"
     author = "Zenic-Flujo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._nit: str = ""
@@ -283,6 +284,7 @@ class DIANColombiaConnector(BaseConnector):
         self._log_operation("connect", f"NIT={self._nit} DV={self._dv} env={self._environment}")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "issue": self._issue,

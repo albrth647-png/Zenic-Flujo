@@ -20,6 +20,7 @@ def connector_action(name: str, description: str = "") -> Callable[[F], F]:
         func._is_connector_action = True  # type: ignore[attr-defined]
 
         @functools.wraps(func)
+        # legítimo: wrapper transparente (skill §1.2)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 

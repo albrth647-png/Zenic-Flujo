@@ -15,6 +15,7 @@ import secrets
 
 from src.data.interfaces import DatabaseInterface
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -55,7 +56,7 @@ class UserRepository:
         role: str = "admin",
         display_name: str = "",
         email: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Crea un nuevo usuario con contraseña hasheada (pbkdf2).
 
@@ -80,7 +81,7 @@ class UserRepository:
         self._db.commit()
         return self.get_user(cursor.lastrowid)
 
-    def get_user(self, user_id: int) -> dict | None:
+    def get_user(self, user_id: int) -> dict[str, Any] | None:
         """
         Obtiene un usuario por ID.
 
@@ -97,7 +98,7 @@ class UserRepository:
             (user_id,),
         )
 
-    def get_user_by_username(self, username: str) -> dict | None:
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
         """
         Obtiene un usuario por nombre de usuario.
 
@@ -122,7 +123,7 @@ class UserRepository:
             "FROM users ORDER BY username"
         )
 
-    def update_user(self, user_id: int, updates: dict) -> bool:
+    def update_user(self, user_id: int, updates: dict[str, Any]) -> bool:
         """
         Actualiza campos de un usuario.
 

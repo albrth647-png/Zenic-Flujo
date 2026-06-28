@@ -14,6 +14,11 @@ Implementado en M8 siguiendo IMPLEMENTATION_PLAN.md §M8.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.hat.level1_orchestrator.ledger.repository import LedgerRepository
+
 from typing import Any, TypedDict
 
 from src.core.logging import get_logger
@@ -41,6 +46,7 @@ class SupervisorResult(TypedDict, total=False):
     - ``'clarify'``: ``result.clarify_message``
     """
     status: str
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
     result: Any
     error: str
     domain: str
@@ -74,10 +80,10 @@ class SpecialistRouter:
     def __init__(
         self,
         specialists: dict[str, Any] | None = None,
-        ledger: Any = None,
+        ledger: LedgerRepository | None = None,
     ) -> None:
         self._specialists: dict[str, Any] = specialists or {}
-        self._ledger: Any = ledger
+        self._ledger: LedgerRepository | None = ledger
         self._keyword_map: dict[str, str] = {}
         logger.info(
             "%s inicializado con %d specialists",

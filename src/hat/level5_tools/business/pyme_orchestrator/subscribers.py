@@ -218,7 +218,7 @@ def _get_admin_phone() -> str | None:
         return None
 
 
-def _get_client_phone(invoice: dict) -> str | None:
+def _get_client_phone(invoice: dict[str, Any]) -> str | None:
     """Intenta obtener el phone del cliente desde el invoice o el lead."""
     # Si el invoice tiene lead_id, buscar el lead
     lead_id = invoice.get("lead_id")

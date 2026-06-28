@@ -24,6 +24,7 @@ Seguridad:
 
 from src.core.logging import setup_logging
 from src.hat.level5_tools.automation.code_runner.sandbox import CodeSandbox, SandboxResult
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -43,10 +44,10 @@ class CodeRunnerTool:
     def run_python(
         self,
         code: str = "",
-        input_vars: dict | None = None,
+        input_vars: dict[str, Any] | None = None,
         output_var: str = "result",
         timeout: int = 10,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Ejecuta código Python en el sandbox seguro.
 
@@ -86,7 +87,7 @@ class CodeRunnerTool:
             "execution_time_ms": result.execution_time_ms,
         }
 
-    def validate(self, code: str = "") -> dict:
+    def validate(self, code: str = "") -> dict[str, Any]:
         """
         Valida código Python sin ejecutarlo.
 
@@ -132,7 +133,7 @@ class CodeRunnerTool:
         }
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "code_runner",

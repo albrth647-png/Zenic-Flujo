@@ -26,6 +26,7 @@ class GrafanaConnector(BaseConnector):
     icon = "bar-chart"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = ""
@@ -52,6 +53,7 @@ class GrafanaConnector(BaseConnector):
             self._http.set_header("Authorization", f"Bearer {creds.get('api_key', '')}")
             self._connected = True; self._log_operation("connect", f"Grafana configurado (status fallo: {e})"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {
             "list_dashboards": self._list_dashboards, "get_dashboard": self._get_dashboard,

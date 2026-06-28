@@ -19,6 +19,7 @@ from src.core.logging import setup_logging
 from src.orbital.context import OrbitalContext
 from src.orbital.models import TWO_PI
 from src.workflow.condition_evaluator import ConditionEvaluator
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -44,7 +45,7 @@ class BranchHandler:
         self._evaluator = ConditionEvaluator()
         self._ctx = OrbitalContext()
 
-    def evaluate(self, step: dict, context: dict) -> BranchResult:
+    def evaluate(self, step: dict[str, Any], context: dict[str, Any]) -> BranchResult:
         """Evalua las condiciones de un step branch y retorna la rama a ejecutar."""
         branches = step.get("branches", [])
         if not branches:
@@ -159,7 +160,7 @@ class BranchHandler:
             "Asegurate de incluir una rama con condition='True' como default."
         )
 
-    def evaluate_switch(self, expression: str, cases: list[dict], context: dict) -> BranchResult:
+    def evaluate_switch(self, expression: str, cases: list[dict], context: dict[str, Any]) -> BranchResult:
         """Evalua una expresion switch con divergencia orbital."""
         from src.core.utils import resolve_variables
 
@@ -216,7 +217,7 @@ class BranchHandler:
 
     # ── Helpers orbitales (OVC compartido) ───────────────────
 
-    def _ensure_context_variable(self, var_name: str, context: dict) -> None:
+    def _ensure_context_variable(self, var_name: str, context: dict[str, Any]) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
             # Hash no criptográfico: deriva theta determinista del contexto (B324 mitigado).
             hash_val = int(hashlib.md5(str(context).encode(), usedforsecurity=False).hexdigest()[:8], 16)
@@ -230,7 +231,7 @@ class BranchHandler:
                 metadata={"source": "branch_handler"},
             )
 
-    def _ensure_branch_variable(self, var_name: str, branch: dict) -> None:
+    def _ensure_branch_variable(self, var_name: str, branch: dict[str, Any]) -> None:
         if self._ctx.ovc.get_variable(var_name) is None:
             condition = branch.get("condition", "True")
             # Hash no criptográfico: deriva theta determinista de la condición (B324 mitigado).

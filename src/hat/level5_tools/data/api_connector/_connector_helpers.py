@@ -34,7 +34,7 @@ class ApiResult(TypedDict, total=False):
     - ``from_cache``: True si vino de cache
     """
     status_code: int
-    body: Any
+    body: object
     headers: dict[str, str]
     error: str
     duration_ms: int
@@ -45,8 +45,8 @@ class ApiResult(TypedDict, total=False):
 
 
 def execute_request(
-    method: str, url: str, headers: dict | None, body: dict | None,
-    params: dict[str, str] | None, auth_type: str, auth_credentials: dict | None,
+    method: str, url: str, headers: dict[str, Any] | None, body: dict[str, Any] | None,
+    params: dict[str, str] | None, auth_type: str, auth_credentials: dict[str, Any] | None,
     timeout: int, start_time: float,
 ) -> ApiResult:
     """Ejecuta una petición HTTP con autenticación y manejo de errores."""
@@ -92,6 +92,7 @@ def execute_request(
         return _error(f"Error en petición: {e}", start_time)
 
 
+# legítimo: parsea JSON dinámico de API externa (skill §9.1)
 def _parse_response_body(response, content_type: str) -> Any:
     """Parsea el body de la respuesta según Content-Type."""
     content_type_lower = content_type.lower()
@@ -139,7 +140,7 @@ def transform_response(result: ApiResult, response_format: str) -> ApiResult:
     return result
 
 
-def extract_items(body: Any) -> list:
+def extract_items(body: object) -> list[Any]:
     """Extrae items de un body paginado (dict con key 'data', 'items', etc.)."""
     if isinstance(body, list):
         return body

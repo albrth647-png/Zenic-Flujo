@@ -69,21 +69,21 @@ class APIConnectorService:
         self,
         method: str = "GET",
         url: str = "",
-        headers: dict | None = None,
-        body: dict | None = None,
-        params: dict | None = None,
+        headers: dict[str, Any] | None = None,
+        body: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
         auth_type: str = "none",
-        auth_credentials: dict | None = None,
+        auth_credentials: dict[str, Any] | None = None,
         timeout: int = 30,
         cache_ttl: int | None = None,
         use_cache: bool = True,
         pagination: str | None = None,
         max_pages: int = 5,
-        pagination_params: dict | None = None,
+        pagination_params: dict[str, Any] | None = None,
         response_format: str = "auto",
         async_callback_url: str | None = None,
         rate_limit_cost: int = 1,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Realiza una petición HTTP con rate limiting, caching, paginación y callbacks."""
         start_time = time.time()
 
@@ -153,11 +153,11 @@ class APIConnectorService:
 
     def _request_with_pagination(
         self,
-        method: str, url: str, headers: dict | None, params: dict | None,
-        auth_type: str, auth_credentials: dict | None, timeout: int,
-        pagination: str, max_pages: int, pagination_params: dict | None,
+        method: str, url: str, headers: dict[str, Any] | None, params: dict[str, Any] | None,
+        auth_type: str, auth_credentials: dict[str, Any] | None, timeout: int,
+        pagination: str, max_pages: int, pagination_params: dict[str, Any] | None,
         start_time: float,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Recolecta múltiples páginas de un endpoint paginado."""
         all_items = []
         current_params = dict(params or {})
@@ -229,10 +229,10 @@ class APIConnectorService:
 
     # ── XML público ───────────────────────────────────────
 
-    def xml_parse(self, xml_string: str) -> dict:
+    def xml_parse(self, xml_string: str) -> dict[str, Any]:
         return self._xml.parse(xml_string)
 
-    def xml_generate(self, data: dict, root_name: str = "root") -> str:
+    def xml_generate(self, data: dict[str, Any], root_name: str = "root") -> str:
         return self._xml.generate(data, root_name)
 
     # ── Validación de URL ────────────────────────────────
@@ -242,14 +242,14 @@ class APIConnectorService:
         return validate_url(url)
 
     @staticmethod
-    def _extract_items(body: Any) -> list:
+    def _extract_items(body: object) -> list[Any]:
         """Extrae items de un body paginado. Backward compat."""
         return extract_items(body)
 
     # ── Tool definition ────────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "api_connector",

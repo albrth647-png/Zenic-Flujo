@@ -6,6 +6,7 @@ from datetime import datetime
 
 from src.core.db.sql_builder import build_update_query
 from src.core.db.sqlite_manager import DatabaseManager
+from typing import Any
 
 
 class CRMRepository:
@@ -24,7 +25,7 @@ class CRMRepository:
         notes: str | None = None,
         user_id: int | None = None,
         stage: str = "new",
-    ) -> dict:
+    ) -> dict[str, Any]:
         cursor = self._db.execute(
             """INSERT INTO leads (name, email, phone, company, source, notes, stage, user_id)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -33,7 +34,7 @@ class CRMRepository:
         self._db.commit()
         return self.get_lead(cursor.lastrowid)
 
-    def get_lead(self, lead_id: int) -> dict | None:
+    def get_lead(self, lead_id: int) -> dict[str, Any] | None:
         return self._db.fetchone("SELECT * FROM leads WHERE id = ?", (lead_id,))
 
     def list_leads(
@@ -59,7 +60,7 @@ class CRMRepository:
             (limit, offset),
         )
 
-    def update_lead(self, lead_id: int, **fields) -> dict | None:
+    def update_lead(self, lead_id: int, **fields) -> dict[str, Any] | None:
         allowed = {"name", "email", "phone", "company", "stage", "source", "notes", "updated_at"}
         result = build_update_query(
             "leads",
@@ -81,7 +82,7 @@ class CRMRepository:
         self._db.commit()
         return True
 
-    def add_activity(self, lead_id: int, activity_type: str, description: str | None = None) -> dict:
+    def add_activity(self, lead_id: int, activity_type: str, description: str | None = None) -> dict[str, Any]:
         cursor = self._db.execute(
             "INSERT INTO lead_activities (lead_id, activity_type, description) VALUES (?, ?, ?)",
             (lead_id, activity_type, description),
@@ -89,7 +90,7 @@ class CRMRepository:
         self._db.commit()
         return {"id": cursor.lastrowid, "lead_id": lead_id, "activity_type": activity_type}
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         total = self._db.fetchone("SELECT COUNT(*) as count FROM leads")
         by_stage = self._db.fetchall("SELECT stage, COUNT(*) as count FROM leads GROUP BY stage")
         return {
@@ -112,7 +113,7 @@ class CRMRepository:
         currency: str = "MXN",
         lead_id: int | None = None,
         user_id: int = 1,
-    ) -> dict:
+    ) -> dict[str, Any]:
         cursor = self._db.execute(
             """INSERT INTO clients (name, fiscal_type, fiscal_id, email, phone,
                address, city, country_code, currency, lead_id, user_id)
@@ -123,10 +124,10 @@ class CRMRepository:
         self._db.commit()
         return self.get_client(cursor.lastrowid)
 
-    def get_client(self, client_id: int) -> dict | None:
+    def get_client(self, client_id: int) -> dict[str, Any] | None:
         return self._db.fetchone("SELECT * FROM clients WHERE id = ?", (client_id,))
 
-    def get_client_by_fiscal_id(self, fiscal_id: str, country_code: str) -> dict | None:
+    def get_client_by_fiscal_id(self, fiscal_id: str, country_code: str) -> dict[str, Any] | None:
         return self._db.fetchone(
             "SELECT * FROM clients WHERE fiscal_id = ? AND country_code = ?",
             (fiscal_id, country_code),
@@ -138,7 +139,7 @@ class CRMRepository:
             (limit, offset),
         )
 
-    def update_client(self, client_id: int, **fields) -> dict | None:
+    def update_client(self, client_id: int, **fields) -> dict[str, Any] | None:
         allowed = {"name", "fiscal_type", "fiscal_id", "email", "phone",
                     "address", "city", "country_code", "currency", "updated_at"}
         result = build_update_query(
@@ -163,10 +164,10 @@ class CRMRepository:
         probability: float = 0.5,
         expected_close_date: str = "",
         stage: str = "proposal",
-        items: list | None = None,
+        items: list[Any] | None = None,
         notes: str = "",
         client_id: int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         import json
         cursor = self._db.execute(
             """INSERT INTO deals (lead_id, client_id, title, amount, currency,
@@ -179,7 +180,7 @@ class CRMRepository:
         self._db.commit()
         return self.get_deal(cursor.lastrowid)
 
-    def get_deal(self, deal_id: int) -> dict | None:
+    def get_deal(self, deal_id: int) -> dict[str, Any] | None:
         deal = self._db.fetchone("SELECT * FROM deals WHERE id = ?", (deal_id,))
         if deal and isinstance(deal.get("items"), str):
             import json

@@ -77,16 +77,19 @@ class MTLSHttpClient:
         logger.debug("MTLSHttpClient inicializado: cert=%s verify=%s",
                       bool(self._cert), bool(self._verify))
 
+    # legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
     def get(self, url: str, **kwargs: Any) -> requests.Response:
         """GET request con mTLS."""
         kwargs.setdefault("timeout", self._timeout)
         return self._session.get(url, **kwargs)
 
+    # legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
     def post(self, url: str, data: Any = None, **kwargs: Any) -> requests.Response:
         """POST request con mTLS."""
         kwargs.setdefault("timeout", self._timeout)
         return self._session.post(url, data=data, **kwargs)
 
+    # legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
     def put(self, url: str, data: Any = None, **kwargs: Any) -> requests.Response:
         """PUT request con mTLS."""
         kwargs.setdefault("timeout", self._timeout)

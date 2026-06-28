@@ -6,6 +6,7 @@ Plantillas predefinidas de automatización para empezar rápido.
 from src.nlu.intent_classifier import IntentClassifier
 from src.nlu.templates import TEMPLATES
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -39,7 +40,7 @@ class AutoPilotService:
             {"name": t["name"], "trigger_type": t["trigger"]["type"], "step_count": len(t["steps"])} for t in TEMPLATES
         ]
 
-    def create_from_template(self, template_name: str, params: dict | None = None) -> dict:
+    def create_from_template(self, template_name: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         template = next((t for t in TEMPLATES if t["name"] == template_name), None)
         if not template:
             raise ValueError(f"Template '{template_name}' no encontrado")

@@ -69,6 +69,7 @@ def get_available_languages() -> list[dict[str, str]]:
     ]
 
 
+# legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
 def t(key: str, lang: str | None = None, **kwargs: Any) -> str:
     """Traduce una clave al idioma especificado.
 
@@ -113,6 +114,7 @@ def t(key: str, lang: str | None = None, **kwargs: Any) -> str:
     return template
 
 
+# legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
 def translate(key: str, lang: str | None = None, **kwargs: Any) -> str:
     """Alias para t()."""
     return t(key, lang, **kwargs)

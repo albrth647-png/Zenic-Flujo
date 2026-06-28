@@ -5,6 +5,7 @@ Workflow Determinista — Notification Service
 from src.config import WHATSAPP_ENCRYPTION_KEY
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -13,7 +14,7 @@ class NotificationService:
     def __init__(self):
         self._db = DatabaseManager()
 
-    def send_email(self, to: str, subject: str, body: str, template: str | None = None) -> dict:
+    def send_email(self, to: str, subject: str, body: str, template: str | None = None) -> dict[str, Any]:
         smtp_server = self._db.get_setting("smtp_server")
         if not smtp_server:
             return {"status": "queued", "message": "SMTP no configurado, guardado en cola"}
@@ -41,7 +42,7 @@ class NotificationService:
             logger.error(f"Error enviando email a {to}: {e}")
             return {"status": "failed", "error": str(e)}
 
-    def send_notification(self, channel: str, recipients: list[str] | str, message: str, **kwargs) -> dict:
+    def send_notification(self, channel: str, recipients: list[str] | str, message: str, **kwargs) -> dict[str, Any]:
         if channel == "email":
             if isinstance(recipients, list):
                 results = []
@@ -80,7 +81,7 @@ class NotificationService:
         logger.info("Configuración SMTP guardada")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         smtp_server = self._db.get_setting("smtp_server")
         if not smtp_server:
             return {"status": "error", "message": "SMTP no configurado"}
@@ -111,7 +112,7 @@ class NotificationService:
             logger.error(f"Error descifrando token WhatsApp: {e}")
             return None
 
-    def send_whatsapp(self, to: str, message: str) -> dict:
+    def send_whatsapp(self, to: str, message: str) -> dict[str, Any]:
         """Envía un mensaje de texto vía WhatsApp Cloud API."""
         token = self._get_whatsapp_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
@@ -157,7 +158,7 @@ class NotificationService:
 
     def send_whatsapp_template(
         self, to: str, template_name: str, language_code: str = "es", components: list[dict] | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Envía un mensaje template (para fuera de ventana 24h)."""
         token = self._get_whatsapp_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
@@ -173,7 +174,7 @@ class NotificationService:
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             }
-            payload: dict = {
+            payload: dict[str, Any] = {
                 "messaging_product": "whatsapp",
                 "to": to,
                 "type": "template",
@@ -225,7 +226,7 @@ class NotificationService:
         logger.info("Configuración WhatsApp guardada (token cifrado)")
         return True
 
-    def get_whatsapp_status(self) -> dict:
+    def get_whatsapp_status(self) -> dict[str, Any]:
         """Retorna estado de la configuración WhatsApp."""
         encrypted = self._db.get_setting("whatsapp_token")
         token = "" if not encrypted else (self._get_whatsapp_token() or "")
@@ -236,7 +237,7 @@ class NotificationService:
             "has_phone_id": bool(phone_id),
         }
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         return {
             "smtp_configured": bool(self._db.get_setting("smtp_server")),
             "whatsapp_configured": bool(

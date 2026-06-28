@@ -44,7 +44,7 @@ class MongoRepository:
 
     # ── Create ───────────────────────────────────────────────
 
-    async def create(self, document: dict) -> str:
+    async def create(self, document: dict[str, Any]) -> str:
         """
         Crea un nuevo documento en la coleccion.
 
@@ -67,7 +67,7 @@ class MongoRepository:
 
     # ── Read ─────────────────────────────────────────────────
 
-    async def get_by_id(self, doc_id: str) -> dict | None:
+    async def get_by_id(self, doc_id: str) -> dict[str, Any] | None:
         """
         Obtiene un documento por su _id.
 
@@ -86,7 +86,7 @@ class MongoRepository:
 
         return await self._service.find_one(self._collection_name, query)
 
-    async def get_by_filter(self, query: dict) -> dict | None:
+    async def get_by_filter(self, query: dict[str, Any]) -> dict[str, Any] | None:
         """
         Obtiene un unico documento por filtro.
 
@@ -100,7 +100,7 @@ class MongoRepository:
 
     # ── Update ───────────────────────────────────────────────
 
-    async def update(self, doc_id: str, updates: dict) -> dict | None:
+    async def update(self, doc_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
         """
         Actualiza un documento por su _id.
 
@@ -159,7 +159,7 @@ class MongoRepository:
 
     async def list(
         self,
-        query: dict | None = None,
+        query: dict[str, Any] | None = None,
         skip: int = 0,
         limit: int = 100,
         sort: list[tuple[str, int]] | None = None,
@@ -187,7 +187,7 @@ class MongoRepository:
 
     # ── Count ────────────────────────────────────────────────
 
-    async def count(self, query: dict | None = None) -> int:
+    async def count(self, query: dict[str, Any] | None = None) -> int:
         """
         Cuenta documentos en la coleccion.
 
@@ -201,7 +201,7 @@ class MongoRepository:
 
     # ── Utilidades ───────────────────────────────────────────
 
-    async def exists(self, query: dict) -> bool:
+    async def exists(self, query: dict[str, Any]) -> bool:
         """
         Verifica si existe al menos un documento que coincida con el filtro.
 
@@ -214,6 +214,7 @@ class MongoRepository:
         count = await self._service.count_documents(self._collection_name, query)
         return count > 0
 
+    # legítimo: wrapper genérico, **kwargs se pasa al SDK subyacente (skill §1.2)
     async def ensure_index(self, keys: Any, **kwargs: Any) -> str:
         """
         Crea un indice en la coleccion si no existe.

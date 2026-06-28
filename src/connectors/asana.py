@@ -28,6 +28,7 @@ class AsanaConnector(BaseConnector):
     icon = "list"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://app.asana.com/api/1.0"
@@ -64,6 +65,7 @@ class AsanaConnector(BaseConnector):
         self._log_operation("connect", "PAT configurado")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Asana.
 

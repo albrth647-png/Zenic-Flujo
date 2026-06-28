@@ -258,6 +258,7 @@ class ComplianceManager:
         self._load_default_controls()
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> ComplianceManager:
         if cls._instance is None:
             with cls._lock:

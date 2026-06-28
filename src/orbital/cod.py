@@ -214,9 +214,20 @@ class COD:
                 norm_factor = amplitude_norm if self._normalize_tension and amplitude_norm > 0 else 1.0
 
                 # Paso de descenso: negativo porque vamos cuesta abajo de V
-                step = -dV_dtheta * self._convergence_scale * dt * relaxation / norm_factor
+                # Fix: normalización adicional por la amplitud de la variable
+                # para que el paso sea independiente de la escala.
+                # dV/dθ_i ~ A_i * Σ_j A_j → dividir por A_i² deja el paso acotado.
+                var_amplitude = var.amplitude if hasattr(var, 'amplitude') else 1.0
+                var_norm = var_amplitude * amplitude_norm if var_amplitude > 0 else 1.0
+                raw_step = -dV_dtheta * self._convergence_scale * dt * relaxation / var_norm
+                # Fix: acotar el paso con tanh para evitar divergencia.
+                # tanh(raw_step) mantiene el paso en [-1, 1] radianes por iteración.
+                step = math.tanh(raw_step)
                 old_theta = var.theta
                 new_theta = (var.theta + step) % TWO_PI
+                # Fix: doble modulo para garantizar theta ∈ [0, 2π)
+                if new_theta >= TWO_PI:
+                    new_theta = new_theta % TWO_PI
                 var.theta = new_theta
 
                 # Calcular delta (distancia angular mínima)

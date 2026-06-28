@@ -9,6 +9,8 @@ circuit breaker, rate limiting, metricas y validacion.
 
 from __future__ import annotations
 
+import types
+
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -76,6 +78,7 @@ class BaseConnector(ABC):
         """Establece la conexion con el servicio externo."""
 
     @abstractmethod
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector."""
 
@@ -194,7 +197,7 @@ class BaseConnector(ABC):
         self.connect()
         return self
 
-    def __exit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: Any) -> bool:
+    def __exit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: types.TracebackType | None) -> bool:
         self.disconnect()
         if exc_type:
             logger.error(f"BaseConnector: excepcion en context manager para {self.name}: {exc_val}")
@@ -254,6 +257,7 @@ class BaseConnector(ABC):
         except Exception:
             logger.debug(f"BaseConnector: error registrando metricas para {self.name}.{action}")
 
+    # legítimo: data dinámica del resultado de conector
     def _build_result(self, success: bool, data: Any = None, error: str | None = None,
                       start_time: float = 0, action: str = "", retries: int = 0) -> dict[str, Any]:
         duration_ms = (time.monotonic() - start_time) * 1000 if start_time else 0

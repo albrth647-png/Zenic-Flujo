@@ -85,13 +85,13 @@ class WorkflowVersion:
     name: str = ""
     description: str = ""
     trigger_type: str = ""
-    trigger_config: dict = field(default_factory=dict)
-    steps: list = field(default_factory=list)
+    trigger_config: dict[str, Any] = field(default_factory=dict)
+    steps: list[Any] = field(default_factory=list)
     change_summary: str = ""
     created_by: int = 1
     created_at: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -107,7 +107,7 @@ class WorkflowVersion:
         }
 
     @classmethod
-    def from_row(cls, row: dict) -> WorkflowVersion:
+    def from_row(cls, row: dict[str, Any]) -> WorkflowVersion:
         """Construye una WorkflowVersion desde una fila de DB."""
         return cls(
             id=row["id"],
@@ -139,7 +139,7 @@ class WorkflowEnvironment:
     created_at: str = ""
     updated_at: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -154,7 +154,7 @@ class WorkflowEnvironment:
         }
 
     @classmethod
-    def from_row(cls, row: dict) -> WorkflowEnvironment:
+    def from_row(cls, row: dict[str, Any]) -> WorkflowEnvironment:
         return cls(
             id=row["id"],
             workflow_id=row["workflow_id"],
@@ -184,7 +184,7 @@ class WorkflowPromotion:
     promoted_by: int = 1
     created_at: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -215,8 +215,8 @@ class WorkflowVersionRepository:
         name: str,
         description: str,
         trigger_type: str,
-        trigger_config: dict,
-        steps: list,
+        trigger_config: dict[str, Any],
+        steps: list[Any],
         change_summary: str = "",
         created_by: int = 1,
     ) -> WorkflowVersion:
@@ -514,7 +514,7 @@ class PromotionService:
 
     @staticmethod
     def _compute_diff(
-        source_workflow: dict, target_workflow: dict | None
+        source_workflow: dict[str, Any], target_workflow: dict[str, Any] | None
     ) -> dict[str, Any]:
         """
         Calcula un diff simple entre dos definiciones de workflow.
@@ -561,7 +561,7 @@ class PromotionService:
         workflow_id: int,
         source_env: str,
         target_env: str,
-        workflow_definition: dict,
+        workflow_definition: dict[str, Any],
         source_version: int | None = None,
         promoted_by: int = 1,
         notes: str = "",
@@ -591,7 +591,7 @@ class PromotionService:
         # Para el diff, comparamos el workflow_definition entrante con la última
         # versión registrada del workflow (que es la que se quiere reemplazar).
         latest_version = self._versions.get_latest_version(workflow_id)
-        target_workflow_for_diff: dict | None = None
+        target_workflow_for_diff: dict[str, Any] | None = None
         if latest_version:
             target_workflow_for_diff = {
                 "name": latest_version.name,
@@ -706,6 +706,7 @@ class PromotionService:
 # ─── Helpers ─────────────────────────────────────────────────────────────
 
 
+# legítimo: parsea JSON dinámico, retorno puede ser dict/list/str/etc.
 def _safe_json_loads(value: Any) -> Any:
     """Parsea JSON de forma segura. Si falla, retorna el valor original."""
     if isinstance(value, (dict, list)):

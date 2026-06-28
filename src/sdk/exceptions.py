@@ -106,6 +106,7 @@ class ConnectionError(ConnectorError):
         url: str | None = None,
         retry_count: int = 0,
         cause_exception: Exception | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})
@@ -147,6 +148,7 @@ class AuthenticationError(ConnectorError):
         connector_name: str | None = None,
         auth_type: str | None = None,
         reason: str | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})
@@ -187,6 +189,7 @@ class ValidationError(ConnectorError):
         action: str | None = None,
         field: str | None = None,
         validation_errors: list[dict[str, Any]] | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})
@@ -209,7 +212,7 @@ class ValidationError(ConnectorError):
     @classmethod
     def from_pydantic(
         cls,
-        validation_exception: Any,
+        validation_exception: Exception,
         connector_name: str | None = None,
         action: str | None = None,
     ) -> ValidationError:
@@ -271,6 +274,7 @@ class RateLimitError(ConnectorError):
         period_seconds: int | None = None,
         remaining: int = 0,
         reset_at: int | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})
@@ -318,6 +322,7 @@ class CircuitBreakerOpenError(ConnectorError):
         failure_count: int = 0,
         recovery_timeout: float | None = None,
         last_failure_time: float | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})
@@ -360,6 +365,7 @@ class ActionNotFoundError(ConnectorError):
         connector_name: str | None = None,
         action: str | None = None,
         available_actions: list[str] | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})
@@ -400,6 +406,7 @@ class SchemaError(ConnectorError):
         schema_version: str | None = None,
         schema_path: str | None = None,
         conflict_field: str | None = None,
+        # legítimo: wrapper genérico. kwargs se pasan a super().__init__ (skill §1.2).
         **kwargs: Any,
     ) -> None:
         details: dict[str, Any] = kwargs.get("details", {})

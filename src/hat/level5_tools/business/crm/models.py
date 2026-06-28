@@ -1,6 +1,7 @@
 """Workflow Determinista — CRM Models"""
 
 from dataclasses import dataclass, field
+from typing import Any
 
 STAGES = ["new", "contacted", "qualified", "proposal", "negotiation", "closed_won", "closed_lost"]
 
@@ -34,7 +35,7 @@ class Deal:
     probability: float = 0.5
     expected_close_date: str = ""
     stage: str = "proposal"
-    items: list = field(default_factory=list)
+    items: list[Any] = field(default_factory=list)
     notes: str = ""
     client_id: int | None = None
     id: int | None = None

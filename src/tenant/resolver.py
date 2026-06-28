@@ -29,21 +29,22 @@ class TenantResolver:
     def __init__(self, tenant_service: TenantService | None = None) -> None:
         self._tenant_service = tenant_service or TenantService()
 
-    def resolve_from_request(self, request: Any) -> dict | None:
+    # legítimo: Flask Request no tipado por compatibilidad
+    def resolve_from_request(self, request: Any) -> dict[str, Any] | None:
         """
         Resuelve el tenant desde una request.
         Delega en TenantService.resolve_tenant().
         """
         return self._tenant_service.resolve_tenant(request)
 
-    def resolve_from_header(self, headers: dict[str, str]) -> dict | None:
+    def resolve_from_header(self, headers: dict[str, str]) -> dict[str, Any] | None:
         """Resuelve por header X-Tenant-ID."""
         tenant_id = headers.get("X-Tenant-ID") or headers.get("x-tenant-id")
         if not tenant_id:
             return None
         return self._tenant_service.get_tenant(tenant_id)
 
-    def resolve_from_subdomain(self, host: str) -> dict | None:
+    def resolve_from_subdomain(self, host: str) -> dict[str, Any] | None:
         """
         Resuelve por subdomain.
         Ej: acme.app.zenic-flijo.com → busca tenant con slug 'acme'.

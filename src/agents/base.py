@@ -64,7 +64,8 @@ class AgentMessage:
 
     sender_id: str
     recipient_id: str
-    content: Any
+    # object: el contenido puede ser str/dict/list según el use case. Fuerza isinstance al consumir.
+    content: object
     message_type: str = "inform"
     correlation_id: str = ""
     timestamp: float = field(default_factory=time.time)
@@ -207,6 +208,8 @@ class BaseAgent(ABC):
 
     # ── Lifecycle ───────────────────────────────────────────
 
+    # legítimo: método plantilla genérico. input_data y result son dinámicos porque
+    # dependen de la implementación concreta del agente (APIAgent, ChatAgent, etc.).
     def run(self, input_data: Any = None) -> Any:
         """Execute the agent's think-act loop until completion or max iterations."""
         self.transition_to(AgentState.THINKING)
@@ -315,17 +318,19 @@ class BaseAgent(ABC):
 
     # ── Abstract Methods ────────────────────────────────────
 
+    # legítimo: agente genérico abstracto. observation/decision son dinámicos por diseño.
     @abstractmethod
     def think(self, observation: Any) -> Any:
         """Reasoning phase — analyze input and produce a decision."""
 
+    # legítimo: agente genérico abstracto. decision/result son dinámicos por diseño.
     @abstractmethod
     def act(self, decision: Any) -> Any:
         """Action phase — execute based on the decision."""
 
     # ── Messaging ───────────────────────────────────────────
 
-    def send_message(self, recipient_id: str, content: Any, message_type: str = "inform") -> AgentMessage:
+    def send_message(self, recipient_id: str, content: object, message_type: str = "inform") -> AgentMessage:
         """Send a message to another agent."""
         msg = AgentMessage(
             sender_id=self.agent_id,
@@ -349,17 +354,20 @@ class BaseAgent(ABC):
 
     # ── Context ─────────────────────────────────────────────
 
+    # legítimo: store genérico key-value. El tipo del value es dinámico por diseño
+    # (el agente guarda cualquier cosa en su contexto: str, dict, list, números, etc.).
     def set_context(self, key: str, value: Any) -> None:
         """Set a context variable."""
         self._context[key] = value
 
+    # legítimo: store genérico key-value. Retorna lo que sea que se guardó.
     def get_context(self, key: str, default: Any = None) -> Any:
         """Get a context variable."""
         return self._context.get(key, default)
 
     # ── Internal ────────────────────────────────────────────
 
-    def _should_stop(self, result: Any) -> bool:
+    def _should_stop(self, result: object) -> bool:
         """Determine if the agent should stop after an action."""
         if isinstance(result, dict):
             return result.get("_stop", False) or result.get("done", False)

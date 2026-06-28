@@ -60,7 +60,7 @@ class EventQueueService:
 
     # ── Persistencia básica ─────────────────────────────────
 
-    def save(self, event_type: str, data: dict | str) -> int:
+    def save(self, event_type: str, data: dict[str, Any] | str) -> int:
         """
         Guarda un evento en la cola persistente.
 
@@ -141,7 +141,7 @@ class EventQueueService:
             (event_type, limit),
         )
 
-    def get(self, event_id: int) -> dict | None:
+    def get(self, event_id: int) -> dict[str, Any] | None:
         """
         Obtiene un evento por ID.
 
@@ -191,6 +191,7 @@ class EventQueueService:
 
     # ── Reprocesamiento ────────────────────────────────────
 
+    # legítimo: callback de publish dinámico (skill §1.2)
     def reprocess_pending(self, publish_fn: Any = None) -> int:
         """
         Reprocesa eventos pendientes.
@@ -227,6 +228,7 @@ class EventQueueService:
 
         return count
 
+    # legítimo: callback de publish dinámico (skill §1.2)
     def reprocess_failed(self, publish_fn: Any = None) -> int:
         """
         Reprocesa eventos fallidos.

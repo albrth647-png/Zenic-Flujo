@@ -7,6 +7,7 @@ engine.py esbelto (~300 líneas).
 from __future__ import annotations
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -17,7 +18,7 @@ class AsyncExecutionService:
     def __init__(self, repository):
         self._repository = repository
 
-    def execute(self, workflow_id: int, trigger_data: dict | None = None, priority: int = 0) -> dict:
+    def execute(self, workflow_id: int, trigger_data: dict[str, Any] | None = None, priority: int = 0) -> dict[str, Any]:
         """Encola un workflow para ejecución asíncrona via WorkQueue.
 
         Args:

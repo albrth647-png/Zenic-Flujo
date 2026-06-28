@@ -18,10 +18,10 @@ logger = setup_logging(__name__)
 
 
 def execute_request(
-    method: str, url: str, headers: dict | None, body: dict | None,
-    params: dict | None, auth_type: str, auth_credentials: dict | None,
+    method: str, url: str, headers: dict[str, Any] | None, body: dict[str, Any] | None,
+    params: dict[str, Any] | None, auth_type: str, auth_credentials: dict[str, Any] | None,
     timeout: int, start_time: float,
-) -> dict:
+) -> dict[str, Any]:
     """Ejecuta una petición HTTP con autenticación y manejo de errores."""
     import requests
 
@@ -65,6 +65,7 @@ def execute_request(
         return _error(f"Error en petición: {e}", start_time)
 
 
+# legítimo: parsea JSON dinámico de API externa (skill §9.1)
 def _parse_response_body(response, content_type: str) -> Any:
     """Parsea el body de la respuesta según Content-Type."""
     content_type_lower = content_type.lower()
@@ -84,7 +85,7 @@ def _parse_response_body(response, content_type: str) -> Any:
     return response.text
 
 
-def transform_response(result: dict, response_format: str) -> dict:
+def transform_response(result: dict[str, Any], response_format: str) -> dict[str, Any]:
     """Transforma el body de la respuesta al formato solicitado."""
     if response_format == "auto":
         return result
@@ -112,7 +113,7 @@ def transform_response(result: dict, response_format: str) -> dict:
     return result
 
 
-def extract_items(body: Any) -> list:
+def extract_items(body: object) -> list[Any]:
     """Extrae items de un body paginado (dict con key 'data', 'items', etc.)."""
     if isinstance(body, list):
         return body
@@ -138,7 +139,7 @@ def validate_url(url: str) -> bool:
     return bool(parsed.netloc)
 
 
-def _error(message: str, start_time: float) -> dict:
+def _error(message: str, start_time: float) -> dict[str, Any]:
     """Retorna un dict de error estandarizado."""
     return {"status_code": 0, "error": message, "duration_ms": int((time.time() - start_time) * 1000)}
 

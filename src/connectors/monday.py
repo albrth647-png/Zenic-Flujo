@@ -27,6 +27,7 @@ class MondayConnector(BaseConnector):
     icon = "layout"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_url: str = "https://api.monday.com/v2"
@@ -66,6 +67,7 @@ class MondayConnector(BaseConnector):
             return data.get("data", {})
         return {"error": f"HTTP {resp.status_code}"}
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {
             "list_boards": self._list_boards,

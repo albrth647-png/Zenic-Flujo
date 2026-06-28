@@ -33,7 +33,7 @@ router = APIRouter(prefix="/api/v2/compliance", tags=["compliance"])
 
 @router.get("/score", summary="Get compliance score")
 async def get_compliance_score(
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """Get the current SOC 2 compliance score with breakdown by criteria."""
     manager = ComplianceManager.get_instance()
@@ -42,7 +42,7 @@ async def get_compliance_score(
 
 @router.get("/report", summary="Generate compliance report")
 async def generate_report(
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """Generate a comprehensive SOC 2 Type I compliance report."""
     manager = ComplianceManager.get_instance()
@@ -57,7 +57,7 @@ async def list_controls(
     criteria: str | None = Query(None, description="Filter by TSC criteria"),
     status: str | None = Query(None, description="Filter by status"),
     risk_level: str | None = Query(None, description="Filter by risk level"),
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """List SOC 2 compliance controls with optional filters."""
     manager = ComplianceManager.get_instance()
@@ -89,7 +89,7 @@ async def update_control_status(
     control_id: str,
     status: str,
     notes: str = "",
-    _: Any = Depends(require_permission("compliance", "update")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "update")),
 ) -> dict[str, Any]:
     """Update the status of a compliance control."""
     manager = ComplianceManager.get_instance()
@@ -110,7 +110,7 @@ async def collect_evidence(
     description: str,
     content: str,
     collected_by: str = "system",
-    _: Any = Depends(require_permission("compliance", "create")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "create")),
 ) -> dict[str, Any]:
     """Collect evidence for a compliance control."""
     manager = ComplianceManager.get_instance()
@@ -140,7 +140,7 @@ async def get_audit_trail(
     action: str | None = Query(None),
     resource_type: str | None = Query(None),
     limit: int = Query(100),
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """Query the compliance audit trail."""
     manager = ComplianceManager.get_instance()
@@ -174,7 +174,7 @@ async def get_audit_trail(
 async def list_policies(
     category: str | None = Query(None),
     status: str | None = Query(None),
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """List compliance policy documents."""
     manager = ComplianceManager.get_instance()
@@ -201,7 +201,7 @@ async def create_policy(
     category: str,
     content: str,
     version: str = "1.0",
-    _: Any = Depends(require_permission("compliance", "create")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "create")),
 ) -> dict[str, Any]:
     """Create a new compliance policy document."""
     manager = ComplianceManager.get_instance()
@@ -219,7 +219,7 @@ async def create_policy(
 async def approve_policy(
     policy_id: str,
     approved_by: str,
-    _: Any = Depends(require_permission("compliance", "update")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "update")),
 ) -> dict[str, Any]:
     """Approve a compliance policy document."""
     manager = ComplianceManager.get_instance()
@@ -234,7 +234,7 @@ async def approve_policy(
 
 @router.get("/stats", summary="Get compliance statistics")
 async def get_compliance_stats(
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """Get compliance manager statistics."""
     manager = ComplianceManager.get_instance()
@@ -252,7 +252,7 @@ async def get_reproducibility_report(
     execution_id: int,
     country_code: str = Query("MX", description="ISO 3166-1 alpha-2 país del regulador"),
     tenant_id: str = Query("default", description="Tenant ID"),
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """Genera reporte de reproducibilidad para una ejecución de workflow.
 
@@ -285,7 +285,7 @@ async def get_reproducibility_report(
 )
 async def verify_audit_chain(
     tenant_id: str = Query("default", description="Tenant ID whose chain to verify"),
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> dict[str, Any]:
     """Verifica la integridad de la cadena de audit log de un tenant.
 
@@ -306,7 +306,7 @@ async def verify_audit_chain(
     summary="List retention policies by country and data type",
 )
 async def list_retention_policies(
-    _: Any = Depends(require_permission("compliance", "read")),
+    _: dict[str, Any] = Depends(require_permission("compliance", "read")),
 ) -> list[dict[str, Any]]:
     """Lista todas las políticas de retención LATAM (5-10 años por país).
 

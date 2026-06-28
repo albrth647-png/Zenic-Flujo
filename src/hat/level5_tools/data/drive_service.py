@@ -14,6 +14,7 @@ import json
 import time
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -46,7 +47,7 @@ class DriveService:
     API_BASE = "https://www.googleapis.com/drive/v3"
     UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3"
 
-    def list_files(self, access_token: str = "", folder_id: str = "root", page_size: int = 20, query: str = "") -> dict:
+    def list_files(self, access_token: str = "", folder_id: str = "root", page_size: int = 20, query: str = "") -> dict[str, Any]:
         """
         Lista archivos en Google Drive.
 
@@ -114,7 +115,7 @@ class DriveService:
             logger.error(f"Drive list error: {e}")
             return self._error(str(e))
 
-    def search(self, access_token: str = "", query: str = "", page_size: int = 20) -> dict:
+    def search(self, access_token: str = "", query: str = "", page_size: int = 20) -> dict[str, Any]:
         """
         Busca archivos en Google Drive.
 
@@ -145,7 +146,7 @@ class DriveService:
         content_base64: str = "",
         mime_type: str = "application/octet-stream",
         parent_folder_id: str = "root",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Sube un archivo a Google Drive.
 
@@ -214,7 +215,7 @@ class DriveService:
             logger.error(f"Drive upload error: {e}")
             return self._error(str(e))
 
-    def download(self, access_token: str = "", file_id: str = "") -> dict:
+    def download(self, access_token: str = "", file_id: str = "") -> dict[str, Any]:
         """
         Descarga un archivo de Google Drive como base64.
 
@@ -277,7 +278,7 @@ class DriveService:
             logger.error(f"Drive download error: {e}")
             return self._error(str(e))
 
-    def delete(self, access_token: str = "", file_id: str = "") -> dict:
+    def delete(self, access_token: str = "", file_id: str = "") -> dict[str, Any]:
         """
         Elimina un archivo de Google Drive.
 
@@ -313,7 +314,7 @@ class DriveService:
             logger.error(f"Drive delete error: {e}")
             return self._error(str(e))
 
-    def create_folder(self, access_token: str = "", folder_name: str = "", parent_folder_id: str = "root") -> dict:
+    def create_folder(self, access_token: str = "", folder_name: str = "", parent_folder_id: str = "root") -> dict[str, Any]:
         """
         Crea una carpeta en Google Drive.
 
@@ -366,7 +367,7 @@ class DriveService:
             return self._error(str(e))
 
     @staticmethod
-    def _error(message: str) -> dict:
+    def _error(message: str) -> dict[str, Any]:
         return {"error": message, "status": "failed"}
 
     @staticmethod
@@ -374,7 +375,7 @@ class DriveService:
         return int((time.time() - start_time) * 1000)
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         return {
             "tool": "drive",
             "name": "Google Drive",

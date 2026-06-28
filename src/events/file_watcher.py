@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -159,7 +160,7 @@ class FileWatcher(threading.Thread):
 
         return fnmatch.fnmatch(filename, pattern)
 
-    def _emit(self, event_type: str, data: dict) -> None:
+    def _emit(self, event_type: str, data: dict[str, Any]) -> None:
         """Emite un evento a través del callback."""
         if self._callback:
             try:

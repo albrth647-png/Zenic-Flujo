@@ -17,6 +17,11 @@ Y captura resultados, errores, logs y metricas de rendimiento.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from src.sdk.base import BaseConnector
+
 import io
 import time
 from contextlib import redirect_stderr, redirect_stdout, suppress
@@ -45,7 +50,7 @@ class SandboxResult:
     """
 
     success: bool = False
-    output: Any = None
+    output: Any | None = None
     errors: list[str] = field(default_factory=list)
     timing: dict[str, float] = field(default_factory=dict)
     logs: str = ""
@@ -168,7 +173,7 @@ class SandboxExecutor:
 
     def run(
         self,
-        connector: Any,
+        connector: BaseConnector,
         action: str = "ping",
         params: dict[str, Any] | None = None,
     ) -> SandboxResult:
@@ -254,7 +259,7 @@ class SandboxExecutor:
 
     def run_lifecycle_only(
         self,
-        connector: Any,
+        connector: BaseConnector,
     ) -> SandboxResult:
         """
         Ejecuta solo el ciclo de vida (connect -> disconnect) sin ejecutar acciones.
@@ -304,7 +309,7 @@ class SandboxExecutor:
 
     def _execute_phase(
         self,
-        connector: Any,
+        connector: BaseConnector,
         phase: str,
         result: SandboxResult,
         timeout: float = 0,
@@ -343,7 +348,7 @@ class SandboxExecutor:
 
         return time.monotonic() - start
 
-    def _safe_disconnect(self, connector: Any, result: SandboxResult) -> None:
+    def _safe_disconnect(self, connector: BaseConnector, result: SandboxResult) -> None:
         """
         Ejecuta disconnect() de forma segura, capturando cualquier error.
 
@@ -363,7 +368,8 @@ class SandboxExecutor:
         result.timing["disconnect"] = time.monotonic() - start
 
     @staticmethod
-    def _run_with_timeout(func: Any, timeout: float) -> Any:
+    # legítimo: retorna lo que func() retorna, dinámico por diseño
+    def _run_with_timeout(func: Callable[..., Any], timeout: float) -> Any:
         """
         Ejecuta una funcion con un limite de tiempo.
 

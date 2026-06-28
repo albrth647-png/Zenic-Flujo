@@ -32,6 +32,7 @@ class MysqlConnectorConnector(BaseConnector):
     icon = "database"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._host: str = "localhost"
@@ -40,7 +41,7 @@ class MysqlConnectorConnector(BaseConnector):
         self._username: str = ""
         self._password: str = ""
         self._http: HttpClient | None = None
-        self._connection: Any = None
+        self._connection: Any | None = None
         self._use_http: bool = False
 
     def connect(self) -> bool:
@@ -101,6 +102,7 @@ class MysqlConnectorConnector(BaseConnector):
         self._log_operation("connect", "Conexion MySQL establecida")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector MySQL.
 
@@ -152,7 +154,7 @@ class MysqlConnectorConnector(BaseConnector):
             except Exception:
                 return False
 
-    def _execute_query_http(self, query: str, query_params: list | None = None) -> dict[str, Any]:
+    def _execute_query_http(self, query: str, query_params: list[Any] | None = None) -> dict[str, Any]:
         """Execute a query via HTTP (Presto/Trino)."""
         try:
             body: dict[str, Any] = {"query": query}

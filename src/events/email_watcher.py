@@ -9,6 +9,7 @@ from collections.abc import Callable
 
 from src.core.db import DatabaseManager
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -146,7 +147,7 @@ class EmailWatcher(threading.Thread):
         except (OSError, ValueError) as e:
             logger.warning(f"Error conectando a IMAP: {e}")
 
-    def _emit(self, event_type: str, data: dict) -> None:
+    def _emit(self, event_type: str, data: dict[str, Any]) -> None:
         """Emite un evento de correo recibido."""
         if self._callback:
             try:

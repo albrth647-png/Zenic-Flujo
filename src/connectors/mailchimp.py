@@ -27,6 +27,7 @@ class MailchimpConnector(BaseConnector):
     icon = "mail"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = ""
@@ -66,6 +67,7 @@ class MailchimpConnector(BaseConnector):
             self._log_operation("connect", f"Mailchimp configurado (status check fallo: {e})")
             return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "add_member": self._add_member,

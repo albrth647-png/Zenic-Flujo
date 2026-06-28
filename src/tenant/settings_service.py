@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from src.core.logging import setup_logging
 from src.tenant.service import TenantService
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -26,7 +27,7 @@ class TenantSettings:
 
     # ── Features ──────────────────────────────────────────────
 
-    def set_feature(self, tenant_id: str, feature: str, enabled: bool) -> dict:
+    def set_feature(self, tenant_id: str, feature: str, enabled: bool) -> dict[str, Any]:
         """Habilita o deshabilita una feature para un tenant."""
         return self._tenant_service.set_feature(tenant_id, feature, enabled)
 
@@ -44,7 +45,7 @@ class TenantSettings:
         """Obtiene un setting del tenant."""
         return self._tenant_service.get_setting(tenant_id, key)
 
-    def set_setting(self, tenant_id: str, key: str, value: str) -> dict:
+    def set_setting(self, tenant_id: str, key: str, value: str) -> dict[str, Any]:
         """Establece un setting del tenant."""
         return self._tenant_service.set_setting(tenant_id, key, value)
 
@@ -54,6 +55,6 @@ class TenantSettings:
 
     # ── Rate limiting ─────────────────────────────────────────
 
-    def check_rate_limit(self, tenant_id: str, action: str = "api") -> dict:
+    def check_rate_limit(self, tenant_id: str, action: str = "api") -> dict[str, Any]:
         """Verifica rate limit para el tenant."""
         return self._tenant_service.check_rate_limit(tenant_id, action)

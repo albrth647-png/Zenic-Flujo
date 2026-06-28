@@ -13,6 +13,7 @@ from src.data.interfaces import DatabaseInterface
 from src.data.settings_repository import SettingsRepository
 from src.data.user_repository import UserRepository
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -396,7 +397,7 @@ class DatabaseManager(DatabaseInterface):
 
     # ── Operaciones generales ────────────────────────────────
 
-    def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+    def execute(self, sql: str, params: tuple[Any, ...] = ()) -> sqlite3.Cursor:
         """Ejecuta una consulta SQL."""
         conn = self.get_connection()
         return conn.execute(sql, params)
@@ -406,13 +407,13 @@ class DatabaseManager(DatabaseInterface):
         conn = self.get_connection()
         return conn.executemany(sql, params_list)
 
-    def fetchone(self, sql: str, params: tuple = ()) -> dict | None:
+    def fetchone(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
         """Ejecuta una consulta y retorna una fila como dict."""
         cursor = self.execute(sql, params)
         row = cursor.fetchone()
         return dict(row) if row else None
 
-    def fetchall(self, sql: str, params: tuple = ()) -> list[dict]:
+    def fetchall(self, sql: str, params: tuple[Any, ...] = ()) -> list[dict]:
         """Ejecuta una consulta y retorna todas las filas como lista de dicts."""
         cursor = self.execute(sql, params)
         return [dict(row) for row in cursor.fetchall()]
@@ -464,15 +465,15 @@ class DatabaseManager(DatabaseInterface):
         """Wrapper: delega a AuditRepository."""
         self._audit.log(event, details, ip_address, user_id)
 
-    def create_user(self, username: str, password: str, role: str = "admin", display_name: str = "", email: str = "") -> dict:
+    def create_user(self, username: str, password: str, role: str = "admin", display_name: str = "", email: str = "") -> dict[str, Any]:
         """Wrapper: delega a UserRepository."""
         return self._users.create_user(username, password, role, display_name, email)
 
-    def get_user(self, user_id: int) -> dict | None:
+    def get_user(self, user_id: int) -> dict[str, Any] | None:
         """Wrapper: delega a UserRepository."""
         return self._users.get_user(user_id)
 
-    def get_user_by_username(self, username: str) -> dict | None:
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
         """Wrapper: delega a UserRepository."""
         return self._users.get_user_by_username(username)
 
@@ -480,7 +481,7 @@ class DatabaseManager(DatabaseInterface):
         """Wrapper: delega a UserRepository."""
         return self._users.list_users()
 
-    def update_user(self, user_id: int, updates: dict) -> bool:
+    def update_user(self, user_id: int, updates: dict[str, Any]) -> bool:
         """Wrapper: delega a UserRepository."""
         return self._users.update_user(user_id, updates)
 

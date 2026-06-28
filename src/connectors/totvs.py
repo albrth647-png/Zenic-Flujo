@@ -21,6 +21,7 @@ class TotvsConnector(BaseConnector):
     icon = "database"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = ""; self._username: str = ""; self._password: str = ""
@@ -42,6 +43,7 @@ class TotvsConnector(BaseConnector):
         self._http.set_header("branch", self._branch)
         self._connected = True; self._log_operation("connect", f"totvs={self._base_url}"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {
             # Read actions (existentes)
@@ -66,7 +68,8 @@ class TotvsConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -76,47 +79,47 @@ class TotvsConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _get_products(self, p: dict) -> dict: return self._api("get", "/products", params=p)
-    def _get_customers(self, p: dict) -> dict: return self._api("get", "/customers", params=p)
-    def _get_suppliers(self, p: dict) -> dict: return self._api("get", "/suppliers", params=p)
-    def _get_invoices(self, p: dict) -> dict: return self._api("get", "/invoices", params=p)
-    def _get_sales_orders(self, p: dict) -> dict: return self._api("get", "/sales-orders", params=p)
-    def _get_financial(self, p: dict) -> dict: return self._api("get", "/financial", params=p)
+    def _get_products(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/products", params=p)
+    def _get_customers(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/customers", params=p)
+    def _get_suppliers(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/suppliers", params=p)
+    def _get_invoices(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/invoices", params=p)
+    def _get_sales_orders(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/sales-orders", params=p)
+    def _get_financial(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/financial", params=p)
 
     # ── Write actions (Foso 2 SF7) ───────────────────────────────────
     # Totvs Protheus REST API acepta POST/PUT sobre los mismos endpoints
     # con body JSON. La respuesta incluye el recurso creado/actualizado.
-    def _create_product(self, p: dict) -> dict:
+    def _create_product(self, p: dict[str, Any]) -> dict[str, Any]:
         """Crea un producto (SB1) en Protheus."""
         return self._api("post", "/products", json=p)
 
-    def _update_product(self, p: dict) -> dict:
+    def _update_product(self, p: dict[str, Any]) -> dict[str, Any]:
         """Actualiza un producto existente por product_id."""
         pid = p.pop("product_id", None)
         if not pid:
             return {"success": False, "error": "product_id requerido"}
         return self._api("put", f"/products/{pid}", json=p)
 
-    def _create_customer(self, p: dict) -> dict:
+    def _create_customer(self, p: dict[str, Any]) -> dict[str, Any]:
         """Crea un cliente (SA1) en Protheus."""
         return self._api("post", "/customers", json=p)
 
-    def _update_customer(self, p: dict) -> dict:
+    def _update_customer(self, p: dict[str, Any]) -> dict[str, Any]:
         """Actualiza un cliente existente por customer_id."""
         cid = p.pop("customer_id", None)
         if not cid:
             return {"success": False, "error": "customer_id requerido"}
         return self._api("put", f"/customers/{cid}", json=p)
 
-    def _create_invoice(self, p: dict) -> dict:
+    def _create_invoice(self, p: dict[str, Any]) -> dict[str, Any]:
         """Crea una factura (SF2+SD2) en Protheus."""
         return self._api("post", "/invoices", json=p)
 
-    def _create_sales_order(self, p: dict) -> dict:
+    def _create_sales_order(self, p: dict[str, Any]) -> dict[str, Any]:
         """Crea un pedido de venta (SC5+SC6) en Protheus."""
         return self._api("post", "/sales-orders", json=p)
 
-    def _post_financial_entry(self, p: dict) -> dict:
+    def _post_financial_entry(self, p: dict[str, Any]) -> dict[str, Any]:
         """Crea un título financiero (SE1 o SE2) en Protheus.
 
         El campo `entry_type` ("receivable" | "payable") determina si se

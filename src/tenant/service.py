@@ -137,7 +137,7 @@ class TenantService:
 
     # ── Gestion de tenants ────────────────────────────────
 
-    def create_tenant(self, name: str, slug: str, plan: str = "free", config: dict | None = None) -> dict:
+    def create_tenant(self, name: str, slug: str, plan: str = "free", config: dict[str, Any] | None = None) -> dict[str, Any]:
         """Crea un nuevo tenant y aprovisiona su almacenamiento de datos.
 
         Args:
@@ -225,7 +225,7 @@ class TenantService:
             "db_type": db_type,
         }
 
-    def get_tenant(self, tenant_id: str) -> dict | None:
+    def get_tenant(self, tenant_id: str) -> dict[str, Any] | None:
         """Obtiene la informacion completa de un tenant.
 
         Verifica primero en cache Redis, luego en BD.
@@ -256,14 +256,15 @@ class TenantService:
 
         return tenant_data
 
-    def get_tenant_by_slug(self, slug: str) -> dict | None:
+    def get_tenant_by_slug(self, slug: str) -> dict[str, Any] | None:
         """Obtiene un tenant por su slug."""
         row = self._db.fetchone("SELECT * FROM tenants WHERE slug = ?", (slug,))
         if not row:
             return None
         return self._tenant_row_to_dict(row)
 
-    def resolve_tenant(self, request: Any) -> dict | None:
+    # legítimo: Flask Request no tipado por compatibilidad
+    def resolve_tenant(self, request: Any) -> dict[str, Any] | None:
         """Resuelve el tenant a partir de una request HTTP.
 
         Orden de resolucion:
@@ -314,7 +315,7 @@ class TenantService:
 
         return None
 
-    def update_tenant(self, tenant_id: str, updates: dict) -> dict:
+    def update_tenant(self, tenant_id: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Actualiza los datos de un tenant.
 
         Args:
@@ -369,7 +370,7 @@ class TenantService:
 
         return {"status": "ok"}
 
-    def suspend_tenant(self, tenant_id: str) -> dict:
+    def suspend_tenant(self, tenant_id: str) -> dict[str, Any]:
         """Suspende un tenant (no se puede acceder pero se conservan datos).
 
         Args:
@@ -380,7 +381,7 @@ class TenantService:
         """
         return self._set_tenant_status(tenant_id, "suspended")
 
-    def activate_tenant(self, tenant_id: str) -> dict:
+    def activate_tenant(self, tenant_id: str) -> dict[str, Any]:
         """Reactiva un tenant suspendido.
 
         Args:
@@ -391,7 +392,7 @@ class TenantService:
         """
         return self._set_tenant_status(tenant_id, "active")
 
-    def delete_tenant(self, tenant_id: str) -> dict:
+    def delete_tenant(self, tenant_id: str) -> dict[str, Any]:
         """Elimina un tenant y todos sus datos asociados.
 
         Advertencia: Esta operacion es irreversible. Elimina:
@@ -469,7 +470,7 @@ class TenantService:
 
         return [self._tenant_row_to_dict(row) for row in rows]
 
-    def _set_tenant_status(self, tenant_id: str, status: str) -> dict:
+    def _set_tenant_status(self, tenant_id: str, status: str) -> dict[str, Any]:
         """Establece el estado de un tenant."""
         existing = self._db.fetchone("SELECT id, status FROM tenants WHERE id = ?", (tenant_id,))
         if not existing:
@@ -529,7 +530,7 @@ class TenantService:
     #   - check_feature() → self._features.check_feature()
     #   - _get_tenant_features() → self._features.get_all_features()
 
-    def set_feature(self, tenant_id: str, feature: str, enabled: bool) -> dict:
+    def set_feature(self, tenant_id: str, feature: str, enabled: bool) -> dict[str, Any]:
         """
         Habilita o deshabilita una feature para un tenant.
         Delega en TenantFeatureManager.
@@ -568,7 +569,7 @@ class TenantService:
         )
         return row["value"] if row else None
 
-    def set_setting(self, tenant_id: str, key: str, value: str) -> dict:
+    def set_setting(self, tenant_id: str, key: str, value: str) -> dict[str, Any]:
         """
         Establece un setting para un tenant.
 
@@ -605,7 +606,7 @@ class TenantService:
 
     # ── Rate limiting por tenant ──────────────────────────
 
-    def check_rate_limit(self, tenant_id: str, action: str = "api") -> dict:
+    def check_rate_limit(self, tenant_id: str, action: str = "api") -> dict[str, Any]:
         """Verifica el rate limit de un tenant para una accion.
 
         Usa Redis para contar requests en ventana deslizante.
@@ -634,7 +635,7 @@ class TenantService:
 
     # ── Helpers ───────────────────────────────────────────
 
-    def _tenant_row_to_dict(self, row: dict) -> dict:
+    def _tenant_row_to_dict(self, row: dict[str, Any]) -> dict[str, Any]:
         """Convierte una fila de la tabla tenants a dict con config parseado."""
         result = dict(row)
         if "config" in result and isinstance(result["config"], str):
@@ -644,7 +645,7 @@ class TenantService:
                 result["config"] = {}
         return result
 
-    def _cache_tenant(self, tenant_id: str, data: dict) -> None:
+    def _cache_tenant(self, tenant_id: str, data: dict[str, Any]) -> None:
         """Almacena datos del tenant en cache Redis."""
         self._redis.set_json(f"tenant:{tenant_id}", data, ttl=_TENANT_CACHE_TTL)
 

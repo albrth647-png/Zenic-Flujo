@@ -11,6 +11,7 @@ Determinista: mismo workflow → mismos errores.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 # Tools conocidas por el sistema
 KNOWN_TOOLS = {
@@ -62,7 +63,7 @@ class ValidationResult:
 class WorkflowValidator:
     """Valida definiciones de workflow compiladas."""
 
-    def validate(self, workflow: dict) -> ValidationResult:
+    def validate(self, workflow: dict[str, Any]) -> ValidationResult:
         """Valida un workflow completo.
 
         Args:
@@ -186,7 +187,7 @@ class WorkflowValidator:
 
     def validate_slot_completeness(
         self,
-        workflow: dict,
+        workflow: dict[str, Any],
         required_slots: tuple[str, ...],
     ) -> ValidationResult:
         """Valida que un workflow tenga todos los slots requeridos.

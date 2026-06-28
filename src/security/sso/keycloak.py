@@ -9,11 +9,12 @@ import os
 from src.data.database_manager import DatabaseManager
 from src.security.sso.constants import KEYCLOAK_REALM, KEYCLOAK_URL
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
 
-def auto_configure_keycloak(db: DatabaseManager) -> dict:
+def auto_configure_keycloak(db: DatabaseManager) -> dict[str, Any]:
     """Auto-configura Keycloak como IdP si no hay otros proveedores.
 
     Crea la configuracion del cliente Keycloak para Zenic-Flijo usando

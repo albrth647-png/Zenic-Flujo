@@ -5,7 +5,7 @@ Sprint 5.2 del Roadmap Competitivo.
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Any
 
 
 class PaginationCollector:
@@ -30,7 +30,7 @@ class PaginationCollector:
         self.max_pages = max_pages
         self.max_total_items = max_total_items
 
-    def collect_page_based(self, url: str, params: dict, response: dict, pages_left: int) -> dict:
+    def collect_page_based(self, url: str, params: dict[str, Any], response: dict[str, Any], pages_left: int) -> dict[str, Any]:
         if pages_left <= 0:
             return {"next_url": None, "next_params": None, "stop": True}
         current_page = int(params.get("page", 1))
@@ -58,7 +58,7 @@ class PaginationCollector:
         new_params["page"] = next_page
         return {"next_url": url, "next_params": new_params, "stop": False}
 
-    def collect_cursor_based(self, url: str, params: dict, response: dict, pages_left: int) -> dict:
+    def collect_cursor_based(self, url: str, params: dict[str, Any], response: dict[str, Any], pages_left: int) -> dict[str, Any]:
         if pages_left <= 0:
             return {"next_url": None, "next_params": None, "stop": True}
         body = response.get("body", {})
@@ -87,7 +87,7 @@ class PaginationCollector:
             new_params["cursor"] = next_cursor
         return {"next_url": url, "next_params": new_params, "stop": False}
 
-    def collect_offset_based(self, url: str, params: dict, response: dict, pages_left: int) -> dict:
+    def collect_offset_based(self, url: str, params: dict[str, Any], response: dict[str, Any], pages_left: int) -> dict[str, Any]:
         if pages_left <= 0:
             return {"next_url": None, "next_params": None, "stop": True}
         current_offset = int(params.get("offset", 0))

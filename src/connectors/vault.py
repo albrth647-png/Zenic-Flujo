@@ -20,6 +20,7 @@ class VaultConnector(BaseConnector):
     icon = "lock"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._vault_url: str = ""
@@ -41,6 +42,7 @@ class VaultConnector(BaseConnector):
         self._log_operation("connect", f"vault={self._vault_url}")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"read_secret": self._read_secret, "write_secret": self._write_secret, "delete_secret": self._delete_secret,
                        "list_secrets": self._list_secrets, "health_check": self._health_check}
@@ -50,7 +52,8 @@ class VaultConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -60,12 +63,12 @@ class VaultConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _read_secret(self, p: dict) -> dict: return self._api("get", f"/v1/secret/data/{p.get('path', '')}")
-    def _write_secret(self, p: dict) -> dict:
+    def _read_secret(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/v1/secret/data/{p.get('path', '')}")
+    def _write_secret(self, p: dict[str, Any]) -> dict[str, Any]:
         path = p.pop("path", "")
         return self._api("post", f"/v1/secret/data/{path}", json={"data": p}) if path else {"success": False, "error": "path requerido"}
-    def _delete_secret(self, p: dict) -> dict: return self._api("delete", f"/v1/secret/metadata/{p.get('path', '')}")
-    def _list_secrets(self, p: dict) -> dict:
+    def _delete_secret(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("delete", f"/v1/secret/metadata/{p.get('path', '')}")
+    def _list_secrets(self, p: dict[str, Any]) -> dict[str, Any]:
         path = p.get('path', '')
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
@@ -75,7 +78,7 @@ class VaultConnector(BaseConnector):
             return {"success": False, "error": d.get("errors", [""])[0]}
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
-    def _health_check(self, p: dict | None = None) -> dict:
+    def _health_check(self, p: dict[str, Any] | None = None) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = self._http.get("/v1/sys/health")

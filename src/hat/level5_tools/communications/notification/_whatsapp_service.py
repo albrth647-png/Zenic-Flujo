@@ -9,6 +9,7 @@ mensajes y templates de WhatsApp, cifrado/descifrado de tokens.
 from src.core.config import WHATSAPP_ENCRYPTION_KEY
 from src.core.db.sqlite_manager import DatabaseManager
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -30,7 +31,7 @@ class WhatsAppService:
             logger.error("Error descifrando token WhatsApp: %s", e)
             return None
 
-    def send_message(self, to: str, message: str) -> dict:
+    def send_message(self, to: str, message: str) -> dict[str, Any]:
         """Envía un mensaje de texto vía WhatsApp Cloud API."""
         token = self._get_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
@@ -77,7 +78,7 @@ class WhatsAppService:
     def send_template(
         self, to: str, template_name: str, language_code: str = "es",
         components: list[dict] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Envía un mensaje template (para fuera de ventana 24h)."""
         token = self._get_token()
         phone_number_id = self._db.get_setting("whatsapp_phone_number_id")
@@ -93,7 +94,7 @@ class WhatsAppService:
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             }
-            payload: dict = {
+            payload: dict[str, Any] = {
                 "messaging_product": "whatsapp",
                 "to": to,
                 "type": "template",
@@ -131,7 +132,7 @@ class WhatsAppService:
         logger.info("Configuración WhatsApp guardada (token cifrado)")
         return True
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Retorna estado de la configuración WhatsApp."""
         encrypted = self._db.get_setting("whatsapp_token")
         token = "" if not encrypted else (self._get_token() or "")

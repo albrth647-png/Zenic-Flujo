@@ -15,11 +15,12 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+from typing import Any
 
 OUTPUT_DIR = os.path.expanduser("~/.workflow_determinista/pdfs")
 
 
-def generate_invoice_pdf(invoice: dict, client: dict | None = None) -> str:
+def generate_invoice_pdf(invoice: dict[str, Any], client: dict[str, Any] | None = None) -> str:
     """Genera PDF de factura y devuelve el path del archivo.
 
     Args:
@@ -40,7 +41,7 @@ def generate_invoice_pdf(invoice: dict, client: dict | None = None) -> str:
         topMargin=20 * mm, bottomMargin=20 * mm,
     )
     styles = getSampleStyleSheet()
-    story: list = []
+    story: list[Any] = []
 
     # Header
     story.append(Paragraph(f"<b>FACTURA #{invoice['id']:06d}</b>", styles["Title"]))

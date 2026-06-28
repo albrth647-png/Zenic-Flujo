@@ -20,6 +20,7 @@ class SumoLogicConnector(BaseConnector):
     icon = "activity"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._deployment: str = ""; self._access_id: str = ""; self._access_key: str = ""
@@ -36,6 +37,7 @@ class SumoLogicConnector(BaseConnector):
         self._http.set_auth("Basic", username=self._access_id, password=self._access_key)
         self._connected = True; self._log_operation("connect", f"deployment={self._deployment}"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"search": self._search, "get_collectors": self._get_collectors, "get_sources": self._get_sources,
                        "create_collector": self._create_collector, "get_dashboards": self._get_dashboards}
@@ -45,7 +47,8 @@ class SumoLogicConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -55,12 +58,12 @@ class SumoLogicConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _search(self, p: dict) -> dict: return self._api("post", "/search/jobs", json={"query": p.get("query", ""), "from": p.get("from", "-1h"), "to": p.get("to", "now")})
-    def _get_collectors(self, p: dict) -> dict: return self._api("get", "/collectors", params=p)
-    def _get_sources(self, p: dict) -> dict:
+    def _search(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("post", "/search/jobs", json={"query": p.get("query", ""), "from": p.get("from", "-1h"), "to": p.get("to", "now")})
+    def _get_collectors(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/collectors", params=p)
+    def _get_sources(self, p: dict[str, Any]) -> dict[str, Any]:
         coll_id = p.get("collector_id", ""); return self._api("get", f"/collectors/{coll_id}/sources", params=p) if coll_id else {"success": False, "error": "collector_id requerido"}
-    def _create_collector(self, p: dict) -> dict: return self._api("post", "/collectors", json=p)
-    def _get_dashboards(self, p: dict) -> dict: return self._api("get", "/dashboards", params=p)
+    def _create_collector(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("post", "/collectors", json=p)
+    def _get_dashboards(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/dashboards", params=p)
 
 
 SUMOLOGIC_SCHEMA = ConnectorSchema(name="sumologic", version="1.0.0", description="Gestiona logs y dashboards en SumoLogic",

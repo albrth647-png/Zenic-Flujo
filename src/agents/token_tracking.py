@@ -154,12 +154,13 @@ class TokenCostTracker:
         self._pricing: dict[str, ModelPricing] = dict(DEFAULT_PRICING)
         self._budgets: dict[str, dict[str, float]] = {}  # tenant_id -> {daily, monthly, total}
         self._alerts: list[BudgetAlert] = []
-        self._alert_callbacks: list = []
+        self._alert_callbacks: list[Any] = []
         self._conn: sqlite3.Connection | None = None
         self._local_lock = threading.Lock()
         self._init_db()
 
     @classmethod
+    # legítimo: singleton wrapper, **kwargs se pasa a __init__ (skill §1.2)
     def get_instance(cls, **kwargs: Any) -> TokenCostTracker:
         """Get or create the singleton tracker."""
         if cls._instance is None:
@@ -447,6 +448,7 @@ class TokenCostTracker:
             budget_limit,
         )
 
+    # legítimo: callback dinámico, signature depende del evento (skill §1.2)
     def register_alert_callback(self, callback: Any) -> None:
         """Register a callback for budget alerts."""
         self._alert_callbacks.append(callback)

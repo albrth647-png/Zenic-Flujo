@@ -12,6 +12,7 @@ from src.core.logging import setup_logging
 # Fix Sprint 4 bug #52: centralizado en constants.py
 from src.workflow.constants import MAX_SUBWORKFLOW_DEPTH
 from src.workflow.step_executor import StepResult
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -29,7 +30,7 @@ class SubworkflowExecutionService:
     def __init__(self, repository):
         self._repository = repository
 
-    def execute(self, step: dict, context: dict) -> StepResult:
+    def execute(self, step: dict[str, Any], context: dict[str, Any]) -> StepResult:
         """Ejecuta un paso de tipo subworkflow."""
         from src.core.utils import resolve_variables
         from src.workflow.engine import WorkflowEngine

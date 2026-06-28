@@ -8,6 +8,7 @@ from src.core.logging import setup_logging
 from src.core.utils import generate_id
 from src.events.bus import EventBus
 from src.hat.level5_tools.business.invoice.repository import InvoiceRepository
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -21,7 +22,7 @@ class InvoiceService:
         self,
         client_name: str,
         client_email: str | None = None,
-        items: list | None = None,
+        items: list[Any] | None = None,
         tax_rate: float = 0.16,
         discount: float = 0.0,
         due_days: int = 30,
@@ -32,7 +33,7 @@ class InvoiceService:
         client_id: int | None = None,
         currency: str = "MXN",
         client_phone: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         items = items or []
         # Asegurar tipos numéricos para evitar errores si llegan como string
         safe_items = []
@@ -78,7 +79,7 @@ class InvoiceService:
         logger.info(f"Factura creada: {number} - ${total:.2f}")
         return invoice
 
-    def mark_paid(self, invoice_id: int, amount: float | None = None) -> dict | None:
+    def mark_paid(self, invoice_id: int, amount: float | None = None) -> dict[str, Any] | None:
         invoice = self._repo.mark_paid(invoice_id)
         if invoice:
             self._event_bus.publish(
@@ -90,7 +91,7 @@ class InvoiceService:
             )
         return invoice
 
-    def mark_overdue(self, invoice_id: int) -> dict | None:
+    def mark_overdue(self, invoice_id: int) -> dict[str, Any] | None:
         from datetime import datetime as dt_mod
 
         invoice = self._repo.get(invoice_id)
@@ -106,10 +107,10 @@ class InvoiceService:
             )
         return invoice
 
-    def cancel(self, invoice_id: int) -> dict | None:
+    def cancel(self, invoice_id: int) -> dict[str, Any] | None:
         return self._repo.update_status(invoice_id, "cancelled")
 
-    def get_invoice(self, invoice_id: int) -> dict | None:
+    def get_invoice(self, invoice_id: int) -> dict[str, Any] | None:
         return self._repo.get(invoice_id)
 
     def list_invoices(self, status: str | None = None, limit: int = 50, user_id: int | None = None) -> list[dict]:
@@ -118,5 +119,5 @@ class InvoiceService:
     def get_overdue_invoices(self) -> list[dict]:
         return self._repo.get_overdue()
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         return self._repo.get_stats()

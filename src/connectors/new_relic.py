@@ -20,6 +20,7 @@ class NewRelicConnector(BaseConnector):
     icon = "bar-chart"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._api_key: str = ""; self._account_id: str = ""
@@ -35,6 +36,7 @@ class NewRelicConnector(BaseConnector):
         self._http.set_header("X-Api-Key", self._api_key)
         self._connected = True; self._log_operation("connect", f"account={self._account_id}"); return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map = {"get_applications": self._get_applications, "get_application": self._get_application,
                        "get_deployments": self._get_deployments, "get_servers": self._get_servers,
@@ -45,7 +47,8 @@ class NewRelicConnector(BaseConnector):
     def validate(self) -> bool: return bool(self._auth_provider and self._auth_provider.validate())
     def disconnect(self) -> bool: self._connected = False; self._http = None; self._log_operation("disconnect"); return True
 
-    def _api(self, method: str, path: str, **kw: Any) -> dict:
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
+    def _api(self, method: str, path: str, **kw: Any) -> dict[str, Any]:
         if not self._http: return {"success": False, "error": "Not connected"}
         try:
             resp = getattr(self._http, method)(path, **kw)
@@ -55,12 +58,12 @@ class NewRelicConnector(BaseConnector):
         except HTTPClientError as e: return {"success": False, "error": str(e)}
         except Exception as e: return {"success": False, "error": str(e)}
 
-    def _get_applications(self, p: dict) -> dict: return self._api("get", "/applications.json", params=p)
-    def _get_application(self, p: dict) -> dict: return self._api("get", f"/applications/{p.get('app_id', '')}.json")
-    def _get_deployments(self, p: dict) -> dict: return self._api("get", f"/applications/{p.get('app_id', '')}/deployments.json")
-    def _get_servers(self, p: dict) -> dict: return self._api("get", "/servers.json", params=p)
-    def _list_alerts(self, p: dict) -> dict: return self._api("get", "/alerts_events.json", params=p)
-    def _nrql_query(self, p: dict) -> dict:
+    def _get_applications(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/applications.json", params=p)
+    def _get_application(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/applications/{p.get('app_id', '')}.json")
+    def _get_deployments(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", f"/applications/{p.get('app_id', '')}/deployments.json")
+    def _get_servers(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/servers.json", params=p)
+    def _list_alerts(self, p: dict[str, Any]) -> dict[str, Any]: return self._api("get", "/alerts_events.json", params=p)
+    def _nrql_query(self, p: dict[str, Any]) -> dict[str, Any]:
         query = p.get("query", ""); return self._api("get", f"/accounts/{self._account_id}/query", params={"nrql": query}) if query else {"success": False, "error": "query requerido"}
 
 

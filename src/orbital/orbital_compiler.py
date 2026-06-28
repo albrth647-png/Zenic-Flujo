@@ -90,7 +90,7 @@ class OrbitalCompileResult:
         self.orbital_resonance = orbital_resonance
         self.orbital_modes = orbital_modes or []
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status,
             "workflow": self.workflow,

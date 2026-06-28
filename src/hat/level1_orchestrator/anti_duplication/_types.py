@@ -23,5 +23,6 @@ class AntiDupResult(TypedDict, total=False):
     action: str
     layer_hit: str
     reason: str
+    # legítimo: cache dinámico del dispatch HAT
     cached_result: Any
     subscription_id: str | None

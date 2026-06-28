@@ -28,6 +28,7 @@ class DiscordConnector(BaseConnector):
     icon = "message-circle"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._bot_token: str = ""
@@ -60,6 +61,7 @@ class DiscordConnector(BaseConnector):
         self._log_operation("connect", "Bot token configurado")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Discord.
 

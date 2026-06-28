@@ -13,6 +13,7 @@ from __future__ import annotations
 from src.nlu.entities.base import CompileResult, Entity, Slot
 from src.nlu.fragments import get_fragments_by_intent
 from src.nlu.templates import TEMPLATES
+from typing import Any
 
 # Tools conocidas para validación suave
 KNOWN_TOOLS = {
@@ -183,7 +184,7 @@ class WorkflowCompiler:
             status="ready",
         )
 
-    def _find_template(self, intent_name: str) -> dict | None:
+    def _find_template(self, intent_name: str) -> dict[str, Any] | None:
         """Busca el template por nombre de intención."""
         for t in TEMPLATES:
             if t["name"] == intent_name:
@@ -257,7 +258,7 @@ class WorkflowCompiler:
 
     def _generate_explanation(
         self,
-        template: dict,
+        template: dict[str, Any],
         trigger_type: str,
         trigger_config: dict[str, object],
         steps: list[dict[str, object]],

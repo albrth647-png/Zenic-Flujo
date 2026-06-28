@@ -70,7 +70,7 @@ def _get_connector() -> WhatsAppConnector:
 
 
 @router.post("/send")
-async def send_message(req: SendMessageRequest) -> dict:
+async def send_message(req: SendMessageRequest) -> dict[str, Any]:
     """Enviar un mensaje de texto WhatsApp.
 
     Requiere que WhatsApp esté configurado (credenciales en settings).
@@ -88,7 +88,7 @@ async def send_message(req: SendMessageRequest) -> dict:
 
 
 @router.post("/send-template")
-async def send_template(req: SendTemplateRequest) -> dict:
+async def send_template(req: SendTemplateRequest) -> dict[str, Any]:
     """Enviar un mensaje template WhatsApp (template aprobado en Meta)."""
     connector = _get_connector()
     result = connector.execute("send_template_message", {
@@ -103,7 +103,7 @@ async def send_template(req: SendTemplateRequest) -> dict:
 
 
 @router.post("/send-media")
-async def send_media(req: SendMediaRequest) -> dict:
+async def send_media(req: SendMediaRequest) -> dict[str, Any]:
     """Enviar un mensaje con media (imagen, documento, audio, video) WhatsApp."""
     connector = _get_connector()
     result = connector.execute("send_media_message", {
@@ -118,7 +118,7 @@ async def send_media(req: SendMediaRequest) -> dict:
 
 
 @router.get("/templates")
-async def list_templates() -> dict:
+async def list_templates() -> dict[str, Any]:
     """Listar los templates de workflow que usan WhatsApp.
 
     Incluye templates de salida (notificaciones) y de entrada (trigger
@@ -153,7 +153,7 @@ async def list_templates() -> dict:
 
 
 @router.post("/webhook-test")
-async def webhook_test(req: WebhookTestRequest) -> dict:
+async def webhook_test(req: WebhookTestRequest) -> dict[str, Any]:
     """Simular un webhook de WhatsApp entrante para testing.
 
     Publica un evento `whatsapp.message.received` en el EventBus para probar
@@ -183,7 +183,7 @@ async def webhook_test(req: WebhookTestRequest) -> dict:
 
 
 @router.get("/status")
-async def whatsapp_status() -> dict:
+async def whatsapp_status() -> dict[str, Any]:
     """Estado de la configuración de WhatsApp.
 
     Indica si las credenciales están configuradas y qué versión de API se usa.

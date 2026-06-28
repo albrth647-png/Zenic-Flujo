@@ -11,6 +11,7 @@ from email.mime.text import MIMEText
 
 from src.core.db.sqlite_manager import DatabaseManager
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -23,7 +24,7 @@ class EmailService:
 
     def send_email(
         self, to: str, subject: str, body: str, template: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Envía un correo electrónico vía SMTP."""
         smtp_server = self._db.get_setting("smtp_server")
         if not smtp_server:
@@ -79,7 +80,7 @@ class EmailService:
         logger.info("Configuración SMTP guardada")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         """Prueba la conexión SMTP."""
         smtp_server = self._db.get_setting("smtp_server")
         if not smtp_server:

@@ -12,6 +12,7 @@ Autenticación: Bot Token (guardado cifrado en DB)
 
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -36,7 +37,7 @@ class SlackService:
         text: str,
         thread_ts: str = "",
         blocks: list[dict] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía un mensaje a un canal o DM de Slack.
 
@@ -85,7 +86,7 @@ class SlackService:
             logger.error(f"Slack exception: {e}")
             return {"status": "failed", "error": str(e)}
 
-    def list_channels(self, limit: int = 100) -> dict:
+    def list_channels(self, limit: int = 100) -> dict[str, Any]:
         """
         Lista los canales a los que el bot tiene acceso.
 
@@ -126,7 +127,7 @@ class SlackService:
         content: str = "",
         filename: str = "file.txt",
         title: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Sube un archivo a Slack.
 
@@ -192,7 +193,7 @@ class SlackService:
             logger.error(f"Slack upload_file exception: {e}")
             return {"status": "failed", "error": str(e)}
 
-    def get_user_info(self, user_id: str) -> dict:
+    def get_user_info(self, user_id: str) -> dict[str, Any]:
         """Obtiene información de un usuario de Slack."""
         token = self._get_token()
         if not token:
@@ -229,7 +230,7 @@ class SlackService:
         logger.info("Slack: Bot token guardado")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         """Verifica la conexión con Slack."""
         token = self._get_token()
         if not token:
@@ -254,7 +255,7 @@ class SlackService:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Estado de la integración Slack."""
         token = self._get_token()
         return {
@@ -269,7 +270,7 @@ class SlackService:
     # ── Tool Definition ───────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "slack",

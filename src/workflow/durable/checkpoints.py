@@ -61,6 +61,7 @@ def get_state(db: DatabaseManager, execution_id: int) -> WorkflowState | None:
     return state
 
 
+# legítimo: objeto a serializar por json.dumps, tipo dinámico
 def _json_default(obj: Any) -> str:
     """Serializa objetos no-JSON por defecto."""
     if hasattr(obj, "isoformat"):

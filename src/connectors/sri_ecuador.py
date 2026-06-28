@@ -243,6 +243,7 @@ class SRIEcuadorConnector(BaseConnector):
     _POLL_INTERVAL_SECONDS: int = 5
     _POLL_MAX_ATTEMPTS: int = 17_280  # 24h / 5s
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._ruc: str = ""
@@ -304,6 +305,7 @@ class SRIEcuadorConnector(BaseConnector):
         self._log_operation("connect", f"RUC={self._ruc} ambiente={self._ambiente}")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         action_map: dict[str, Any] = {
             "issue": self._issue,

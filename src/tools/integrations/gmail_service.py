@@ -16,6 +16,7 @@ from email.mime.text import MIMEText
 
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -36,7 +37,7 @@ class GmailService:
         html: bool = False,
         cc: str = "",
         bcc: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Envía un email vía Gmail API.
 
@@ -90,7 +91,7 @@ class GmailService:
         self,
         query: str = "",
         max_results: int = 10,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Busca emails usando la query syntax de Gmail.
 
@@ -122,7 +123,7 @@ class GmailService:
             "mode": "demo",
         }
 
-    def get_message(self, message_id: str) -> dict:
+    def get_message(self, message_id: str) -> dict[str, Any]:
         """
         Obtiene un email completo por su ID.
 
@@ -151,7 +152,7 @@ class GmailService:
             "mode": "demo",
         }
 
-    def list_labels(self) -> dict:
+    def list_labels(self) -> dict[str, Any]:
         """Lista las labels de la bandeja de entrada."""
         credentials = self._get_credentials()
         if not credentials:
@@ -178,7 +179,7 @@ class GmailService:
         logger.info("Gmail: Credenciales OAuth2 guardadas")
         return True
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, Any]:
         """Verifica que las credenciales de Gmail estén configuradas."""
         credentials = self._get_credentials()
         if not credentials:
@@ -190,7 +191,7 @@ class GmailService:
             "has_credentials": True,
         }
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Estado de la integración Gmail."""
         credentials = self._get_credentials()
         return {
@@ -199,7 +200,7 @@ class GmailService:
             "has_refresh_token": bool(credentials and credentials.get("refresh_token")),
         }
 
-    def _get_credentials(self) -> dict | None:
+    def _get_credentials(self) -> dict[str, Any] | None:
         """Obtiene las credenciales de Gmail desde la DB."""
         creds_json = self._db.get_setting("gmail_credentials")
         if not creds_json:
@@ -212,7 +213,7 @@ class GmailService:
     # ── Tool Definition ───────────────────────────────────
 
     @staticmethod
-    def get_tool_definition() -> dict:
+    def get_tool_definition() -> dict[str, Any]:
         """Retorna la definición de la tool para el editor visual."""
         return {
             "tool": "gmail",

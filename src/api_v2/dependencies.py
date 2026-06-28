@@ -18,14 +18,27 @@ Todas las dependencias usan singletons existentes del proyecto.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, HTTPException, Query, Request, status
 
 from src.api_v2.models import PaginationParams
 
+# TYPE_CHECKING: imports solo para type checkers (mypy/pyright).
+# No se ejecutan en runtime, evitando imports circulares.
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager
+    from src.core.db import RedisService
+    from src.core.observability.telemetry import TelemetryService
+    from src.core.security.rbac import RBACManager
+    from src.nlu.pipeline import Pipeline
+    from src.sdk.registry import ConnectorRegistry
+    from src.tenant.service import TenantService
+    from src.workflow.engine import WorkflowEngine
+    from src.workflow.repository import WorkflowRepository
 
-async def get_db() -> Any:
+
+async def get_db() -> DatabaseManager:
     """Obtiene la instancia singleton de DatabaseManager.
 
     Returns:
@@ -36,7 +49,7 @@ async def get_db() -> Any:
     return DatabaseManager()
 
 
-async def get_redis() -> Any:
+async def get_redis() -> RedisService:
     """Obtiene la instancia singleton de RedisService.
 
     Returns:
@@ -47,7 +60,7 @@ async def get_redis() -> Any:
     return RedisService()
 
 
-async def get_workflow_engine() -> Any:
+async def get_workflow_engine() -> WorkflowEngine:
     """Obtiene la instancia singleton de WorkflowEngine.
 
     Returns:
@@ -58,7 +71,7 @@ async def get_workflow_engine() -> Any:
     return WorkflowEngine()
 
 
-async def get_workflow_repository() -> Any:
+async def get_workflow_repository() -> WorkflowRepository:
     """Obtiene una nueva instancia de WorkflowRepository.
 
     Returns:
@@ -69,7 +82,7 @@ async def get_workflow_repository() -> Any:
     return WorkflowRepository()
 
 
-async def get_nlu_pipeline() -> Any:
+async def get_nlu_pipeline() -> Pipeline:
     """Obtiene una nueva instancia del Pipeline NLU.
 
     Returns:
@@ -80,7 +93,7 @@ async def get_nlu_pipeline() -> Any:
     return Pipeline()
 
 
-async def get_connector_registry() -> Any:
+async def get_connector_registry() -> ConnectorRegistry:
     """Obtiene la instancia singleton de ConnectorRegistry.
 
     Returns:
@@ -91,7 +104,7 @@ async def get_connector_registry() -> Any:
     return ConnectorRegistry()
 
 
-async def get_tenant_service() -> Any:
+async def get_tenant_service() -> TenantService:
     """Obtiene la instancia singleton de TenantService.
 
     Returns:
@@ -102,7 +115,7 @@ async def get_tenant_service() -> Any:
     return TenantService()
 
 
-async def get_rbac_manager() -> Any:
+async def get_rbac_manager() -> RBACManager:
     """Obtiene la instancia singleton de RBACManager.
 
     Returns:
@@ -113,7 +126,7 @@ async def get_rbac_manager() -> Any:
     return RBACManager()
 
 
-async def get_telemetry_service() -> Any:
+async def get_telemetry_service() -> TelemetryService:
     """Obtiene la instancia singleton de TelemetryService.
 
     Returns:

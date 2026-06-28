@@ -28,6 +28,7 @@ class IntercomConnector(BaseConnector):
     icon = "headphones"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._base_url: str = "https://api.intercom.io"
@@ -65,6 +66,7 @@ class IntercomConnector(BaseConnector):
         self._log_operation("connect", "Access Token configurado")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Intercom.
 

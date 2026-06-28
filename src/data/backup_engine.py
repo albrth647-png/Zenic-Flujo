@@ -11,6 +11,7 @@ from pathlib import Path
 
 from src.data.database_manager import DatabaseManager
 from src.utils.logger import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -116,7 +117,7 @@ class BackupEngine:
             except OSError as e:
                 logger.warning(f"No se pudo eliminar backup antiguo {old_backup}: {e}")
 
-    def get_backup_info(self) -> dict:
+    def get_backup_info(self) -> dict[str, Any]:
         """Retorna información sobre los backups disponibles."""
         from src.config import DATA_DIR
 

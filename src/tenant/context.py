@@ -8,8 +8,9 @@ Proporciona funciones para obtener/establecer el tenant_id del hilo actual.
 
 from __future__ import annotations
 
+import types
+
 import threading
-from typing import Any
 
 # ── Thread-Local Tenant Context ───────────────────────────────
 
@@ -51,5 +52,5 @@ class TenantContext:
         set_current_tenant_id(self._new_tenant_id)
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None) -> None:
         set_current_tenant_id(self._old_tenant_id)

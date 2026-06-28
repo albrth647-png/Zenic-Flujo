@@ -53,6 +53,7 @@ from src.nlu.normalizer import normalize
 from src.nlu.slot_filler import SlotFiller
 from src.nlu.tokenizer import tokenize
 from src.nlu.validator import WorkflowValidator
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -108,7 +109,7 @@ class Pipeline:
         return self._guardrails
 
     @property
-    def fallback_stats(self) -> dict:
+    def fallback_stats(self) -> dict[str, Any]:
         """Estadísticas de la jerarquía de fallback."""
         return self._fallback_orchestrator.get_stats()
 
@@ -120,7 +121,7 @@ class Pipeline:
         lang: str | None = None,
         enable_guardrails: bool = True,
         enable_fallback: bool = True,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Pipeline inteligente con guardrails + fallback hierarchy (Fase 3).
 
         Flujo:
@@ -138,7 +139,7 @@ class Pipeline:
         Returns:
             Dict con: success, result, guardrails_result, fallback_result
         """
-        result: dict = {
+        result: dict[str, Any] = {
             "success": False,
             "result": None,
             "guardrails_result": None,
@@ -171,7 +172,7 @@ class Pipeline:
             def _det_func(text_input: str, lang_input: str) -> CompileResult:
                 return self.compile(text_input, lang_input)
 
-            def _orbital_func(text_input: str, ctx: dict | None = None) -> object:
+            def _orbital_func(text_input: str, ctx: dict[str, Any] | None = None) -> object:
                 return self._orbital.compile(text_input, ctx)
 
             def _ai_func(text_input: str, lang_input: str) -> AIGenerationResult:
@@ -325,7 +326,7 @@ class Pipeline:
         self,
         text: str,
         lang: str | None = None,
-        context: dict | None = None,
+        context: dict[str, Any] | None = None,
     ):
         """Ejecuta el pipeline completo + simulación (etapas 1-12).
 
@@ -466,7 +467,7 @@ class Pipeline:
         self,
         text: str,
         lang: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Compila un workflow con guardrails (Fase 3).
 
         Igual que smart_compile pero sin fallback hierarchy.
@@ -474,7 +475,7 @@ class Pipeline:
         """
         return self.smart_compile(text, lang, enable_guardrails=True, enable_fallback=False)
 
-    def get_fallback_stats(self) -> dict:
+    def get_fallback_stats(self) -> dict[str, Any]:
         """Retorna estadísticas de la jerarquía de fallback."""
         return self._fallback_orchestrator.get_stats()
 
@@ -510,7 +511,7 @@ def compile_workflow(text: str) -> CompileResult:
     return Pipeline().compile(text)
 
 
-def simulate_workflow(text: str, context: dict | None = None):
+def simulate_workflow(text: str, context: dict[str, Any] | None = None):
     """Función rápida para simular un workflow desde lenguaje natural.
 
     Args:

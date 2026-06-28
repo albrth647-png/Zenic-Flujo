@@ -111,6 +111,7 @@ async def lifespan(app: FastAPI):
     logger.info("Zenic-Flijo API v2 cerrada correctamente")
 
 
+# legítimo: DatabaseManager no tipado por compatibilidad
 def _ensure_api_v2_tables(db: Any) -> None:
     """Crea las tablas adicionales necesarias para la API v2."""
     conn = db.get_connection()

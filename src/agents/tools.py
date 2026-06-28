@@ -60,7 +60,8 @@ class ToolInvocation:
     agent_id: str = ""
     tool_id: str = ""
     parameters: dict[str, Any] = field(default_factory=dict)
-    result: Any = None
+    # legítimo: resultado dinámico de dispatch HAT, tipo depende del especialista
+    result: Any | None = None
     error: str | None = None
     started_at: float = 0.0
     completed_at: float = 0.0

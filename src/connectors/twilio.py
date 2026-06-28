@@ -29,6 +29,7 @@ class TwilioConnector(BaseConnector):
     icon = "phone"
     author = "Zenic-Flijo"
 
+    # legítimo: wrapper genérico. **kwargs se pasa a super().__init__ (skill §1.2)
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._account_sid: str = ""
@@ -66,6 +67,7 @@ class TwilioConnector(BaseConnector):
         self._log_operation("connect", f"account_sid={self._account_sid[:8]}...")
         return True
 
+    # legítimo: execute() retorna JSON dinámico de API externa (skill §9.1)
     def execute(self, action: str, params: dict[str, Any]) -> Any:
         """Ejecuta una accion del conector Twilio.
 

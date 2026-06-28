@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from src.core.logging import setup_logging
+from typing import Any
 
 logger = setup_logging(__name__)
 
@@ -130,7 +131,7 @@ class AIConfig:
                 config.model = model
             self._detect_active_provider()
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, Any]:
         """Retorna estado de todos los proveedores (para API)."""
         return {
             "active_provider": self.active_provider.value,

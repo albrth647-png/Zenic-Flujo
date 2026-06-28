@@ -19,6 +19,11 @@ Endpoints de autenticacion, autorizacion y gestion de API keys:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.db import DatabaseManager, RedisService
+
 import hashlib
 import json
 import secrets
@@ -58,8 +63,8 @@ _API_KEY_PREFIX = "zf_"
 )
 async def login(
     request: TokenRequest,
-    db: Any = Depends(get_db),
-    redis: Any = Depends(get_redis),
+    db: DatabaseManager = Depends(get_db),
+    redis: RedisService = Depends(get_redis),
 ) -> TokenResponse:
     """Autentica un usuario y retorna tokens de acceso."""
     import bcrypt
@@ -149,7 +154,7 @@ async def login(
 )
 async def logout(
     user: dict[str, Any] = Depends(get_current_user),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Cierra la sesion del usuario actual."""
     db.audit("user.logout", f"Usuario '{user.get('username')}' cerro sesion", user_id=user.get("user_id"))
@@ -166,7 +171,7 @@ async def logout(
 )
 async def refresh_token(
     request: RefreshTokenRequest,
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> TokenResponse:
     """Refresca el token de acceso usando un refresh token."""
     from src.core.repositories import UserRepository
@@ -230,7 +235,7 @@ async def refresh_token(
 async def create_api_key(
     key_data: APIKeyCreate,
     user: dict[str, Any] = Depends(require_permission("settings", "create")),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> APIKeyResponse:
     """Crea una nueva API key."""
     # Generar API key
@@ -285,7 +290,7 @@ async def create_api_key(
 )
 async def list_api_keys(
     user: dict[str, Any] = Depends(get_current_user),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> list[APIKeyResponse]:
     """Lista las API keys del usuario."""
     keys = db.fetchall(
@@ -329,7 +334,7 @@ async def list_api_keys(
 async def revoke_api_key(
     key_id: str,
     user: dict[str, Any] = Depends(require_permission("settings", "delete")),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> None:
     """Revoca una API key."""
     key_row = db.fetchone("SELECT id FROM api_keys WHERE id = ? AND user_id = ?", (key_id, user.get("user_id", 1)))
@@ -351,7 +356,7 @@ async def revoke_api_key(
 async def enable_mfa(
     request: MFAEnableRequest,
     user: dict[str, Any] = Depends(get_current_user),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Habilita MFA para el usuario actual."""
     # Verificar si ya tiene MFA habilitado
@@ -400,7 +405,7 @@ async def enable_mfa(
 async def verify_mfa(
     request: MFAVerifyRequest,
     user: dict[str, Any] = Depends(get_current_user),
-    db: Any = Depends(get_db),
+    db: DatabaseManager = Depends(get_db),
 ) -> dict[str, Any]:
     """Verifica un codigo MFA (TOTP RFC 6238 real o backup codes).
 
